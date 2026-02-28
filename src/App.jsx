@@ -134,7 +134,7 @@ const C = {
 const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
   prezzoVenditaMq: 3200, costoRistMq: 500, durataOp: 8,
-  oneriComunali: 5000, costiProfessionisti: 15000, provvigioniPct: 0.03, bufferPct: 0.15, tasseAcquistoPct: 0.09,
+  oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
 };
@@ -231,7 +231,7 @@ function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, not
   );
 }
 function DashPctInput({ label, value, onChange, note, disabled }) {
-  return <DashInput label={label} value={Math.round(value * 1000) / 10} onChange={(v) => onChange(v / 100)} suffix="%" step={0.5} min={-100} max={100} note={note} disabled={disabled} />;
+  return <DashInput label={label} value={Math.round((value || 0) * 1000) / 10} onChange={(v) => onChange(v / 100)} suffix="%" step={0.5} min={-100} max={100} note={note} disabled={disabled} />;
 }
 function DataRow({ label, value, highlight, bold, border = true }) {
   return (
@@ -511,7 +511,8 @@ export default function App() {
     const tasseAcquisto = d.prezzoAcquisto * d.tasseAcquistoPct;
     const speseBancarie = d.speseBancarieSomma * d.speseBancariePct;
     const interessi = d.interessiSomma * d.interessiPct;
-    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + speseBancarie + interessi;
+    const provvigioniIn = d.prezzoAcquisto * (d.provvigioniInPct || 0);
+    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + (d.notaio || 0) + provvigioniIn + speseBancarie + interessi;
     const costiFraz = costoRistTot + d.oneriComunali + d.costiProfessionisti + buffer + tasseAcquisto + altriCosti;
     const inv = d.prezzoAcquisto + costiFraz;
     const mqU = d.numUnita > 0 ? d.metratura / d.numUnita : 0;
@@ -530,7 +531,7 @@ export default function App() {
       const ms = Math.max(1, d.durataOp + mD), ro = i > 0 ? m / i : 0;
       return { margine: m, roi: ro, roiAnn: i > 0 && ms > 0 ? ro * (12 / ms) : 0, durata: ms, investimento: i };
     }
-    return { costoRistTot, buffer, tasseAcquisto, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
+    return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
 
@@ -955,7 +956,9 @@ export default function App() {
               <DashInput label="Ristrutturazione/mq" value={data.costoRistMq} onChange={(v) => upd("costoRistMq", v)} suffix="€/mq" step={50} note="Comprensivo di impiantistica" disabled={viewOnly} />
               <DashInput label="Oneri comunali" value={data.oneriComunali} onChange={(v) => upd("oneriComunali", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Professionisti" value={data.costiProfessionisti} onChange={(v) => upd("costiProfessionisti", v)} suffix="€" step={1000} disabled={viewOnly} />
-              <DashPctInput label="Provvigioni agenzia" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} disabled={viewOnly} />
+              <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} />
+              <DashPctInput label="Provvigioni agenzia (OUT)" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} note="Sulla vendita" disabled={viewOnly} />
+              <DashInput label="Notaio" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashPctInput label="Tasse acquisto (società)" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Imposta di registro: 9%" disabled={viewOnly} />
               <DashInput label="Allacciamenti utenze" value={data.allacciamentiUtenze} onChange={(v) => upd("allacciamentiUtenze", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} />
@@ -983,6 +986,8 @@ export default function App() {
                 <DataRow label="Ristrutturazione + impianti" value={fmtEur(calc.costoRistTot)} />
                 <DataRow label="Oneri comunali" value={fmtEur(data.oneriComunali)} />
                 <DataRow label="Professionisti" value={fmtEur(data.costiProfessionisti)} />
+                <DataRow label="Provvigioni IN" value={fmtEur(Math.round(calc.provvigioniIn))} />
+                <DataRow label="Notaio" value={fmtEur(data.notaio || 0)} />
                 <DataRow label="Tasse acquisto" value={fmtEur(Math.round(calc.tasseAcquisto))} />
                 <DataRow label="Allacciamenti utenze" value={fmtEur(data.allacciamentiUtenze)} />
                 <DataRow label="Bollette Gas, Luce ecc" value={fmtEur(data.bolletteGasLuce)} />
