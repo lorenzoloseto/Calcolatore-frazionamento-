@@ -56,6 +56,14 @@ const DB = {
     await supabase.auth.signOut();
     this._user = null;
   },
+  async ensureProfile(user) {
+    if (!user) return;
+    const { error } = await supabase.from("profiles").upsert(
+      { id: user.id, name: user.name, email: user.email },
+      { onConflict: "id" }
+    );
+    if (error) console.warn("ensureProfile:", error.message);
+  },
   async saveProject(pd) {
     if (!this._user) return { ok: false, error: "Non autenticato" };
     const body = { name: pd.name, data: pd.data, scenari: pd.scenari, comparabili: pd.comparabili, rist_items: pd.ristItems };
@@ -319,6 +327,7 @@ export default function App() {
           email: session.user.email,
         };
         DB._user = u;
+        DB.ensureProfile(u);
         setUser(u);
         setAuthScreen(null);
         setAuthLoading(false);
@@ -333,6 +342,7 @@ export default function App() {
           email: session.user.email,
         };
         DB._user = u;
+        DB.ensureProfile(u);
         setUser(u);
         setAuthScreen(null);
         setAuthLoading(false);
