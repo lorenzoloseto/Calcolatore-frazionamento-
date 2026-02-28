@@ -7,7 +7,7 @@ import { createClient } from "@supabase/supabase-js";
 // ============================================================
 
 // ============================================================
-// SUPABASE CLIENT — Libreria ufficiale
+// SUPABASE CLIENT — Libreria ufficial
 // ============================================================
 const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
@@ -310,8 +310,9 @@ export default function App() {
 
   // Gestisci il callback OAuth e cambi di sessione
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === "SIGNED_IN" && session?.user) {
+    // 1. Controlla se c'è già una sessione attiva (anche dal redirect OAuth)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
         const u = {
           id: session.user.id,
           name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Utente",
@@ -320,6 +321,21 @@ export default function App() {
         DB._user = u;
         setUser(u);
         setAuthScreen(null);
+        setAuthLoading(false);
+      }
+    });
+    // 2. Ascolta cambi futuri di sessione
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") && session?.user) {
+        const u = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Utente",
+          email: session.user.email,
+        };
+        DB._user = u;
+        setUser(u);
+        setAuthScreen(null);
+        setAuthLoading(false);
       } else if (event === "SIGNED_OUT") {
         DB._user = null;
         setUser(null);
