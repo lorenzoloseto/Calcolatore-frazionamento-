@@ -773,6 +773,18 @@ export default function App() {
             </div>
           </div>
         )}
+        {showPopup && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShowPopup(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 8, padding: "28px 24px", maxWidth: 420, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, textAlign: "center" }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <span style={{ color: C.accent, fontSize: 22 }}>★</span>
+              </div>
+              <div style={{ color: C.dark, fontSize: 20, fontWeight: 700, fontFamily: "'Georgia', serif", marginBottom: 8 }}>Tecnologia per studenti Reinnova</div>
+              <div style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", marginBottom: 24 }}>Tecnologia esclusiva per gli studenti del programma Reinnova.</div>
+              <button onClick={() => setShowPopup(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 32px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 8px rgba(196,132,29,0.3)" }}>Ho capito</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
