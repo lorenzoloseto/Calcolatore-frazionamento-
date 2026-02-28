@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { createClient } from "@supabase/supabase-js";
 // ============================================================
 // CALCOLATORE FRAZIONAMENTO IMMOBILIARE — V2 con Auth & Salvataggio
 // Aesthetic: Il Sole 24 Ore / Bloomberg — professional finance
@@ -6,129 +7,103 @@ import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 // ============================================================
 
 // ============================================================
-// SUPABASE SERVICE — Collegamento reale al database
+// SUPABASE CLIENT — Libreria ufficiale
 // ============================================================
 const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
+const supabase = createClient(SB_URL, SB_KEY);
 
 const DB = {
-  _token: null, _user: null,
-  _init() {
-    try { this._token = localStorage.getItem("sb_token") || null; this._user = JSON.parse(localStorage.getItem("sb_user") || "null"); } catch { this._token = null; this._user = null; }
+  _user: null,
+  async _getUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) { this._user = null; return null; }
+    this._user = { id: user.id, name: user.user_metadata?.name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Utente", email: user.email };
+    return this._user;
   },
-  _setSession(token, user) {
-    this._token = token; this._user = user;
-    if (token) localStorage.setItem("sb_token", token); else localStorage.removeItem("sb_token");
-    if (user) localStorage.setItem("sb_user", JSON.stringify(user)); else localStorage.removeItem("sb_user");
-  },
-  _h(auth = true) {
-    const h = { "apikey": SB_KEY, "Content-Type": "application/json" };
-    if (auth && this._token) h["Authorization"] = `Bearer ${this._token}`;
-    return h;
+  getUser() {
+    const session = JSON.parse(localStorage.getItem(`sb-${SB_URL.split("//")[1].split(".")[0]}-auth-token`) || "null");
+    if (!session?.user) { this._user = null; return null; }
+    const u = session.user;
+    this._user = { id: u.id, name: u.user_metadata?.name || u.user_metadata?.full_name || u.email?.split("@")[0] || "Utente", email: u.email };
+    return this._user;
   },
   async register(name, email, password) {
-    try {
-      const res = await fetch(`${SB_URL}/auth/v1/signup`, { method: "POST", headers: this._h(false), body: JSON.stringify({ email, password, data: { name } }) });
-      const d = await res.json();
-      if (d.error || d.msg) return { ok: false, error: d.error?.message || d.msg || "Errore registrazione" };
-      if (d.access_token) { const u = { id: d.user.id, name, email }; this._setSession(d.access_token, u); return { ok: true, user: u }; }
-      if (d.id) return { ok: true, user: null, confirmEmail: true };
-      return { ok: false, error: "Errore sconosciuto" };
-    } catch { return { ok: false, error: "Errore di rete" }; }
+    const { data, error } = await supabase.auth.signUp({ email, password, options: { data: { name } } });
+    if (error) return { ok: false, error: error.message };
+    if (data.user && !data.session) return { ok: true, user: null, confirmEmail: true };
+    if (data.user && data.session) {
+      this._user = { id: data.user.id, name, email };
+      return { ok: true, user: this._user };
+    }
+    return { ok: false, error: "Errore sconosciuto" };
   },
   async login(email, password) {
-    try {
-      const res = await fetch(`${SB_URL}/auth/v1/token?grant_type=password`, { method: "POST", headers: this._h(false), body: JSON.stringify({ email, password }) });
-      const d = await res.json();
-      if (!res.ok || d.error) return { ok: false, error: d.error_description || d.error?.message || "Credenziali non valide" };
-      const u = { id: d.user.id, name: d.user.user_metadata?.name || email.split("@")[0], email };
-      this._setSession(d.access_token, u);
-      return { ok: true, user: u };
-    } catch { return { ok: false, error: "Errore di rete" }; }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { ok: false, error: error.message };
+    this._user = { id: data.user.id, name: data.user.user_metadata?.name || email.split("@")[0], email };
+    return { ok: true, user: this._user };
   },
-  loginWithGoogle() {
-    const redirectTo = window.location.origin + window.location.pathname;
-    window.location.href = `${SB_URL}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`;
+  async loginWithGoogle() {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin + window.location.pathname }
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
   },
-  handleOAuthCallback() {
-    // Supabase mette i token nel hash fragment dopo il redirect da Google
-    const hash = window.location.hash;
-    if (!hash || !hash.includes("access_token")) return false;
-    const params = new URLSearchParams(hash.substring(1));
-    const token = params.get("access_token");
-    if (!token) return false;
-    this._token = token;
-    localStorage.setItem("sb_token", token);
-    // Pulisci l'URL
-    window.history.replaceState(null, "", window.location.pathname);
-    return true;
+  async logout() {
+    await supabase.auth.signOut();
+    this._user = null;
   },
-  async fetchUserFromToken() {
-    if (!this._token) return null;
-    try {
-      const res = await fetch(`${SB_URL}/auth/v1/user`, { headers: this._h() });
-      if (!res.ok) { this._setSession(null, null); return null; }
-      const d = await res.json();
-      const u = { id: d.id, name: d.user_metadata?.name || d.user_metadata?.full_name || d.email?.split("@")[0] || "Utente", email: d.email };
-      this._setSession(this._token, u);
-      return u;
-    } catch { this._setSession(null, null); return null; }
-  },
-  logout() {
-    if (this._token) fetch(`${SB_URL}/auth/v1/logout`, { method: "POST", headers: this._h() }).catch(() => {});
-    this._setSession(null, null);
-  },
-  getUser() { this._init(); return this._user; },
   async saveProject(pd) {
     if (!this._user) return { ok: false, error: "Non autenticato" };
     const body = { name: pd.name, data: pd.data, scenari: pd.scenari, comparabili: pd.comparabili, rist_items: pd.ristItems };
-    try {
-      if (pd.id) {
-        const res = await fetch(`${SB_URL}/rest/v1/projects?id=eq.${pd.id}`, { method: "PATCH", headers: { ...this._h(), "Prefer": "return=representation" }, body: JSON.stringify(body) });
-        const arr = await res.json(); if (!res.ok) return { ok: false, error: "Errore salvataggio" }; return { ok: true, project: arr[0] };
-      } else {
-        body.owner_id = this._user.id; body.owner_name = this._user.name;
-        const res = await fetch(`${SB_URL}/rest/v1/projects`, { method: "POST", headers: { ...this._h(), "Prefer": "return=representation" }, body: JSON.stringify(body) });
-        const arr = await res.json(); if (!res.ok) return { ok: false, error: "Errore creazione" }; return { ok: true, project: arr[0] };
-      }
-    } catch { return { ok: false, error: "Errore di rete" }; }
+    if (pd.id) {
+      const { data, error } = await supabase.from("projects").update(body).eq("id", pd.id).select().single();
+      if (error) return { ok: false, error: error.message };
+      return { ok: true, project: data };
+    } else {
+      body.owner_id = this._user.id;
+      body.owner_name = this._user.name;
+      const { data, error } = await supabase.from("projects").insert(body).select().single();
+      if (error) return { ok: false, error: error.message };
+      return { ok: true, project: data };
+    }
   },
   async getProjects() {
     if (!this._user) return [];
-    try {
-      const [ownRes, sharesRes] = await Promise.all([
-        fetch(`${SB_URL}/rest/v1/projects?owner_id=eq.${this._user.id}&order=updated_at.desc`, { headers: this._h() }),
-        fetch(`${SB_URL}/rest/v1/project_shares?shared_with_email=eq.${encodeURIComponent(this._user.email)}&select=project_id,permission`, { headers: this._h() }),
-      ]);
-      const own = await ownRes.json() || [];
-      const shares = await sharesRes.json() || [];
-      let shared = [];
-      if (shares.length > 0) {
-        const ids = shares.map((s) => s.project_id);
-        const shRes = await fetch(`${SB_URL}/rest/v1/projects?id=in.(${ids.join(",")})&order=updated_at.desc`, { headers: this._h() });
-        const shProjects = await shRes.json() || [];
-        shared = shProjects.map((p) => { const sh = shares.find((s) => s.project_id === p.id); return { ...p, _shared: true, _permission: sh?.permission || "view" }; });
-      }
-      return [...own, ...shared];
-    } catch { return []; }
+    const { data: own } = await supabase.from("projects").select("*").eq("owner_id", this._user.id).order("updated_at", { ascending: false });
+    const { data: shares } = await supabase.from("project_shares").select("project_id, permission").eq("shared_with_email", this._user.email);
+    let shared = [];
+    if (shares && shares.length > 0) {
+      const ids = shares.map((s) => s.project_id);
+      const { data: shProjects } = await supabase.from("projects").select("*").in("id", ids).order("updated_at", { ascending: false });
+      shared = (shProjects || []).map((p) => {
+        const sh = shares.find((s) => s.project_id === p.id);
+        return { ...p, _shared: true, _permission: sh?.permission || "view" };
+      });
+    }
+    return [...(own || []), ...shared];
   },
   async deleteProject(pid) {
-    try { const res = await fetch(`${SB_URL}/rest/v1/projects?id=eq.${pid}`, { method: "DELETE", headers: this._h() }); return { ok: res.ok }; } catch { return { ok: false }; }
+    const { error } = await supabase.from("projects").delete().eq("id", pid);
+    return { ok: !error };
   },
   async shareProject(pid, email, permission) {
     if (!this._user) return { ok: false, error: "Non autenticato" };
     if (email === this._user.email) return { ok: false, error: "Non puoi condividere con te stesso" };
-    try {
-      const res = await fetch(`${SB_URL}/rest/v1/project_shares`, { method: "POST", headers: { ...this._h(), "Prefer": "return=representation" }, body: JSON.stringify({ project_id: pid, shared_with_email: email, permission, shared_by: this._user.id }) });
-      if (!res.ok) { const err = await res.json().catch(() => null); return { ok: false, error: err?.message?.includes("duplicate") ? "Già condiviso con questa email" : "Errore nella condivisione" }; }
-      return { ok: true };
-    } catch { return { ok: false, error: "Errore di rete" }; }
+    const { error } = await supabase.from("project_shares").insert({ project_id: pid, shared_with_email: email, permission, shared_by: this._user.id });
+    if (error) return { ok: false, error: error.message.includes("duplicate") ? "Già condiviso con questa email" : error.message };
+    return { ok: true };
   },
   async removeShare(pid, email) {
-    try { const res = await fetch(`${SB_URL}/rest/v1/project_shares?project_id=eq.${pid}&shared_with_email=eq.${encodeURIComponent(email)}`, { method: "DELETE", headers: this._h() }); return { ok: res.ok }; } catch { return { ok: false }; }
+    const { error } = await supabase.from("project_shares").delete().eq("project_id", pid).eq("shared_with_email", email);
+    return { ok: !error };
   },
   async getShares(pid) {
-    try { const res = await fetch(`${SB_URL}/rest/v1/project_shares?project_id=eq.${pid}&select=*`, { headers: this._h() }); return await res.json() || []; } catch { return []; }
+    const { data } = await supabase.from("project_shares").select("*").eq("project_id", pid);
+    return data || [];
   },
 };
 
@@ -333,16 +308,24 @@ export default function App() {
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
   const [authLoading, setAuthLoading] = useState(false);
 
-  // Gestisci il callback OAuth (ritorno da Google login)
+  // Gestisci il callback OAuth e cambi di sessione
   useEffect(() => {
-    const handled = DB.handleOAuthCallback();
-    if (handled) {
-      setAuthLoading(true);
-      DB.fetchUserFromToken().then((u) => {
-        if (u) setUser(u);
-        setAuthLoading(false);
-      });
-    }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "SIGNED_IN" && session?.user) {
+        const u = {
+          id: session.user.id,
+          name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Utente",
+          email: session.user.email,
+        };
+        DB._user = u;
+        setUser(u);
+        setAuthScreen(null);
+      } else if (event === "SIGNED_OUT") {
+        DB._user = null;
+        setUser(null);
+      }
+    });
+    return () => subscription.unsubscribe();
   }, []);
   const [authError, setAuthError] = useState("");
   const [shareModal, setShareModal] = useState(null); // projectId to share
@@ -437,7 +420,7 @@ export default function App() {
     else if (res.ok && res.confirmEmail) { setAuthError("Controlla la tua email per confermare la registrazione, poi accedi."); }
     else setAuthError(res.error);
   };
-  const handleLogout = () => { DB.logout(); setUser(null); setAuthScreen(null); };
+  const handleLogout = async () => { await DB.logout(); setUser(null); setAuthScreen(null); };
   const handleSaveProject = async () => {
     const indirizzo = [data.via, data.civico].filter(Boolean).join(" ");
     const nome = projectName || [indirizzo, data.citta].filter(Boolean).join(", ") || "Nuova operazione";
@@ -633,7 +616,7 @@ export default function App() {
             <span style={{ color: C.textLight, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>oppure</span>
             <div style={{ flex: 1, height: 1, background: C.border }} />
           </div>
-          <button onClick={() => DB.loginWithGoogle()} style={{ ...btnSecondary, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+          <button onClick={async () => await DB.loginWithGoogle()} style={{ ...btnSecondary, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
             <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             Continua con Google
           </button>
