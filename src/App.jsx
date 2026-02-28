@@ -135,7 +135,7 @@ const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
   prezzoVenditaMq: 3200, costoRistMq: 500, durataOp: 8,
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniPct: 0.03, bufferPct: 0.15, tasseAcquistoPct: 0.09,
-  allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0,
+  allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
@@ -511,7 +511,7 @@ export default function App() {
     const tasseAcquisto = d.prezzoAcquisto * d.tasseAcquistoPct;
     const speseBancarie = d.speseBancarieSomma * d.speseBancariePct;
     const interessi = d.interessiSomma * d.interessiPct;
-    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + speseBancarie + interessi;
+    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + speseBancarie + interessi;
     const costiFraz = costoRistTot + d.oneriComunali + d.costiProfessionisti + buffer + tasseAcquisto + altriCosti;
     const inv = d.prezzoAcquisto + costiFraz;
     const mqU = d.numUnita > 0 ? d.metratura / d.numUnita : 0;
@@ -949,6 +949,7 @@ export default function App() {
               <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} />
               <DashInput label="Consulenze Tecniche" value={data.consulenzeTecniche} onChange={(v) => upd("consulenzeTecniche", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Rendering" value={data.rendering} onChange={(v) => upd("rendering", v)} suffix="€" step={100} disabled={viewOnly} />
+              <DashInput label="IMU" value={data.imu} onChange={(v) => upd("imu", v)} suffix="€" step={100} disabled={viewOnly} />
               <div style={{ marginBottom: 10 }}>
                 <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Banca</label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -975,6 +976,7 @@ export default function App() {
                 <DataRow label="Bollette Gas, Luce ecc" value={fmtEur(data.bolletteGasLuce)} />
                 <DataRow label="Consulenze Tecniche" value={fmtEur(data.consulenzeTecniche)} />
                 <DataRow label="Rendering" value={fmtEur(data.rendering)} />
+                <DataRow label="IMU" value={fmtEur(data.imu || 0)} />
                 <DataRow label="Interessi Banca" value={fmtEur(Math.round(calc.speseBancarie))} />
                 <DataRow label="Interessi Investitori" value={fmtEur(Math.round(calc.interessi))} />
                 <DataRow label="Buffer imprevisti" value={fmtEur(Math.round(calc.buffer))} />
