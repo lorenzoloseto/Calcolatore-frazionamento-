@@ -217,12 +217,15 @@ function WizardSlider({ value, onChange, min, max, step = 1, labels, unit }) {
 }
 function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, note, disabled }) {
   const [focused, setFocused] = useState(false);
+  const [localVal, setLocalVal] = useState(String(value));
+  const valRef = useRef(value);
+  if (!focused && value !== valRef.current) { setLocalVal(String(value)); valRef.current = value; }
   return (
     <div style={{ marginBottom: 10 }}>
       <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>{label}</label>
       <div style={{ display: "flex", alignItems: "center", background: disabled ? "#f0f0f0" : C.inputBg, borderRadius: 4, border: `1px solid ${focused ? C.inputFocus : C.inputBorder}`, transition: "border-color 0.15s" }}>
-        <input type="number" value={value} onChange={(e) => !disabled && onChange(Number(e.target.value) || 0)}
-          onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} step={step} min={min} max={max} disabled={disabled}
+        <input type="number" value={focused ? localVal : value} onChange={(e) => { if (disabled) return; setLocalVal(e.target.value); onChange(Number(e.target.value) || 0); }}
+          onFocus={(e) => { setFocused(true); setLocalVal(String(value)); e.target.select(); }} onBlur={() => { setFocused(false); if (localVal === "" || isNaN(Number(localVal))) { setLocalVal(String(value)); } }} step={step} min={min} max={max} disabled={disabled}
           style={{ flex: 1, background: "transparent", border: "none", outline: "none", color: disabled ? C.textLight : C.dark, fontSize: 14, fontWeight: 600, padding: "7px 8px", fontFamily: "inherit", width: "100%", minWidth: 0 }} />
         {suffix && <span style={{ padding: "0 8px 0 0", color: C.textLight, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{suffix}</span>}
       </div>
