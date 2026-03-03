@@ -185,6 +185,47 @@ const RIST_INIT = [
 ];
 
 // ============================================================
+// SHARE LINK ENCODE / DECODE
+// ============================================================
+function encodeProjectForLink(name, data, scenari, comparabili, ristItems) {
+  const compact = {
+    n: name,
+    d: data,
+    s: scenari,
+    c: comparabili,
+    r: (ristItems || []).filter(it => it.qty > 0).map(it => {
+      const idx = RIST_INIT.findIndex(r => r.nome === it.nome);
+      return { i: idx, q: it.qty, p: it.prezzo };
+    }).filter(it => it.i >= 0),
+  };
+  return btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
+}
+function decodeProjectFromLink(encoded) {
+  const json = decodeURIComponent(escape(atob(encoded)));
+  const compact = JSON.parse(json);
+  const ristItems = RIST_INIT.map(it => ({ ...it }));
+  (compact.r || []).forEach(({ i, q, p }) => {
+    if (i >= 0 && i < ristItems.length) {
+      ristItems[i] = { ...ristItems[i], qty: q, prezzo: p };
+    }
+  });
+  return {
+    name: compact.n || "Progetto condiviso",
+    data: { ...DEFAULT_DATA, ...compact.d },
+    scenari: { ...DEFAULT_SCENARI, ...compact.s },
+    comparabili: compact.c || [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }],
+    ristItems,
+  };
+}
+
+// Parse share link on page load (before React renders)
+let __sharedProject = null;
+try {
+  const _sp = new URLSearchParams(window.location.search).get("s");
+  if (_sp) { __sharedProject = decodeProjectFromLink(_sp); window.history.replaceState({}, "", window.location.pathname); }
+} catch (e) { console.warn("Link condivisione non valido"); }
+
+// ============================================================
 // REUSABLE COMPONENTS
 // ============================================================
 function WizardNumberInput({ value, onChange, suffix, step = 1, min = 0, max, autoFocus = true }) {
@@ -361,20 +402,22 @@ export default function App() {
   const [shareEmail, setShareEmail] = useState("");
   const [sharePermission, setSharePermission] = useState("view");
   const [shareError, setShareError] = useState("");
-  const [projectName, setProjectName] = useState("");
+  const [projectName, setProjectName] = useState(__sharedProject ? __sharedProject.name : "");
   const [editingProjectId, setEditingProjectId] = useState(null);
 
   // APP STATE
   const [step, setStep] = useState(0);
-  const [showDash, setShowDash] = useState(false);
+  const [showDash, setShowDash] = useState(!!__sharedProject);
   const [dashTab, setDashTab] = useState("risultati");
   const [fadeIn, setFadeIn] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
-  const [viewOnly, setViewOnly] = useState(false);
-  const [data, setData] = useState({ ...DEFAULT_DATA });
-  const [scenari, setScenari] = useState({ ...DEFAULT_SCENARI });
-  const [comparabili, setComparabili] = useState([{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
-  const [ristItems, setRistItems] = useState([...RIST_INIT]);
+  const [viewOnly, setViewOnly] = useState(!!__sharedProject);
+  const [data, setData] = useState(__sharedProject ? __sharedProject.data : { ...DEFAULT_DATA });
+  const [scenari, setScenari] = useState(__sharedProject ? __sharedProject.scenari : { ...DEFAULT_SCENARI });
+  const [comparabili, setComparabili] = useState(__sharedProject ? __sharedProject.comparabili : [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
+  const [ristItems, setRistItems] = useState(__sharedProject ? __sharedProject.ristItems : [...RIST_INIT]);
+  const [shareLinkUrl, setShareLinkUrl] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -724,7 +767,7 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={() => setShowPopup(true)} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Condividi</button>
+                          <button onClick={() => { const encoded = encodeProjectForLink(p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${encoded}`); setLinkCopied(false); }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Condividi</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
@@ -777,15 +820,25 @@ export default function App() {
             </div>
           </div>
         )}
-        {showPopup && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShowPopup(false)}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 8, padding: "28px 24px", maxWidth: 420, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, textAlign: "center" }}>
-              <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-                <span style={{ color: C.accent, fontSize: 22 }}>★</span>
+        {shareLinkUrl && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ color: C.accent, fontSize: 18 }}>🔗</span>
+                </div>
+                <div>
+                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Condividi progetto</h3>
+                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chiunque abbia il link potrà visualizzare il progetto in sola lettura.</p>
+                </div>
               </div>
-              <div style={{ color: C.dark, fontSize: 20, fontWeight: 700, fontFamily: "'Georgia', serif", marginBottom: 8 }}>Tecnologia per studenti Reinnova</div>
-              <div style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", marginBottom: 24 }}>Tecnologia esclusiva per gli studenti del programma Reinnova.</div>
-              <button onClick={() => setShowPopup(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 32px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 8px rgba(196,132,29,0.3)" }}>Ho capito</button>
+              <div style={{ background: C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 6, padding: "10px 12px", marginBottom: 16, wordBreak: "break-all", fontSize: 12, color: C.textMid, fontFamily: "monospace", maxHeight: 80, overflow: "auto" }}>
+                {shareLinkUrl}
+              </div>
+              <button onClick={() => { navigator.clipboard.writeText(shareLinkUrl).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500); }); }} style={{ ...btnPrimary, background: linkCopied ? C.green : C.navy, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {linkCopied ? "✓ Link copiato!" : "Copia link"}
+              </button>
+              <button onClick={() => setShareLinkUrl("")} style={{ ...btnSecondary, marginTop: 10 }}>Chiudi</button>
             </div>
           </div>
         )}
