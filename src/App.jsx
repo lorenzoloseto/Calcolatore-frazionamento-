@@ -390,12 +390,20 @@ const STEPS = [
 // ============================================================
 // MAIN APP
 // ============================================================
+// DEV MODE — ?dev=1 on localhost auto-logs in with a mock user
+const __isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const __devMode = __isLocalhost && new URLSearchParams(window.location.search).get('dev') === '1';
+if (__devMode) {
+  const devUser = { id: 'dev-local', name: 'Dev Locale', email: 'dev@localhost' };
+  DB._user = devUser;
+}
+
 export default function App() {
   // AUTH STATE
-  const [user, setUser] = useState(() => DB.getUser());
+  const [user, setUser] = useState(() => __devMode ? { id: 'dev-local', name: 'Dev Locale', email: 'dev@localhost' } : DB.getUser());
   const [projectsList, setProjectsList] = useState([]);
   const [sharesForModal, setSharesForModal] = useState([]);
-  const [authScreen, setAuthScreen] = useState(null); // null | "login" | "register" | "projects"
+  const [authScreen, setAuthScreen] = useState(__devMode ? "projects" : null); // null | "login" | "register" | "projects"
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
   const [authLoading, setAuthLoading] = useState(false);
 
