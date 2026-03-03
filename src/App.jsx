@@ -218,6 +218,45 @@ function decodeProjectFromLink(encoded) {
   };
 }
 
+// ============================================================
+// CODICE FISCALE VALIDATION
+// ============================================================
+const CF_MONTHS = 'ABCDEHLMPRST';
+const CF_ODD = {'0':1,'1':0,'2':5,'3':7,'4':9,'5':13,'6':15,'7':17,'8':19,'9':21,'A':1,'B':0,'C':5,'D':7,'E':9,'F':13,'G':15,'H':17,'I':19,'J':21,'K':2,'L':4,'M':18,'N':20,'O':11,'P':3,'Q':6,'R':8,'S':12,'T':14,'U':16,'V':10,'W':22,'X':25,'Y':24,'Z':23};
+const CF_EVEN = {'0':0,'1':1,'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'A':0,'B':1,'C':2,'D':3,'E':4,'F':5,'G':6,'H':7,'I':8,'J':9,'K':10,'L':11,'M':12,'N':13,'O':14,'P':15,'Q':16,'R':17,'S':18,'T':19,'U':20,'V':21,'W':22,'X':23,'Y':24,'Z':25};
+function cfExtract(s) {
+  const clean = s.toUpperCase().replace(/[^A-Z]/g, '');
+  return { cons: clean.split('').filter(c => !'AEIOU'.includes(c)), vow: clean.split('').filter(c => 'AEIOU'.includes(c)) };
+}
+function cfSurname(cognome) {
+  const { cons, vow } = cfExtract(cognome);
+  return [...cons, ...vow, 'X', 'X', 'X'].slice(0, 3).join('');
+}
+function cfName(nome) {
+  const { cons, vow } = cfExtract(nome);
+  if (cons.length >= 4) return [cons[0], cons[2], cons[3]].join('');
+  return [...cons, ...vow, 'X', 'X', 'X'].slice(0, 3).join('');
+}
+function cfCheckChar(first15) {
+  let sum = 0;
+  for (let i = 0; i < 15; i++) { sum += (i % 2 === 0) ? (CF_ODD[first15[i]] || 0) : (CF_EVEN[first15[i]] || 0); }
+  return 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'[sum % 26];
+}
+function validateCF(cf, nome, cognome, giorno, mese, anno, sesso) {
+  if (!cf || cf.length !== 16) return "Il codice fiscale deve essere di 16 caratteri";
+  const u = cf.toUpperCase();
+  if (!/^[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]$/.test(u)) return "Formato codice fiscale non valido";
+  if (u.slice(0, 3) !== cfSurname(cognome)) return "Il cognome non corrisponde al codice fiscale";
+  if (u.slice(3, 6) !== cfName(nome)) return "Il nome non corrisponde al codice fiscale";
+  if (u.slice(6, 8) !== String(anno).slice(-2)) return "L'anno di nascita non corrisponde al codice fiscale";
+  if (u[8] !== CF_MONTHS[mese - 1]) return "Il mese di nascita non corrisponde al codice fiscale";
+  const expectedDay = sesso === 'F' ? giorno + 40 : giorno;
+  if (u.slice(9, 11) !== String(expectedDay).padStart(2, '0')) return "Il giorno o il sesso non corrisponde al codice fiscale";
+  if (!/^[A-Z]\d{3}$/.test(u.slice(11, 15))) return "Codice comune non valido nel codice fiscale";
+  if (u[15] !== cfCheckChar(u.slice(0, 15))) return "Il carattere di controllo del codice fiscale non è corretto";
+  return null;
+}
+
 // Parse share link on page load (before React renders)
 let __sharedProject = null;
 try {
@@ -418,6 +457,10 @@ export default function App() {
   const [ristItems, setRistItems] = useState(__sharedProject ? __sharedProject.ristItems : [...RIST_INIT]);
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareGateCompleted, setShareGateCompleted] = useState(false);
+  const [gateForm, setGateForm] = useState({ nome: '', cognome: '', email: '', giorno: '', mese: '', anno: '', sesso: '', luogoNascita: '', cf: '' });
+  const [gateError, setGateError] = useState('');
+  const [gateNda, setGateNda] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -536,6 +579,25 @@ export default function App() {
     const res = await DB.shareProject(shareModal, shareEmail, sharePermission);
     if (res.ok) { setShareEmail(""); setShareError(""); const sh = await DB.getShares(shareModal); setSharesForModal(sh); }
     else setShareError(res.error);
+  };
+  const handleGateSubmit = () => {
+    setGateError('');
+    const { nome, cognome, email, giorno, mese, anno, sesso, luogoNascita, cf } = gateForm;
+    if (!nome.trim()) { setGateError("Inserisci il nome"); return; }
+    if (!cognome.trim()) { setGateError("Inserisci il cognome"); return; }
+    if (!email.trim() || !email.includes('@')) { setGateError("Inserisci un'email valida"); return; }
+    if (!giorno || !mese || !anno) { setGateError("Inserisci la data di nascita completa"); return; }
+    const g = Number(giorno), m = Number(mese), a = Number(anno);
+    if (g < 1 || g > 31) { setGateError("Giorno di nascita non valido"); return; }
+    if (m < 1 || m > 12) { setGateError("Mese di nascita non valido"); return; }
+    if (a < 1920 || a > 2010) { setGateError("Anno di nascita non valido"); return; }
+    if (!sesso) { setGateError("Seleziona il sesso"); return; }
+    if (!luogoNascita.trim()) { setGateError("Inserisci il luogo di nascita"); return; }
+    if (!cf.trim()) { setGateError("Inserisci il codice fiscale"); return; }
+    const cfErr = validateCF(cf, nome, cognome, g, m, a, sesso);
+    if (cfErr) { setGateError(cfErr); return; }
+    if (!gateNda) { setGateError("Devi accettare l'impegno di non divulgazione per proseguire"); return; }
+    setShareGateCompleted(true);
   };
   // Load projects when opening projects screen
   useEffect(() => {
@@ -664,6 +726,63 @@ export default function App() {
   // ============================================================
   const btnPrimary = { background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
   const btnSecondary = { background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
+
+  // ============================================================
+  // SHARE GATE — Identificazione prima di visualizzare il progetto
+  // ============================================================
+  if (__sharedProject && !shareGateCompleted) {
+    return (
+      <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+        <div style={{ background: C.card, borderRadius: 10, padding: "32px 28px", maxWidth: 480, width: "100%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <h2 style={{ color: C.dark, fontSize: 20, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Accesso al progetto</h2>
+          <p style={{ color: C.textMid, fontSize: 13, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Per visualizzare questo conto economico, inserisci i tuoi dati identificativi.</p>
+          {gateError && <div style={{ background: C.redBg, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif" }}>{gateError}</div>}
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 12px" }}>
+            <AuthInput label="Nome" value={gateForm.nome} onChange={(v) => setGateForm(p => ({ ...p, nome: v }))} placeholder="Mario" autoFocus />
+            <AuthInput label="Cognome" value={gateForm.cognome} onChange={(v) => setGateForm(p => ({ ...p, cognome: v }))} placeholder="Rossi" />
+          </div>
+          <AuthInput label="Email" type="email" value={gateForm.email} onChange={(v) => setGateForm(p => ({ ...p, email: v }))} placeholder="mario@email.com" />
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 4, fontFamily: "-apple-system, sans-serif" }}>Data di nascita</label>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 2fr 1.2fr", gap: 8 }}>
+              <input type="number" value={gateForm.giorno} onChange={(e) => setGateForm(p => ({ ...p, giorno: e.target.value }))} placeholder="GG" min={1} max={31}
+                style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card, textAlign: "center" }} />
+              <select value={gateForm.mese} onChange={(e) => setGateForm(p => ({ ...p, mese: e.target.value }))}
+                style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: gateForm.mese ? C.dark : C.textLight, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card }}>
+                <option value="">Mese</option>
+                {["Gennaio","Febbraio","Marzo","Aprile","Maggio","Giugno","Luglio","Agosto","Settembre","Ottobre","Novembre","Dicembre"].map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+              </select>
+              <input type="number" value={gateForm.anno} onChange={(e) => setGateForm(p => ({ ...p, anno: e.target.value }))} placeholder="AAAA" min={1920} max={2010}
+                style={{ width: "100%", boxSizing: "border-box", padding: "10px 12px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card, textAlign: "center" }} />
+            </div>
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 4, fontFamily: "-apple-system, sans-serif" }}>Sesso</label>
+            <div style={{ display: "flex", gap: 8 }}>
+              {[["M", "Maschio"], ["F", "Femmina"]].map(([val, lbl]) => (
+                <button key={val} onClick={() => setGateForm(p => ({ ...p, sesso: val }))} style={{
+                  flex: 1, padding: "10px 12px", borderRadius: 6, border: `2px solid ${gateForm.sesso === val ? C.accent : C.border}`,
+                  background: gateForm.sesso === val ? C.accentLight : C.card, color: gateForm.sesso === val ? C.accent : C.textMid,
+                  fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif",
+                }}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          <AuthInput label="Luogo di nascita (Comune)" value={gateForm.luogoNascita} onChange={(v) => setGateForm(p => ({ ...p, luogoNascita: v }))} placeholder="Es. Roma" />
+          <AuthInput label="Codice Fiscale" value={gateForm.cf} onChange={(v) => setGateForm(p => ({ ...p, cf: v.toUpperCase() }))} placeholder="RSSMRA80A01H501X" />
+          <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10, background: C.highlight, borderRadius: 6, padding: "14px 16px", border: `1px solid ${C.accentLight}` }}>
+            <input type="checkbox" checked={gateNda} onChange={(e) => setGateNda(e.target.checked)}
+              style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 18, height: 18, cursor: "pointer" }} />
+            <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setGateNda(p => !p)}>
+              Dichiaro di impegnarmi a <strong style={{ color: C.dark }}>non divulgare, condividere o riprodurre</strong> in alcun modo le informazioni riservate contenute nel progetto che sto per visualizzare. Riconosco che tali informazioni sono proprietà esclusiva del titolare e che qualsiasi violazione potrà avere conseguenze legali.
+            </label>
+          </div>
+          <button onClick={handleGateSubmit} style={btnPrimary}>Accedi al progetto</button>
+        </div>
+      </div>
+    );
+  }
 
   if (authScreen === "login" || authScreen === "register") {
     const isLogin = authScreen === "login";
