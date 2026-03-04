@@ -118,6 +118,108 @@ const DB = {
 // ============================================================
 // FORMAT HELPERS & COLORS
 // ============================================================
+// ============================================================
+// PRIVACY POLICY MODAL — Informativa Privacy GDPR Art. 13
+// ============================================================
+function PrivacyPolicyModal({ onClose }) {
+  const sectionTitle = { color: C.dark, fontWeight: 700, fontSize: 15, margin: "22px 0 8px", fontFamily: "-apple-system, sans-serif" };
+  const paragraph = { color: C.textMid, fontSize: 13, lineHeight: 1.7, margin: "0 0 10px", fontFamily: "-apple-system, sans-serif" };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#FFF", borderRadius: 10, maxWidth: 600, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "32px 28px", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
+        <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+        <h2 style={{ color: C.dark, fontSize: 20, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Informativa sulla Privacy</h2>
+        <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Ai sensi dell'art. 13 del Regolamento UE 2016/679 (GDPR)</p>
+
+        <h3 style={sectionTitle}>1. Titolare del trattamento</h3>
+        <p style={paragraph}>Il Titolare del trattamento dei dati personali è <strong>Gruppo Loseto srl</strong>, contattabile all'indirizzo email: <strong>lorenzoloseto@hotmail.it</strong>.</p>
+
+        <h3 style={sectionTitle}>2. Dati personali raccolti</h3>
+        <p style={paragraph}>Il Titolare raccoglie le seguenti categorie di dati personali:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li><strong>Utenti registrati:</strong> nome, indirizzo email, password (criptata).</li>
+          <li><strong>Visitatori link condivisi:</strong> nome, cognome, indirizzo email, codice fiscale, data di nascita, sesso, luogo di nascita.</li>
+          <li><strong>Dati tecnici:</strong> token di sessione memorizzati nel browser (localStorage) per il mantenimento dell'accesso.</li>
+        </ul>
+
+        <h3 style={sectionTitle}>3. Finalità del trattamento</h3>
+        <p style={paragraph}>I dati personali sono trattati per le seguenti finalità:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li>Creazione e gestione dell'account utente;</li>
+          <li>Esecuzione delle analisi di frazionamento immobiliare e salvataggio dei progetti;</li>
+          <li>Condivisione dei progetti con soggetti terzi tramite link;</li>
+          <li>Tracciamento degli accessi ai progetti condivisi, a tutela del titolare del progetto;</li>
+          <li>Adempimento di obblighi di legge.</li>
+        </ul>
+
+        <h3 style={sectionTitle}>4. Base giuridica del trattamento</h3>
+        <p style={paragraph}>Il trattamento dei dati è fondato sulle seguenti basi giuridiche ai sensi dell'art. 6 del GDPR:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li><strong>Consenso esplicito</strong> (Art. 6.1.a): per la raccolta dei dati identificativi dei visitatori dei link condivisi;</li>
+          <li><strong>Esecuzione di un contratto</strong> (Art. 6.1.b): per la gestione dell'account e l'erogazione del servizio;</li>
+          <li><strong>Legittimo interesse</strong> (Art. 6.1.f): per la sicurezza e il tracciamento degli accessi ai progetti riservati.</li>
+        </ul>
+
+        <h3 style={sectionTitle}>5. Conservazione dei dati</h3>
+        <p style={paragraph}>I dati personali saranno conservati per il tempo strettamente necessario al perseguimento delle finalità per le quali sono stati raccolti e comunque per la durata del rapporto contrattuale. I dati dei visitatori dei link condivisi saranno conservati per un periodo massimo di 5 anni dall'accesso.</p>
+
+        <h3 style={sectionTitle}>6. Comunicazione e diffusione dei dati</h3>
+        <p style={paragraph}>I dati personali non saranno diffusi. Potranno essere comunicati a:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li>Supabase Inc. (fornitore del servizio di database e autenticazione), i cui server sono situati nell'Unione Europea;</li>
+          <li>Soggetti autorizzati al trattamento in qualità di responsabili o incaricati.</li>
+        </ul>
+
+        <h3 style={sectionTitle}>7. Diritti dell'interessato</h3>
+        <p style={paragraph}>Ai sensi degli artt. 15-22 del GDPR, l'interessato ha il diritto di:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li>Accedere ai propri dati personali;</li>
+          <li>Ottenere la rettifica o la cancellazione degli stessi;</li>
+          <li>Ottenere la limitazione del trattamento;</li>
+          <li>Opporsi al trattamento;</li>
+          <li>Richiedere la portabilità dei dati;</li>
+          <li>Revocare il consenso in qualsiasi momento, senza pregiudicare la liceità del trattamento basato sul consenso prestato prima della revoca;</li>
+          <li>Proporre reclamo all'Autorità Garante per la Protezione dei Dati Personali.</li>
+        </ul>
+        <p style={paragraph}>Per esercitare i propri diritti, l'interessato può contattare il Titolare all'indirizzo email: <strong>lorenzoloseto@hotmail.it</strong>.</p>
+
+        <h3 style={sectionTitle}>8. Cookie e tecnologie di tracciamento</h3>
+        <p style={paragraph}>Questo sito utilizza esclusivamente cookie tecnici e di sessione (token di autenticazione memorizzati in localStorage) necessari al funzionamento del servizio. Non vengono utilizzati cookie di profilazione o di terze parti a fini pubblicitari.</p>
+
+        <div style={{ marginTop: 28, textAlign: "center" }}>
+          <button onClick={onClose} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "12px 36px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// COOKIE BANNER
+// ============================================================
+function CookieBanner({ onAccept, onShowPrivacy }) {
+  return (
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9998, background: C.dark, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap", boxShadow: "0 -2px 12px rgba(0,0,0,0.15)" }}>
+      <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, margin: 0, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5, flex: 1, minWidth: 200 }}>
+        Questo sito utilizza cookie tecnici necessari al funzionamento.{" "}
+        <span onClick={onShowPrivacy} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Informativa Privacy</span>
+      </p>
+      <button onClick={onAccept} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 20px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>OK, accetto</button>
+    </div>
+  );
+}
+
+// ============================================================
+// PRIVACY LINK — Reusable inline link
+// ============================================================
+function PrivacyLink({ onClick }) {
+  return (
+    <span onClick={onClick} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>
+      Informativa Privacy
+    </span>
+  );
+}
+
 const fmt = (n) => new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 }).format(n);
 const fmtEur = (n) => fmt(Math.round(n)) + " €";
 const fmtPct = (n) => (n * 100).toFixed(1) + "%";
@@ -476,6 +578,10 @@ export default function App() {
   const [gateForm, setGateForm] = useState({ nome: '', cognome: '', email: '', giorno: '', mese: '', anno: '', sesso: '', luogoNascita: '', cf: '' });
   const [gateError, setGateError] = useState('');
   const [gateNda, setGateNda] = useState(false);
+  const [gatePrivacy, setGatePrivacy] = useState(false);
+  const [regPrivacy, setRegPrivacy] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [cookieBannerDismissed, setCookieBannerDismissed] = useState(() => localStorage.getItem("cookie_consent") === "1");
   const [projectVisitors, setProjectVisitors] = useState({});
   const [expandedVisitors, setExpandedVisitors] = useState({});
 
@@ -547,8 +653,12 @@ export default function App() {
     if (!authForm.name.trim()) { setAuthError("Inserisci il tuo nome"); return; }
     if (!authForm.email.trim()) { setAuthError("Inserisci la tua email"); return; }
     if (authForm.password.length < 4) { setAuthError("Password minimo 4 caratteri"); return; }
+    if (!regPrivacy) { setAuthError("Devi accettare l'informativa privacy per proseguire"); return; }
     const res = await DB.register(authForm.name, authForm.email, authForm.password);
-    if (res.ok && res.user) { setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); }
+    if (res.ok && res.user) {
+      supabase.from("profiles").update({ privacy_consent_at: new Date().toISOString() }).eq("id", res.user.id).then(() => {});
+      setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); setRegPrivacy(false);
+    }
     else if (res.ok && res.confirmEmail) { setAuthError("Controlla la tua email per confermare la registrazione, poi accedi."); }
     else setAuthError(res.error);
   };
@@ -613,13 +723,15 @@ export default function App() {
     if (!cf.trim()) { setGateError("Inserisci il codice fiscale"); return; }
     const cfErr = validateCF(cf, nome, cognome, g, m, a, sesso);
     if (cfErr) { setGateError(cfErr); return; }
+    if (!gatePrivacy) { setGateError("Devi accettare l'informativa privacy per il trattamento dei dati"); return; }
     if (!gateNda) { setGateError("Devi accettare l'impegno di non divulgazione per proseguire"); return; }
-    // Salva dati visitatore su Supabase
+    // Salva dati visitatore su Supabase (con consensi GDPR)
     supabase.from("snapshot_visitors").insert({
       snapshot_id: __sharedId,
       nome: nome.trim(), cognome: cognome.trim(), email: email.trim(),
       cf: cf.toUpperCase(), data_nascita: `${giorno}/${mese}/${anno}`,
-      sesso, luogo_nascita: luogoNascita.trim()
+      sesso, luogo_nascita: luogoNascita.trim(),
+      privacy_consent: true, nda_accepted: true
     }).then(() => {});
     setShareGateCompleted(true);
   };
@@ -823,6 +935,13 @@ export default function App() {
           </div>
           <AuthInput label="Luogo di nascita (Comune)" value={gateForm.luogoNascita} onChange={(v) => setGateForm(p => ({ ...p, luogoNascita: v }))} placeholder="Es. Roma" />
           <AuthInput label="Codice Fiscale" value={gateForm.cf} onChange={(v) => setGateForm(p => ({ ...p, cf: v.toUpperCase() }))} placeholder="RSSMRA80A01H501X" />
+          <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 10, background: C.card, borderRadius: 6, padding: "12px 16px", border: `1px solid ${C.border}` }}>
+            <input type="checkbox" checked={gatePrivacy} onChange={(e) => setGatePrivacy(e.target.checked)}
+              style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 18, height: 18, cursor: "pointer" }} />
+            <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setGatePrivacy(p => !p)}>
+              Ho letto e accetto l'<span onClick={(e) => { e.stopPropagation(); setShowPrivacy(true); }} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Informativa Privacy</span> per il trattamento dei miei dati personali ai sensi del GDPR.
+            </label>
+          </div>
           <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10, background: C.highlight, borderRadius: 6, padding: "14px 16px", border: `1px solid ${C.accentLight}` }}>
             <input type="checkbox" checked={gateNda} onChange={(e) => setGateNda(e.target.checked)}
               style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 18, height: 18, cursor: "pointer" }} />
@@ -831,7 +950,12 @@ export default function App() {
             </label>
           </div>
           <button onClick={handleGateSubmit} style={btnPrimary}>Accedi al progetto</button>
+          <div style={{ textAlign: "center", marginTop: 14 }}>
+            <PrivacyLink onClick={() => setShowPrivacy(true)} />
+          </div>
         </div>
+        {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
   }
@@ -854,6 +978,15 @@ export default function App() {
             <AuthInput label="Email" type="email" value={authForm.email} onChange={(v) => setAuthForm((p) => ({ ...p, email: v }))} placeholder="mario@email.com" autoFocus={isLogin} />
             <AuthInput label="Password" type="password" value={authForm.password} onChange={(v) => setAuthForm((p) => ({ ...p, password: v }))} placeholder="••••••••" />
           </div>
+          {!isLogin && (
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <input type="checkbox" checked={regPrivacy} onChange={(e) => setRegPrivacy(e.target.checked)}
+                style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 16, height: 16, cursor: "pointer" }} />
+              <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setRegPrivacy(p => !p)}>
+                Ho letto e accetto l'<span onClick={(e) => { e.stopPropagation(); setShowPrivacy(true); }} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Informativa Privacy</span>
+              </label>
+            </div>
+          )}
           <button onClick={isLogin ? handleLogin : handleRegister} style={btnPrimary}>{isLogin ? "Accedi" : "Crea account"}</button>
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
             <div style={{ flex: 1, height: 1, background: C.border }} />
@@ -874,7 +1007,12 @@ export default function App() {
               Torna al calcolatore
             </button>
           </div>
+          <div style={{ textAlign: "center", marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+            <PrivacyLink onClick={() => setShowPrivacy(true)} />
+          </div>
         </div>
+        {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
   }
@@ -1038,6 +1176,9 @@ export default function App() {
             </div>
           </div>
         )}
+        {/* GDPR: Privacy Modal + Cookie Banner */}
+        {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
   }
@@ -1109,6 +1250,9 @@ export default function App() {
           </button>
         </div>
         {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => setShowDash(true)} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
+        {/* GDPR: Privacy Modal + Cookie Banner */}
+        {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
   }
@@ -1418,7 +1562,8 @@ export default function App() {
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 0", marginTop: 32 }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <p style={{ color: C.textLight, fontSize: 11, margin: 0, fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento Immobiliare — go.lorenzoloseto.com</p>
+          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento Immobiliare — go.lorenzoloseto.com</p>
+          <PrivacyLink onClick={() => setShowPrivacy(true)} />
         </div>
       </div>
 
@@ -1435,6 +1580,10 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* GDPR: Privacy Modal + Cookie Banner */}
+      {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+      {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
     </div>
   );
 }
