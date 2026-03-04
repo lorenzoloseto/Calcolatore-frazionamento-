@@ -322,6 +322,44 @@ const LpIconDownload = () => <svg width="24" height="24" viewBox="0 0 24 24" fil
 const LpIconLock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>;
 const LpIconServer = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>;
 
+function LpBrandLogo({ size = 32 }) {
+  const s = size;
+  const sw = 1.5;
+  const dl = "lp-strokeDraw 1.5s ease-out forwards";
+  const splitDelay = "1.8s";
+  return (
+    <svg width={s} height={s * 0.875} viewBox="0 0 32 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+      {/* Metà sinistra edificio */}
+      <g style={{ animation: `lp-splitLeft 0.8s ease-out ${splitDelay} forwards` }}>
+        <path d="M2 26V6l13-4v24" stroke={C.accent} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
+          style={{ strokeDasharray: 80, strokeDashoffset: 80, animation: dl }} />
+        {/* Finestre sinistra */}
+        <rect x="5" y="10" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.6s forwards` }} />
+        <rect x="5" y="17" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.8s forwards` }} />
+        <rect x="11" y="10" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.7s forwards` }} />
+      </g>
+      {/* Metà destra edificio */}
+      <g style={{ animation: `lp-split 0.8s ease-out ${splitDelay} forwards` }}>
+        <path d="M17 2v24l13 0V8z" stroke={C.accent} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round"
+          style={{ strokeDasharray: 90, strokeDashoffset: 90, animation: dl }} />
+        {/* Finestre destra */}
+        <rect x="20" y="12" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.7s forwards` }} />
+        <rect x="20" y="19" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.9s forwards` }} />
+        <rect x="26" y="12" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw}
+          style={{ strokeDasharray: 20, strokeDashoffset: 20, animation: `lp-strokeDraw 1s ease-out 0.8s forwards` }} />
+      </g>
+      {/* Linea di frazionamento centrale */}
+      <line x1="16" y1="4" x2="16" y2="26" stroke={C.accent} strokeWidth={1} strokeDasharray="3 2"
+        style={{ opacity: 0, animation: `lp-strokeDraw 0.6s ease-out ${splitDelay} forwards` }} />
+    </svg>
+  );
+}
+
 function LpDashboardMockup({ compact = false }) {
   return (
     <div style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 20px 60px rgba(13,34,64,0.15)" }}>
@@ -1115,12 +1153,24 @@ export default function App() {
           @keyframes lp-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
           @keyframes lp-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
           @keyframes lp-borderGlow { 0%, 100% { box-shadow: 0 20px 60px rgba(13,34,64,0.15); } 50% { box-shadow: 0 20px 60px rgba(196,132,29,0.25); } }
+          @keyframes lp-strokeDraw { from { stroke-dashoffset: inherit; opacity: 0.2; } to { stroke-dashoffset: 0; opacity: 1; } }
+          @keyframes lp-split { 0% { transform: translateX(0); } 100% { transform: translateX(3px); } }
+          @keyframes lp-splitLeft { 0% { transform: translateX(0); } 100% { transform: translateX(-3px); } }
         `}</style>
 
         {/* === NAVBAR === */}
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: isMobile ? 52 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: isMobile ? 10 : 12, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Calcolatore Frazionamento</div>
+            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, cursor: "pointer" }}>
+              <LpBrandLogo size={isMobile ? 24 : 32} />
+              <div style={{
+                fontSize: isMobile ? 11 : 14, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase",
+                fontFamily: "-apple-system, sans-serif",
+                background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
+                backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
+                backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
+              }}>FRAZIONA</div>
+            </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
               <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Inizia gratis</button>
