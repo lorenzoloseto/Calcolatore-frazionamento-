@@ -279,6 +279,78 @@ function TosModal({ onClose }) {
   );
 }
 
+// ============================================================
+// LANDING PAGE — Hooks, Icons & Components
+// ============================================================
+function useScrollReveal(threshold = 0.15) {
+  const ref = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setIsVisible(true); observer.disconnect(); } },
+      { threshold, rootMargin: "0px 0px -60px 0px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [threshold]);
+  return [ref, isVisible];
+}
+function useAnimatedCounter(target, duration = 2000, startAnimation = false) {
+  const [count, setCount] = useState(0);
+  useEffect(() => {
+    if (!startAnimation) return;
+    let start = null;
+    const step = (ts) => {
+      if (!start) start = ts;
+      const p = Math.min((ts - start) / duration, 1);
+      setCount(Math.floor((1 - Math.pow(1 - p, 3)) * target));
+      if (p < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }, [target, duration, startAnimation]);
+  return count;
+}
+
+const LpIconLightning = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const LpIconChart = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+const LpIconGrid = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>;
+const LpIconShield = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>;
+const LpIconCloud = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z"/></svg>;
+const LpIconDownload = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const LpIconLock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>;
+const LpIconServer = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>;
+
+function LpDashboardMockup({ compact = false }) {
+  return (
+    <div style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 20px 60px rgba(13,34,64,0.15)" }}>
+      <div style={{ background: C.navy, padding: "10px 16px", display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
+        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
+        <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27c93f" }} />
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>Calcolatore Frazionamento</span>
+      </div>
+      <div style={{ background: C.greenBg, borderLeft: `3px solid ${C.green}`, margin: "12px 12px 8px", borderRadius: 4, padding: "8px 12px" }}>
+        <span style={{ color: C.green, fontWeight: 700, fontSize: compact ? 10 : 12, fontFamily: "-apple-system, sans-serif" }}>✓ Operazione sostenibile — Margine positivo in tutti gli scenari</span>
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, padding: "4px 12px 12px" }}>
+        {[
+          { label: "MARGINE NETTO", value: "+87.400 €", color: C.green },
+          { label: "ROI", value: "34,2%", color: C.accent },
+          { label: "ROI ANNUO", value: "51,3%", color: C.accent },
+          { label: "INVESTIMENTO", value: "255.600 €", color: C.dark },
+        ].map((kpi, i) => (
+          <div key={i} style={{ background: C.bg, borderRadius: 6, padding: compact ? "6px 8px" : "10px 12px" }}>
+            <div style={{ color: C.textLight, fontSize: compact ? 7 : 9, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>{kpi.label}</div>
+            <div style={{ color: kpi.color, fontSize: compact ? 14 : 18, fontWeight: 700, fontFamily: "'Georgia', serif" }}>{kpi.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const fmt = (n) => new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 }).format(n);
 const fmtEur = (n) => fmt(Math.round(n)) + " €";
 const fmtPct = (n) => (n * 100).toFixed(1) + "%";
@@ -570,6 +642,7 @@ export default function App() {
         DB._user = u;
         DB.ensureProfile(u);
         setUser(u);
+        setShowLanding(false);
         setAuthScreen("projects");
         setAuthLoading(false);
       }
@@ -585,6 +658,7 @@ export default function App() {
         DB._user = u;
         DB.ensureProfile(u);
         setUser(u);
+        setShowLanding(false);
         setAuthScreen("projects");
         setAuthLoading(false);
       } else if (event === "SIGNED_OUT") {
@@ -648,6 +722,11 @@ export default function App() {
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [projectVisitors, setProjectVisitors] = useState({});
   const [expandedVisitors, setExpandedVisitors] = useState({});
+  // LANDING STATE
+  const [showLanding, setShowLanding] = useState(() => !DB.getUser() && !__sharedId);
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
+  const [hoveredFeature, setHoveredFeature] = useState(null);
+  const [dashMockupHover, setDashMockupHover] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -728,6 +807,9 @@ export default function App() {
     else setAuthError(res.error);
   };
   const handleLogout = async () => { await DB.logout(); setUser(null); setAuthScreen(null); };
+  const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
+  // Landing: responsive
+  useEffect(() => { const h = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const handleDeleteAccount = async () => {
     if (!user) return;
     setDeleteAccountLoading(true);
@@ -987,6 +1069,241 @@ export default function App() {
   // ============================================================
   const btnPrimary = { background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
   const btnSecondary = { background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
+
+  // ============================================================
+  // LANDING PAGE
+  // ============================================================
+  const LP_FEATURES = [
+    { Icon: LpIconLightning, title: "Analisi Istantanea", desc: "Inserisci i dati base e ottieni ROI, margine netto e investimento totale in tempo reale." },
+    { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Valuta l'operazione anche nel caso peggiore." },
+    { Icon: LpIconGrid, title: "37 Voci di Ristrutturazione", desc: "Dal pavimento gres alla porta blindata: compila il computo metrico con prezzi precompilati." },
+    { Icon: LpIconShield, title: "Condivisione con NDA", desc: "Condividi via link. Chi accede deve identificarsi con codice fiscale e firmare la riservatezza." },
+    { Icon: LpIconCloud, title: "Multi-Progetto Cloud", desc: "Salva, riprendi e gestisci tutte le tue operazioni. Autosalvataggio automatico." },
+    { Icon: LpIconDownload, title: "Export Excel", desc: "Scarica il conto economico completo in formato spreadsheet, pronto per investitori e banche." },
+  ];
+  const LP_STEPS = [
+    { num: "01", title: "Inserisci i dati", desc: "Indirizzo, metratura, prezzo di acquisto, numero di unità e prezzo di vendita. Il wizard ti guida passo per passo." },
+    { num: "02", title: "Personalizza i costi", desc: "Aggiungi oneri, professionisti, provvigioni, dettaglio ristrutturazione. Ogni voce è modificabile in tempo reale." },
+    { num: "03", title: "Leggi i risultati", desc: "Dashboard professionale con margine, ROI, scenari e verdetto automatico. Esporta o condividi con un click." },
+  ];
+  const LP_TRUST = [
+    { Icon: LpIconShield, title: "GDPR Compliant", desc: "Trattamento conforme al Regolamento UE 2016/679. Informativa privacy trasparente e consenso esplicito per ogni dato." },
+    { Icon: LpIconLock, title: "NDA Automatico", desc: "Chi accede ai tuoi conti economici deve identificarsi con codice fiscale e accettare un impegno di non divulgazione." },
+    { Icon: LpIconServer, title: "Cloud Sicuro UE", desc: "Dati su Supabase con server nell'Unione Europea. Autenticazione sicura con email o Google OAuth." },
+  ];
+
+  // Landing scroll-reveal hooks
+  const [statsRef, statsVisible] = useScrollReveal();
+  const [featRef, featVisible] = useScrollReveal();
+  const [howRef, howVisible] = useScrollReveal();
+  const [dashRef, dashVisible] = useScrollReveal();
+  const [trustRef, trustVisible] = useScrollReveal();
+  const [ctaRef, ctaVisible] = useScrollReveal();
+  const stat1 = useAnimatedCounter(30, 1800, statsVisible);
+  const stat2 = useAnimatedCounter(7, 1200, statsVisible);
+  const stat3 = useAnimatedCounter(37, 2000, statsVisible);
+
+  if (showLanding && !__sharedId) {
+    const sectionPad = { maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px" : "80px 24px" };
+    const overline = { color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", marginBottom: 12, fontFamily: "-apple-system, sans-serif" };
+    const sectionTitle = (color = C.dark) => ({ color, fontSize: isMobile ? 28 : 40, fontWeight: 700, lineHeight: 1.2, margin: "0 0 16px", fontFamily: "'Playfair Display', Georgia, serif" });
+    return (
+      <div style={{ background: C.bg, fontFamily: "'Georgia', serif", overflowX: "hidden" }}>
+        <style>{`
+          @keyframes lp-fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes lp-gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+          @keyframes lp-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
+          @keyframes lp-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+          @keyframes lp-borderGlow { 0%, 100% { box-shadow: 0 20px 60px rgba(13,34,64,0.15); } 50% { box-shadow: 0 20px 60px rgba(196,132,29,0.25); } }
+        `}</style>
+
+        {/* === NAVBAR === */}
+        <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: isMobile ? 52 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ color: C.accent, fontWeight: 700, fontSize: isMobile ? 10 : 12, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Calcolatore Frazionamento</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
+              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Inizia gratis</button>
+            </div>
+          </div>
+        </div>
+
+        {/* === HERO === */}
+        <div style={{ background: `linear-gradient(135deg, #0D2240 0%, #162D50 40%, #1A3558 70%, #0D2240 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
+            <div>
+              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>Analisi immobiliare professionale</div>
+              <h1 style={{ color: "#FFF", fontSize: isMobile ? 34 : 50, fontWeight: 700, lineHeight: 1.15, margin: "0 0 20px", fontFamily: "'Playfair Display', Georgia, serif", animation: "lp-fadeUp 0.8s ease-out 0.1s both" }}>
+                Calcola il margine del tuo frazionamento in <span style={{ color: C.accent }}>30 secondi</span>
+              </h1>
+              <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
+                Inserisci i dati dell'immobile e ottieni istantaneamente ROI, margine netto e analisi scenari. Lo strumento usato dai professionisti del frazionamento.
+              </p>
+              <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
+                <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
+                  Inizia l'analisi gratuita →
+                </button>
+                <button onClick={() => document.getElementById("lp-how")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "transparent", color: "#FFF", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: isMobile ? "14px 24px" : "16px 28px", fontWeight: 600, fontSize: isMobile ? 14 : 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                  Scopri come funziona
+                </button>
+              </div>
+              <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 20, fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.5s both" }}>
+                Nessuna carta di credito richiesta · Risultati immediati
+              </p>
+            </div>
+            {!isMobile && (
+              <div style={{ animation: "lp-float 6s ease-in-out infinite, lp-fadeUp 1s ease-out 0.6s both" }}>
+                <div style={{ animation: "lp-borderGlow 4s ease-in-out infinite", borderRadius: 12 }}>
+                  <LpDashboardMockup />
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* === STATS BAR === */}
+        <div ref={statsRef} style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
+          <div style={{ ...sectionPad, padding: isMobile ? "36px 20px" : "48px 24px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 28 : 0, opacity: statsVisible ? 1 : 0, transition: "opacity 0.6s ease" }}>
+            {[[stat1, "secondi per un'analisi completa"], [stat2, "step del wizard guidato"], [stat3, "voci di ristrutturazione dettagliate"]].map(([num, label], i) => (
+              <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, position: "relative" }}>
+                {i > 0 && !isMobile && <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 1, height: 40, background: C.border }} />}
+                <div style={{ color: C.navy, fontSize: 48, fontWeight: 700, fontFamily: "'Georgia', serif", lineHeight: 1 }}>{num}</div>
+                <div style={{ color: C.textMid, fontSize: 14, marginTop: 6, fontFamily: "-apple-system, sans-serif", textAlign: "center" }}>{label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* === FEATURES === */}
+        <div ref={featRef} style={{ background: C.navy }}>
+          <div style={{ ...sectionPad, textAlign: "center" }}>
+            <div style={overline}>Funzionalità</div>
+            <h2 style={sectionTitle("#FFF")}>Tutto quello che serve per analizzare un'operazione</h2>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 48 }}>
+              {LP_FEATURES.map(({ Icon, title, desc }, i) => (
+                <div key={i}
+                  onMouseEnter={() => !isMobile && setHoveredFeature(i)} onMouseLeave={() => setHoveredFeature(null)}
+                  style={{
+                    background: hoveredFeature === i ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)",
+                    border: `1px solid ${hoveredFeature === i ? C.accent : "rgba(255,255,255,0.08)"}`,
+                    borderRadius: 12, padding: "28px 24px", textAlign: "left",
+                    transform: hoveredFeature === i ? "translateY(-4px)" : "translateY(0)",
+                    transition: "all 0.3s ease",
+                    opacity: featVisible ? 1 : 0, animation: featVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.1}s both` : "none",
+                  }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(196,132,29,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                    <Icon />
+                  </div>
+                  <div style={{ color: "#FFF", fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Georgia', serif" }}>{title}</div>
+                  <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 14, lineHeight: 1.6, fontFamily: "-apple-system, sans-serif" }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* === HOW IT WORKS === */}
+        <div ref={howRef} id="lp-how" style={{ background: C.bg }}>
+          <div style={{ ...sectionPad, textAlign: "center" }}>
+            <div style={overline}>Come funziona</div>
+            <h2 style={sectionTitle()}>Da zero a conto economico in 3 passaggi</h2>
+            <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 32 : 24, marginTop: 48, alignItems: isMobile ? "center" : "flex-start" }}>
+              {LP_STEPS.map(({ num, title, desc }, i) => (
+                <div key={i} style={{ flex: 1, textAlign: "center", position: "relative", opacity: howVisible ? 1 : 0, animation: howVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.15}s both` : "none" }}>
+                  {i > 0 && !isMobile && (
+                    <div style={{ position: "absolute", top: 30, left: -12, width: 24, height: 0, borderTop: `2px dashed ${C.accent}` }} />
+                  )}
+                  <div style={{ width: 60, height: 60, borderRadius: "50%", border: `2px solid ${C.accent}`, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px", background: C.highlight }}>
+                    <span style={{ color: C.accent, fontSize: 22, fontWeight: 700, fontFamily: "'Georgia', serif" }}>{num}</span>
+                  </div>
+                  <div style={{ color: C.dark, fontSize: 20, fontWeight: 700, marginBottom: 8, fontFamily: "'Georgia', serif" }}>{title}</div>
+                  <div style={{ color: C.textMid, fontSize: 14, lineHeight: 1.6, fontFamily: "-apple-system, sans-serif", maxWidth: 320, margin: "0 auto" }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* === DASHBOARD PREVIEW === */}
+        <div ref={dashRef} style={{ background: C.navy }}>
+          <div style={{ ...sectionPad, textAlign: "center" }}>
+            <div style={overline}>La Dashboard</div>
+            <h2 style={sectionTitle("#FFF")}>Analisi di livello professionale</h2>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 16, marginBottom: 40, fontFamily: "-apple-system, sans-serif" }}>
+              Ispirata ai terminali Bloomberg e Il Sole 24 Ore. Tutti i numeri che contano, in un colpo d'occhio.
+            </p>
+            <div
+              onMouseEnter={() => !isMobile && setDashMockupHover(true)} onMouseLeave={() => setDashMockupHover(false)}
+              style={{
+                maxWidth: 700, margin: "0 auto",
+                transform: !isMobile ? (dashMockupHover ? "perspective(1200px) rotateY(0deg) rotateX(0deg)" : "perspective(1200px) rotateY(-3deg) rotateX(2deg)") : "none",
+                transition: "transform 0.5s ease",
+                opacity: dashVisible ? 1 : 0, animation: dashVisible ? "lp-fadeUp 0.8s ease-out both" : "none",
+              }}>
+              <div style={{ animation: "lp-borderGlow 4s ease-in-out infinite", borderRadius: 12 }}>
+                <LpDashboardMockup />
+              </div>
+            </div>
+            <button onClick={() => handleLandingCTA(false)} style={{ marginTop: 40, background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "16px 36px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
+              Prova il calcolatore →
+            </button>
+          </div>
+        </div>
+
+        {/* === TRUST === */}
+        <div ref={trustRef} style={{ background: C.bg, borderTop: `3px solid ${C.accent}`, backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`, backgroundSize: "20px 20px" }}>
+          <div style={{ ...sectionPad, textAlign: "center" }}>
+            <h2 style={sectionTitle()}>I tuoi dati sono al sicuro</h2>
+            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 40 }}>
+              {LP_TRUST.map(({ Icon, title, desc }, i) => (
+                <div key={i} style={{
+                  background: "#FFF", borderTop: `3px solid ${C.accent}`, borderRadius: 8, padding: "28px 24px", textAlign: "left",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.06)",
+                  opacity: trustVisible ? 1 : 0, animation: trustVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.12}s both` : "none",
+                }}>
+                  <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                    <Icon />
+                  </div>
+                  <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 8, fontFamily: "'Georgia', serif" }}>{title}</div>
+                  <div style={{ color: C.textMid, fontSize: 14, lineHeight: 1.6, fontFamily: "-apple-system, sans-serif" }}>{desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* === CTA FINALE + FOOTER === */}
+        <div ref={ctaRef} style={{ background: C.navy }}>
+          <div style={{ ...sectionPad, textAlign: "center", padding: isMobile ? "56px 20px 32px" : "80px 24px 40px" }}>
+            <h2 style={{ ...sectionTitle("#FFF"), fontSize: isMobile ? 26 : 38, opacity: ctaVisible ? 1 : 0, animation: ctaVisible ? "lp-fadeUp 0.8s ease-out both" : "none" }}>
+              Pronto a calcolare il tuo prossimo frazionamento?
+            </h2>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>Gratuito · Immediato · Professionale</p>
+            <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: "linear-gradient(90deg, transparent 0%, rgba(196,132,29,0.4) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
+              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "16px 36px" : "18px 56px", fontWeight: 700, fontSize: isMobile ? 16 : 18, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "block" }}>
+                Inizia ora →
+              </button>
+            </div>
+            <div style={{ marginTop: 20 }}>
+              <button onClick={() => handleLandingCTA(true)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>
+                Hai già un account? Accedi
+              </button>
+            </div>
+            <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento Immobiliare — go.lorenzoloseto.com</p>
+              <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
+                <span onClick={() => setShowPrivacy(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Informativa Privacy</span>
+                <span onClick={() => setShowTos(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {showTos && <TosModal onClose={() => setShowTos(false)} />}
+      </div>
+    );
+  }
 
   // ============================================================
   // SHARE — Loading e Gate
