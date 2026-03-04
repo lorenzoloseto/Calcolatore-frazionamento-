@@ -138,7 +138,7 @@ function PrivacyPolicyModal({ onClose }) {
         <p style={paragraph}>Il Titolare raccoglie le seguenti categorie di dati personali:</p>
         <ul style={{ ...paragraph, paddingLeft: 20 }}>
           <li><strong>Utenti registrati:</strong> nome, indirizzo email, password (criptata).</li>
-          <li><strong>Visitatori link condivisi:</strong> nome, cognome, indirizzo email, codice fiscale, data di nascita, sesso, luogo di nascita.</li>
+          <li><strong>Visitatori link condivisi:</strong> nome, cognome, indirizzo email, codice fiscale, data di nascita, sesso, luogo di nascita. Il codice fiscale è raccolto per l'identificazione univoca del soggetto che accede a informazioni economiche riservate, a tutela del titolare del progetto e per eventuale utilizzo in sede legale in caso di violazione dell'impegno di riservatezza. Il CF è trattato con misure di sicurezza rafforzate.</li>
           <li><strong>Dati tecnici:</strong> token di sessione memorizzati nel browser (localStorage) per il mantenimento dell'accesso.</li>
         </ul>
 
@@ -156,12 +156,13 @@ function PrivacyPolicyModal({ onClose }) {
         <p style={paragraph}>Il trattamento dei dati è fondato sulle seguenti basi giuridiche ai sensi dell'art. 6 del GDPR:</p>
         <ul style={{ ...paragraph, paddingLeft: 20 }}>
           <li><strong>Consenso esplicito</strong> (Art. 6.1.a): per la raccolta dei dati identificativi dei visitatori dei link condivisi;</li>
+          <li><strong>Consenso esplicito per dati particolari</strong> (Art. 9.2.a): per il trattamento del codice fiscale, dato che consente l'identificazione univoca della persona fisica;</li>
           <li><strong>Esecuzione di un contratto</strong> (Art. 6.1.b): per la gestione dell'account e l'erogazione del servizio;</li>
           <li><strong>Legittimo interesse</strong> (Art. 6.1.f): per la sicurezza e il tracciamento degli accessi ai progetti riservati.</li>
         </ul>
 
         <h3 style={sectionTitle}>5. Conservazione dei dati</h3>
-        <p style={paragraph}>I dati personali saranno conservati per il tempo strettamente necessario al perseguimento delle finalità per le quali sono stati raccolti e comunque per la durata del rapporto contrattuale. I dati dei visitatori dei link condivisi saranno conservati per un periodo massimo di 5 anni dall'accesso.</p>
+        <p style={paragraph}>I dati personali saranno conservati per il tempo strettamente necessario al perseguimento delle finalità per le quali sono stati raccolti e comunque per la durata del rapporto contrattuale. I dati dei visitatori dei link condivisi saranno conservati per un periodo massimo di 2 anni dall'accesso.</p>
 
         <h3 style={sectionTitle}>6. Comunicazione e diffusione dei dati</h3>
         <p style={paragraph}>I dati personali non saranno diffusi. Potranno essere comunicati a:</p>
@@ -185,6 +186,15 @@ function PrivacyPolicyModal({ onClose }) {
 
         <h3 style={sectionTitle}>8. Cookie e tecnologie di tracciamento</h3>
         <p style={paragraph}>Questo sito utilizza esclusivamente cookie tecnici e di sessione (token di autenticazione memorizzati in localStorage) necessari al funzionamento del servizio. Non vengono utilizzati cookie di profilazione o di terze parti a fini pubblicitari.</p>
+        <p style={paragraph}>In caso di autenticazione tramite Google OAuth, Google potrà impostare cookie propri necessari al processo di autenticazione. Per maggiori informazioni sulla gestione dei dati da parte di Google, si rimanda alla <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: C.accent }}>Privacy Policy di Google</a>.</p>
+
+        <h3 style={sectionTitle}>9. Notifica di violazione dei dati (Data Breach)</h3>
+        <p style={paragraph}>In caso di violazione dei dati personali che possa comportare un rischio per i diritti e le libertà degli interessati, il Titolare si impegna a:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li>Notificare la violazione al Garante per la Protezione dei Dati Personali entro 72 ore dalla scoperta, ai sensi dell'art. 33 del GDPR;</li>
+          <li>Comunicare la violazione agli interessati senza ingiustificato ritardo, qualora la violazione sia suscettibile di presentare un rischio elevato per i loro diritti e libertà, ai sensi dell'art. 34 del GDPR;</li>
+          <li>Adottare tutte le misure tecniche e organizzative necessarie per contenere la violazione e prevenire ulteriori danni.</li>
+        </ul>
 
         <div style={{ marginTop: 28, textAlign: "center" }}>
           <button onClick={onClose} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "12px 36px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
@@ -217,6 +227,55 @@ function PrivacyLink({ onClick }) {
     <span onClick={onClick} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>
       Informativa Privacy
     </span>
+  );
+}
+
+// ============================================================
+// TERMINI DI SERVIZIO MODAL
+// ============================================================
+function TosModal({ onClose }) {
+  const sectionTitle = { color: C.dark, fontWeight: 700, fontSize: 15, margin: "22px 0 8px", fontFamily: "-apple-system, sans-serif" };
+  const paragraph = { color: C.textMid, fontSize: 13, lineHeight: 1.7, margin: "0 0 10px", fontFamily: "-apple-system, sans-serif" };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 9999, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: "#FFF", borderRadius: 10, maxWidth: 600, width: "100%", maxHeight: "85vh", overflow: "auto", padding: "32px 28px", boxShadow: "0 8px 40px rgba(0,0,0,0.2)" }}>
+        <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+        <h2 style={{ color: C.dark, fontSize: 20, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Termini di Servizio</h2>
+        <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Condizioni generali di utilizzo del servizio</p>
+
+        <h3 style={sectionTitle}>1. Oggetto del servizio</h3>
+        <p style={paragraph}>Il presente servizio, fornito da <strong>Gruppo Loseto srl</strong>, consiste in uno strumento web per il calcolo e l'analisi di operazioni di frazionamento immobiliare. Il servizio permette agli utenti registrati di creare, salvare, modificare e condividere analisi economiche relative a operazioni immobiliari.</p>
+
+        <h3 style={sectionTitle}>2. Obblighi dell'utente</h3>
+        <p style={paragraph}>L'utente si impegna a:</p>
+        <ul style={{ ...paragraph, paddingLeft: 20 }}>
+          <li>Fornire dati veritieri e aggiornati in fase di registrazione;</li>
+          <li>Mantenere riservate le proprie credenziali di accesso;</li>
+          <li>Utilizzare il servizio esclusivamente per finalità lecite e conformi alla normativa vigente;</li>
+          <li>Non tentare di accedere a dati di altri utenti in modo non autorizzato;</li>
+          <li>Non utilizzare il servizio per attività fraudolente o illecite.</li>
+        </ul>
+
+        <h3 style={sectionTitle}>3. Proprietà intellettuale</h3>
+        <p style={paragraph}>Il software, il design, i loghi e tutti i contenuti del servizio sono di proprietà esclusiva di Gruppo Loseto srl e sono protetti dalle leggi sulla proprietà intellettuale. L'utente non acquisisce alcun diritto di proprietà intellettuale sui contenuti del servizio. I dati e i progetti inseriti dall'utente restano di proprietà dell'utente stesso.</p>
+
+        <h3 style={sectionTitle}>4. Limitazione di responsabilità</h3>
+        <p style={paragraph}>Il servizio è fornito "così com'è" senza garanzie di alcun tipo. Gruppo Loseto srl non garantisce che il servizio sia privo di errori o interruzioni. Le analisi e i calcoli prodotti dal servizio hanno finalità puramente indicative e non costituiscono consulenza finanziaria, immobiliare o legale. L'utente è l'unico responsabile delle decisioni prese sulla base dei risultati ottenuti.</p>
+
+        <h3 style={sectionTitle}>5. Sospensione e cancellazione</h3>
+        <p style={paragraph}>Gruppo Loseto srl si riserva il diritto di sospendere o cancellare l'account dell'utente in caso di violazione dei presenti Termini di Servizio, senza preavviso. L'utente può cancellare il proprio account in qualsiasi momento dalla sezione "I miei conti economici".</p>
+
+        <h3 style={sectionTitle}>6. Modifiche ai termini</h3>
+        <p style={paragraph}>Gruppo Loseto srl si riserva il diritto di modificare i presenti Termini di Servizio in qualsiasi momento. Le modifiche saranno comunicate agli utenti tramite il sito. L'uso continuato del servizio dopo la pubblicazione delle modifiche costituisce accettazione dei nuovi termini.</p>
+
+        <h3 style={sectionTitle}>7. Legge applicabile e foro competente</h3>
+        <p style={paragraph}>I presenti Termini di Servizio sono regolati dalla legge italiana. Per qualsiasi controversia derivante dall'utilizzo del servizio sarà competente in via esclusiva il Foro di Bari.</p>
+
+        <div style={{ marginTop: 28, textAlign: "center" }}>
+          <button onClick={onClose} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "12px 36px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -579,9 +638,14 @@ export default function App() {
   const [gateError, setGateError] = useState('');
   const [gateNda, setGateNda] = useState(false);
   const [gatePrivacy, setGatePrivacy] = useState(false);
+  const [gateCfConsent, setGateCfConsent] = useState(false);
   const [regPrivacy, setRegPrivacy] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
+  const [showTos, setShowTos] = useState(false);
+  const [regTos, setRegTos] = useState(false);
   const [cookieBannerDismissed, setCookieBannerDismissed] = useState(() => localStorage.getItem("cookie_consent") === "1");
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [projectVisitors, setProjectVisitors] = useState({});
   const [expandedVisitors, setExpandedVisitors] = useState({});
 
@@ -652,17 +716,56 @@ export default function App() {
     setAuthError("");
     if (!authForm.name.trim()) { setAuthError("Inserisci il tuo nome"); return; }
     if (!authForm.email.trim()) { setAuthError("Inserisci la tua email"); return; }
-    if (authForm.password.length < 4) { setAuthError("Password minimo 4 caratteri"); return; }
+    if (authForm.password.length < 8) { setAuthError("La password deve essere di almeno 8 caratteri"); return; }
     if (!regPrivacy) { setAuthError("Devi accettare l'informativa privacy per proseguire"); return; }
+    if (!regTos) { setAuthError("Devi accettare i Termini di Servizio per proseguire"); return; }
     const res = await DB.register(authForm.name, authForm.email, authForm.password);
     if (res.ok && res.user) {
       supabase.from("profiles").update({ privacy_consent_at: new Date().toISOString() }).eq("id", res.user.id).then(() => {});
-      setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); setRegPrivacy(false);
+      setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); setRegPrivacy(false); setRegTos(false);
     }
     else if (res.ok && res.confirmEmail) { setAuthError("Controlla la tua email per confermare la registrazione, poi accedi."); }
     else setAuthError(res.error);
   };
   const handleLogout = async () => { await DB.logout(); setUser(null); setAuthScreen(null); };
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    setDeleteAccountLoading(true);
+    try {
+      // 1. Cancella condivisioni dei progetti dell'utente
+      const projects = await DB.getProjects();
+      const ownProjects = projects.filter(p => !p._shared);
+      for (const p of ownProjects) {
+        // Cancella condivisioni
+        await supabase.from("project_shares").delete().eq("project_id", p.id);
+        // Cancella snapshot e visitatori
+        const { data: snapshots } = await supabase.from("shared_snapshots").select("id").eq("project_id", p.id);
+        if (snapshots) {
+          for (const s of snapshots) {
+            await supabase.from("snapshot_visitors").delete().eq("snapshot_id", s.id);
+          }
+          await supabase.from("shared_snapshots").delete().eq("project_id", p.id);
+        }
+        // Cancella progetto
+        await supabase.from("projects").delete().eq("id", p.id);
+      }
+      // 2. Cancella condivisioni ricevute
+      await supabase.from("project_shares").delete().eq("shared_with_email", user.email);
+      // 3. Cancella profilo
+      await supabase.from("profiles").delete().eq("id", user.id);
+      // 4. Logout
+      await DB.logout();
+      setUser(null);
+      setAuthScreen(null);
+      setShowDeleteAccount(false);
+      setDeleteAccountLoading(false);
+      alert("Il tuo account e tutti i dati associati sono stati cancellati con successo.");
+    } catch (err) {
+      console.error("Errore cancellazione account:", err);
+      setDeleteAccountLoading(false);
+      alert("Si è verificato un errore durante la cancellazione. Riprova o contatta lorenzoloseto@hotmail.it");
+    }
+  };
   const handleSaveProject = async () => {
     const indirizzo = [data.via, data.civico].filter(Boolean).join(" ");
     const nome = projectName || [indirizzo, data.citta].filter(Boolean).join(", ") || "Nuova operazione";
@@ -724,6 +827,7 @@ export default function App() {
     const cfErr = validateCF(cf, nome, cognome, g, m, a, sesso);
     if (cfErr) { setGateError(cfErr); return; }
     if (!gatePrivacy) { setGateError("Devi accettare l'informativa privacy per il trattamento dei dati"); return; }
+    if (!gateCfConsent) { setGateError("Devi acconsentire al trattamento del codice fiscale per proseguire"); return; }
     if (!gateNda) { setGateError("Devi accettare l'impegno di non divulgazione per proseguire"); return; }
     // Salva dati visitatore su Supabase (con consensi GDPR)
     supabase.from("snapshot_visitors").insert({
@@ -731,7 +835,7 @@ export default function App() {
       nome: nome.trim(), cognome: cognome.trim(), email: email.trim(),
       cf: cf.toUpperCase(), data_nascita: `${giorno}/${mese}/${anno}`,
       sesso, luogo_nascita: luogoNascita.trim(),
-      privacy_consent: true, nda_accepted: true
+      privacy_consent: true, nda_accepted: true, cf_consent: true
     }).then(() => {});
     setShareGateCompleted(true);
   };
@@ -942,6 +1046,13 @@ export default function App() {
               Ho letto e accetto l'<span onClick={(e) => { e.stopPropagation(); setShowPrivacy(true); }} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Informativa Privacy</span> per il trattamento dei miei dati personali ai sensi del GDPR.
             </label>
           </div>
+          <div style={{ marginBottom: 12, display: "flex", alignItems: "flex-start", gap: 10, background: C.card, borderRadius: 6, padding: "12px 16px", border: `1px solid ${C.border}` }}>
+            <input type="checkbox" checked={gateCfConsent} onChange={(e) => setGateCfConsent(e.target.checked)}
+              style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 18, height: 18, cursor: "pointer" }} />
+            <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setGateCfConsent(p => !p)}>
+              Ai sensi dell'Art. 9 del GDPR, <strong style={{ color: C.dark }}>acconsento al trattamento del mio codice fiscale</strong> per le finalità di identificazione univoca descritte nell'informativa privacy.
+            </label>
+          </div>
           <div style={{ marginBottom: 20, display: "flex", alignItems: "flex-start", gap: 10, background: C.highlight, borderRadius: 6, padding: "14px 16px", border: `1px solid ${C.accentLight}` }}>
             <input type="checkbox" checked={gateNda} onChange={(e) => setGateNda(e.target.checked)}
               style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 18, height: 18, cursor: "pointer" }} />
@@ -979,13 +1090,22 @@ export default function App() {
             <AuthInput label="Password" type="password" value={authForm.password} onChange={(v) => setAuthForm((p) => ({ ...p, password: v }))} placeholder="••••••••" />
           </div>
           {!isLogin && (
-            <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <>
+            <div style={{ marginBottom: 10, display: "flex", alignItems: "flex-start", gap: 10 }}>
               <input type="checkbox" checked={regPrivacy} onChange={(e) => setRegPrivacy(e.target.checked)}
                 style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 16, height: 16, cursor: "pointer" }} />
               <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setRegPrivacy(p => !p)}>
                 Ho letto e accetto l'<span onClick={(e) => { e.stopPropagation(); setShowPrivacy(true); }} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Informativa Privacy</span>
               </label>
             </div>
+            <div style={{ marginBottom: 16, display: "flex", alignItems: "flex-start", gap: 10 }}>
+              <input type="checkbox" checked={regTos} onChange={(e) => setRegTos(e.target.checked)}
+                style={{ marginTop: 3, accentColor: C.accent, flexShrink: 0, width: 16, height: 16, cursor: "pointer" }} />
+              <label style={{ color: C.textMid, fontSize: 12, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }} onClick={() => setRegTos(p => !p)}>
+                Accetto i <span onClick={(e) => { e.stopPropagation(); setShowTos(true); }} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Termini di Servizio</span>
+              </label>
+            </div>
+            </>
           )}
           <button onClick={isLogin ? handleLogin : handleRegister} style={btnPrimary}>{isLogin ? "Accedi" : "Crea account"}</button>
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
@@ -993,6 +1113,9 @@ export default function App() {
             <span style={{ color: C.textLight, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>oppure</span>
             <div style={{ flex: 1, height: 1, background: C.border }} />
           </div>
+          <p style={{ color: C.textLight, fontSize: 11, textAlign: "center", margin: "0 0 10px", fontFamily: "-apple-system, sans-serif", lineHeight: 1.4 }}>
+            Accedendo con Google, i tuoi dati di profilo (nome ed email) saranno condivisi con Google per l'autenticazione. Consulta la <span onClick={() => setShowPrivacy(true)} style={{ color: C.accent, textDecoration: "underline", cursor: "pointer" }}>Privacy Policy</span>.
+          </p>
           <button onClick={async () => await DB.loginWithGoogle()} style={{ ...btnSecondary, display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
             <svg width="18" height="18" viewBox="0 0 24 24"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg>
             Continua con Google
@@ -1007,11 +1130,13 @@ export default function App() {
               Torna al calcolatore
             </button>
           </div>
-          <div style={{ textAlign: "center", marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 12 }}>
+          <div style={{ textAlign: "center", marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 12, display: "flex", justifyContent: "center", gap: 16 }}>
             <PrivacyLink onClick={() => setShowPrivacy(true)} />
+            <span onClick={() => setShowTos(true)} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
           </div>
         </div>
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+        {showTos && <TosModal onClose={() => setShowTos(false)} />}
         {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
@@ -1111,7 +1236,34 @@ export default function App() {
               })}
             </div>
           )}
+          <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 32, paddingTop: 20, textAlign: "center" }}>
+            <button onClick={() => setShowDeleteAccount(true)} style={{ background: "none", border: "none", color: C.red, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline", opacity: 0.7 }}>
+              Cancella il mio account e tutti i dati
+            </button>
+          </div>
         </div>
+        {/* DELETE ACCOUNT MODAL */}
+        {showDeleteAccount && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !deleteAccountLoading && setShowDeleteAccount(false)}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `2px solid ${C.red}` }}>
+              <div style={{ textAlign: "center", marginBottom: 20 }}>
+                <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
+                  <span style={{ fontSize: 22 }}>⚠️</span>
+                </div>
+                <h3 style={{ color: C.red, fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>Cancella account</h3>
+                <p style={{ color: C.textMid, fontSize: 13, margin: 0, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>
+                  Stai per cancellare definitivamente il tuo account e <strong>tutti i dati associati</strong>: profilo, progetti, condivisioni, snapshot e visitatori. Questa azione è <strong>irreversibile</strong>.
+                </p>
+              </div>
+              <button onClick={handleDeleteAccount} disabled={deleteAccountLoading} style={{ background: C.red, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: deleteAccountLoading ? "not-allowed" : "pointer", fontFamily: "-apple-system, sans-serif", width: "100%", opacity: deleteAccountLoading ? 0.6 : 1, marginBottom: 10 }}>
+                {deleteAccountLoading ? "Cancellazione in corso..." : "Sì, cancella tutto"}
+              </button>
+              <button onClick={() => setShowDeleteAccount(false)} disabled={deleteAccountLoading} style={{ background: "transparent", color: C.textMid, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" }}>
+                Annulla
+              </button>
+            </div>
+          </div>
+        )}
         {/* SHARE MODAL */}
         {shareModal && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareModal(null)}>
