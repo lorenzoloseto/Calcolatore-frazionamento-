@@ -1169,7 +1169,7 @@ export default function App() {
                 background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
-              }}>FRAZIONA</div>
+              }}>FRAZIO</div>
             </div>
             <div style={{ display: "flex", gap: 10 }}>
               <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
