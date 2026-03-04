@@ -185,24 +185,24 @@ const RIST_INIT = [
 ];
 
 // ============================================================
-// SHARE LINK ENCODE / DECODE
+// SHARE LINK — Supabase snapshots (link corti)
 // ============================================================
-function encodeProjectForLink(name, data, scenari, comparabili, ristItems) {
-  const compact = {
-    n: name,
-    d: data,
-    s: scenari,
-    c: comparabili,
+async function saveProjectSnapshot(name, data, scenari, comparabili, ristItems) {
+  const payload = {
+    n: name, d: data, s: scenari, c: comparabili,
     r: (ristItems || []).filter(it => it.qty > 0).map(it => {
       const idx = RIST_INIT.findIndex(r => r.nome === it.nome);
       return { i: idx, q: it.qty, p: it.prezzo };
     }).filter(it => it.i >= 0),
   };
-  return btoa(unescape(encodeURIComponent(JSON.stringify(compact))));
+  const { data: row, error } = await supabase.from("shared_snapshots").insert({ project_data: payload }).select("id").single();
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, id: row.id };
 }
-function decodeProjectFromLink(encoded) {
-  const json = decodeURIComponent(escape(atob(encoded)));
-  const compact = JSON.parse(json);
+async function loadProjectSnapshot(id) {
+  const { data: row, error } = await supabase.from("shared_snapshots").select("project_data").eq("id", id).single();
+  if (error || !row) return null;
+  const compact = row.project_data;
   const ristItems = RIST_INIT.map(it => ({ ...it }));
   (compact.r || []).forEach(({ i, q, p }) => {
     if (i >= 0 && i < ristItems.length) {
@@ -257,12 +257,9 @@ function validateCF(cf, nome, cognome, giorno, mese, anno, sesso) {
   return null;
 }
 
-// Parse share link on page load (before React renders)
-let __sharedProject = null;
-try {
-  const _sp = new URLSearchParams(window.location.search).get("s");
-  if (_sp) { __sharedProject = decodeProjectFromLink(_sp); window.history.replaceState({}, "", window.location.pathname); }
-} catch (e) { console.warn("Link condivisione non valido"); }
+// Parse share link ID on page load (data loaded async in useEffect)
+const __sharedId = new URLSearchParams(window.location.search).get("s");
+if (__sharedId) window.history.replaceState({}, "", window.location.pathname);
 
 // ============================================================
 // REUSABLE COMPONENTS
@@ -436,27 +433,45 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+  // Carica dati condivisi da Supabase se c'è un __sharedId
+  useEffect(() => {
+    if (!__sharedId) return;
+    loadProjectSnapshot(__sharedId).then((proj) => {
+      if (proj) {
+        setProjectName(proj.name);
+        setData(proj.data);
+        setScenari(proj.scenari);
+        setComparabili(proj.comparabili);
+        setRistItems(proj.ristItems);
+        setShowDash(true);
+        setViewOnly(true);
+      }
+      setSharedLoading(false);
+    });
+  }, []);
   const [authError, setAuthError] = useState("");
   const [shareModal, setShareModal] = useState(null); // projectId to share
   const [shareEmail, setShareEmail] = useState("");
   const [sharePermission, setSharePermission] = useState("view");
   const [shareError, setShareError] = useState("");
-  const [projectName, setProjectName] = useState(__sharedProject ? __sharedProject.name : "");
+  const [projectName, setProjectName] = useState("");
   const [editingProjectId, setEditingProjectId] = useState(null);
 
   // APP STATE
   const [step, setStep] = useState(0);
-  const [showDash, setShowDash] = useState(!!__sharedProject);
+  const [showDash, setShowDash] = useState(false);
   const [dashTab, setDashTab] = useState("risultati");
   const [fadeIn, setFadeIn] = useState(true);
   const [showPopup, setShowPopup] = useState(false);
-  const [viewOnly, setViewOnly] = useState(!!__sharedProject);
-  const [data, setData] = useState(__sharedProject ? __sharedProject.data : { ...DEFAULT_DATA });
-  const [scenari, setScenari] = useState(__sharedProject ? __sharedProject.scenari : { ...DEFAULT_SCENARI });
-  const [comparabili, setComparabili] = useState(__sharedProject ? __sharedProject.comparabili : [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
-  const [ristItems, setRistItems] = useState(__sharedProject ? __sharedProject.ristItems : [...RIST_INIT]);
+  const [viewOnly, setViewOnly] = useState(false);
+  const [data, setData] = useState({ ...DEFAULT_DATA });
+  const [scenari, setScenari] = useState({ ...DEFAULT_SCENARI });
+  const [comparabili, setComparabili] = useState([{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
+  const [ristItems, setRistItems] = useState([...RIST_INIT]);
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
+  const [shareLinkLoading, setShareLinkLoading] = useState(false);
+  const [sharedLoading, setSharedLoading] = useState(!!__sharedId);
   const [shareGateCompleted, setShareGateCompleted] = useState(false);
   const [gateForm, setGateForm] = useState({ nome: '', cognome: '', email: '', giorno: '', mese: '', anno: '', sesso: '', luogoNascita: '', cf: '' });
   const [gateError, setGateError] = useState('');
@@ -728,9 +743,16 @@ export default function App() {
   const btnSecondary = { background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
 
   // ============================================================
-  // SHARE GATE — Identificazione prima di visualizzare il progetto
+  // SHARE — Loading e Gate
   // ============================================================
-  if (__sharedProject && !shareGateCompleted) {
+  if (__sharedId && sharedLoading) {
+    return (
+      <div style={{ background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <p style={{ color: C.textMid, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>Caricamento progetto condiviso...</p>
+      </div>
+    );
+  }
+  if (__sharedId && !shareGateCompleted) {
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ background: C.card, borderRadius: 10, padding: "32px 28px", maxWidth: 480, width: "100%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
@@ -886,7 +908,7 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={() => { const encoded = encodeProjectForLink(p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${encoded}`); setLinkCopied(false); }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Condividi</button>
+                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
