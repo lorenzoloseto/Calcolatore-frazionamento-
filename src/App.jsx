@@ -187,7 +187,7 @@ const RIST_INIT = [
 // ============================================================
 // SHARE LINK — Supabase snapshots (link corti)
 // ============================================================
-async function saveProjectSnapshot(name, data, scenari, comparabili, ristItems) {
+async function saveProjectSnapshot(projectId, name, data, scenari, comparabili, ristItems) {
   const payload = {
     n: name, d: data, s: scenari, c: comparabili,
     r: (ristItems || []).filter(it => it.qty > 0).map(it => {
@@ -195,7 +195,7 @@ async function saveProjectSnapshot(name, data, scenari, comparabili, ristItems) 
       return { i: idx, q: it.qty, p: it.prezzo };
     }).filter(it => it.i >= 0),
   };
-  const { data: row, error } = await supabase.from("shared_snapshots").insert({ project_data: payload }).select("id").single();
+  const { data: row, error } = await supabase.from("shared_snapshots").insert({ project_data: payload, project_id: projectId }).select("id").single();
   if (error) return { ok: false, error: error.message };
   return { ok: true, id: row.id };
 }
@@ -476,6 +476,8 @@ export default function App() {
   const [gateForm, setGateForm] = useState({ nome: '', cognome: '', email: '', giorno: '', mese: '', anno: '', sesso: '', luogoNascita: '', cf: '' });
   const [gateError, setGateError] = useState('');
   const [gateNda, setGateNda] = useState(false);
+  const [projectVisitors, setProjectVisitors] = useState({});
+  const [expandedVisitors, setExpandedVisitors] = useState({});
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -612,11 +614,39 @@ export default function App() {
     const cfErr = validateCF(cf, nome, cognome, g, m, a, sesso);
     if (cfErr) { setGateError(cfErr); return; }
     if (!gateNda) { setGateError("Devi accettare l'impegno di non divulgazione per proseguire"); return; }
+    // Salva dati visitatore su Supabase
+    supabase.from("snapshot_visitors").insert({
+      snapshot_id: __sharedId,
+      nome: nome.trim(), cognome: cognome.trim(), email: email.trim(),
+      cf: cf.toUpperCase(), data_nascita: `${giorno}/${mese}/${anno}`,
+      sesso, luogo_nascita: luogoNascita.trim()
+    }).then(() => {});
     setShareGateCompleted(true);
   };
-  // Load projects when opening projects screen
+  // Load projects and their visitors when opening projects screen
   useEffect(() => {
-    if (authScreen === "projects" && user) { DB.getProjects().then(setProjectsList); }
+    if (authScreen === "projects" && user) {
+      DB.getProjects().then(async (projects) => {
+        setProjectsList(projects);
+        // Carica visitatori per ogni progetto
+        const ownProjects = projects.filter(p => !p._shared);
+        if (ownProjects.length === 0) return;
+        const ids = ownProjects.map(p => p.id);
+        const { data: visitors } = await supabase
+          .from("snapshot_visitors")
+          .select("*, shared_snapshots!inner(project_id)")
+          .in("shared_snapshots.project_id", ids)
+          .order("visited_at", { ascending: false });
+        if (visitors) {
+          const byProject = {};
+          visitors.forEach(v => {
+            const pid = v.shared_snapshots?.project_id;
+            if (pid) { if (!byProject[pid]) byProject[pid] = []; byProject[pid].push(v); }
+          });
+          setProjectVisitors(byProject);
+        }
+      });
+    }
   }, [authScreen, user]);
   // Load shares when opening share modal
   useEffect(() => {
@@ -908,11 +938,36 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
+                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
                     </div>
+                    {!isShared && projectVisitors[p.id] && projectVisitors[p.id].length > 0 && (
+                      <div style={{ width: "100%", borderTop: `1px solid ${C.border}`, marginTop: 8, paddingTop: 8 }}>
+                        <div onClick={() => setExpandedVisitors(prev => ({ ...prev, [p.id]: !prev[p.id] }))}
+                          style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", color: C.textMid, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>
+                          <span>{expandedVisitors[p.id] ? "▾" : "▸"}</span>
+                          <span style={{ fontWeight: 600 }}>👥 {projectVisitors[p.id].length} visitator{projectVisitors[p.id].length === 1 ? "e" : "i"}</span>
+                        </div>
+                        {expandedVisitors[p.id] && (
+                          <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+                            {projectVisitors[p.id].map((v, vi) => (
+                              <div key={vi} style={{ background: C.bg, borderRadius: 6, padding: "8px 12px", fontSize: 12, fontFamily: "-apple-system, sans-serif", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 6 }}>
+                                <div>
+                                  <span style={{ color: C.dark, fontWeight: 600 }}>{v.nome} {v.cognome}</span>
+                                  <span style={{ color: C.textLight, marginLeft: 8 }}>{v.email}</span>
+                                </div>
+                                <div style={{ display: "flex", gap: 12, color: C.textLight, fontSize: 11 }}>
+                                  <span>CF: {v.cf}</span>
+                                  <span>{new Date(v.visited_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 );
               })}
