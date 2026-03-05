@@ -1,5 +1,9 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
+import { StatusBar, Style } from "@capacitor/status-bar";
+import { App as CapApp } from "@capacitor/app";
 // ============================================================
 // CALCOLATORE FRAZIONAMENTO IMMOBILIARE — V2 con Auth & Salvataggio
 // Aesthetic: Il Sole 24 Ore / Bloomberg — professional finance
@@ -12,6 +16,8 @@ import { createClient } from "@supabase/supabase-js";
 const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
 const supabase = createClient(SB_URL, SB_KEY);
+const isNative = Capacitor.isNativePlatform();
+const WEB_ORIGIN = "https://go.lorenzoloseto.com";
 
 const DB = {
   _user: null,
@@ -45,6 +51,18 @@ const DB = {
     return { ok: true, user: this._user };
   },
   async loginWithGoogle() {
+    if (isNative) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: "com.lorenzoloseto.frazio://auth/callback",
+          skipBrowserRedirect: true,
+        }
+      });
+      if (error) return { ok: false, error: error.message };
+      if (data?.url) await Browser.open({ url: data.url });
+      return { ok: true };
+    }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: { redirectTo: window.location.origin + window.location.pathname }
@@ -209,7 +227,7 @@ function PrivacyPolicyModal({ onClose }) {
 // ============================================================
 function CookieBanner({ onAccept, onShowPrivacy }) {
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9998, background: C.dark, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap", boxShadow: "0 -2px 12px rgba(0,0,0,0.15)" }}>
+    <div className={isNative ? "cap-safe-bottom" : ""} style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9998, background: C.dark, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap", boxShadow: "0 -2px 12px rgba(0,0,0,0.15)" }}>
       <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, margin: 0, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5, flex: 1, minWidth: 200 }}>
         Questo sito utilizza cookie tecnici necessari al funzionamento.{" "}
         <span onClick={onShowPrivacy} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Informativa Privacy</span>
@@ -706,6 +724,24 @@ export default function App() {
     });
     return () => subscription.unsubscribe();
   }, []);
+  // Capacitor: status bar + deep link handler per OAuth callback
+  useEffect(() => {
+    if (!isNative) return;
+    StatusBar.setStyle({ style: Style.Dark }).catch(() => {});
+    const listener = CapApp.addListener("appUrlOpen", async (event) => {
+      if (event.url.includes("auth/callback")) {
+        await Browser.close().catch(() => {});
+        const fakeUrl = new URL(event.url.replace("com.lorenzoloseto.frazio://", "https://placeholder/"));
+        const params = new URLSearchParams(fakeUrl.hash.substring(1));
+        const accessToken = params.get("access_token");
+        const refreshToken = params.get("refresh_token");
+        if (accessToken && refreshToken) {
+          await supabase.auth.setSession({ access_token: accessToken, refresh_token: refreshToken });
+        }
+      }
+    });
+    return () => { listener.then(l => l.remove()); };
+  }, []);
   // Carica dati condivisi da Supabase se c'è un __sharedId
   useEffect(() => {
     if (!__sharedId) return;
@@ -1159,7 +1195,7 @@ export default function App() {
         `}</style>
 
         {/* === NAVBAR === */}
-        <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div className={isNative ? "cap-safe-top" : ""} style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: isMobile ? 52 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, cursor: "pointer" }}>
               <LpBrandLogo size={isMobile ? 24 : 32} />
@@ -1568,7 +1604,7 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { setShareLinkUrl(`${window.location.origin}${window.location.pathname}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
+                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
