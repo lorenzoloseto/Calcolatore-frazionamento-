@@ -1008,7 +1008,10 @@ export default function App() {
   const [authScreen, setAuthScreen] = useState(null); // null | "login" | "register" | "projects" | "forgot" | "reset-password"
   const authScreenRef = useRef(null);
   const setAuthScreenTracked = (v) => { authScreenRef.current = v; setAuthScreen(v); };
-  const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
+  const [authForm, setAuthForm] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem("frazio_remember") || "null"); if (saved && saved.exp > Date.now() && saved.email) return { name: "", email: saved.email, password: "" }; } catch {}
+    return { name: "", email: "", password: "" };
+  });
   const [authLoading, setAuthLoading] = useState(false);
 
   // Gestisci il callback OAuth e cambi di sessione
@@ -1141,6 +1144,9 @@ export default function App() {
   const [gateNda, setGateNda] = useState(false);
   const [gatePrivacy, setGatePrivacy] = useState(false);
   const [gateCfConsent, setGateCfConsent] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    try { const saved = JSON.parse(localStorage.getItem("frazio_remember") || "null"); return saved && saved.exp > Date.now(); } catch { return false; }
+  });
   const [regPrivacy, setRegPrivacy] = useState(false);
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTos, setShowTos] = useState(false);
@@ -1219,7 +1225,14 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError("");
     const res = await DB.login(authForm.email, authForm.password);
-    if (res.ok) { setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); DB.trackEvent("login", { method: "email" }); }
+    if (res.ok) {
+      if (rememberMe) {
+        localStorage.setItem("frazio_remember", JSON.stringify({ email: authForm.email, exp: Date.now() + 30 * 24 * 60 * 60 * 1000 }));
+      } else {
+        localStorage.removeItem("frazio_remember");
+      }
+      setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); DB.trackEvent("login", { method: "email" });
+    }
     else setAuthError(res.error);
   };
   const handleRegister = async () => {
@@ -1897,7 +1910,14 @@ export default function App() {
             </>
           )}
           {isLogin && (
-            <div style={{ textAlign: "right", marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ accentColor: C.accent, width: 14, height: 14, cursor: "pointer" }} />
+                <label onClick={() => setRememberMe(p => !p)} style={{ color: C.textMid, fontSize: 12, fontFamily: "-apple-system, sans-serif", cursor: "pointer" }}>
+                  Ricordami per 30 giorni
+                </label>
+              </div>
               <button onClick={() => { setAuthScreen("forgot"); setAuthError(""); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>
                 Password dimenticata?
               </button>
