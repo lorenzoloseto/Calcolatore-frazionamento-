@@ -2131,20 +2131,20 @@ export default function App() {
 
         {/* === NAVBAR === */}
         <div className={isNative ? "cap-safe-top" : ""} style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
-          <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px", height: isMobile ? 52 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 8 : 10, cursor: "pointer" }}>
-              <LpBrandLogo size={isMobile ? 24 : 32} />
+          <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
+              <LpBrandLogo size={isMobile ? 22 : 32} />
               <div style={{
-                fontSize: isMobile ? 11 : 14, fontWeight: 800, letterSpacing: 3, textTransform: "uppercase",
+                fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
                 background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>FRAZIO</div>
             </div>
-            <div style={{ display: "flex", gap: 10 }}>
-              <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
-              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "6px 14px" : "8px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Inizia gratis</button>
+            <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
+              <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>
+              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 700, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Inizia gratis</button>
             </div>
           </div>
         </div>
