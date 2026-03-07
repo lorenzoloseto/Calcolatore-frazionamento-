@@ -5,9 +5,9 @@ import { Browser } from "@capacitor/browser";
 import { StatusBar, Style } from "@capacitor/status-bar";
 import { App as CapApp } from "@capacitor/app";
 // ============================================================
-// CALCOLATORE FRAZIONAMENTO IMMOBILIARE — V2 con Auth & Salvataggio
-// Aesthetic: Il Sole 24 Ore / Bloomberg — professional finance
-// Lorenzo Loseto — 4 Sere di Frazionamento Immobiliare
+// FRAZIO — Condivisione protetta di analisi immobiliari con NDA
+// Aesthetic: Legal-tech / Fintech — professional secure sharing
+// Gruppo Loseto srl
 // ============================================================
 
 // ============================================================
@@ -403,7 +403,7 @@ function LpDashboardMockup({ compact = false }) {
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27c93f" }} />
-        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>Calcolatore Frazionamento</span>
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>FRAZIO — Conto Economico</span>
       </div>
       <div style={{ background: C.greenBg, borderLeft: `3px solid ${C.green}`, margin: "12px 12px 8px", borderRadius: 4, padding: "8px 12px" }}>
         <span style={{ color: C.green, fontWeight: 700, fontSize: compact ? 10 : 12, fontFamily: "-apple-system, sans-serif" }}>✓ Operazione sostenibile — Margine positivo in tutti gli scenari</span>
@@ -692,7 +692,7 @@ function AuthInput({ label, type = "text", value, onChange, placeholder, autoFoc
 // WIZARD STEPS
 // ============================================================
 const STEPS = [
-  { id: "welcome", title: "Analisi operazione\ndi frazionamento", subtitle: "Inserisci i dati dell'immobile per calcolare margine, ROI e scenari in pochi secondi.", isWelcome: true },
+  { id: "welcome", title: "Nuovo conto economico\ndi frazionamento", subtitle: "Costruisci l'analisi della tua operazione. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
   { id: "metratura", title: "Superficie totale", subtitle: "La metratura commerciale dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
   { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
@@ -1126,7 +1126,6 @@ export default function App() {
   const [showDash, setShowDash] = useState(false);
   const [dashTab, setDashTab] = useState("risultati");
   const [fadeIn, setFadeIn] = useState(true);
-  const [showPopup, setShowPopup] = useState(false);
   const [viewOnly, setViewOnly] = useState(false);
   const [data, setData] = useState({ ...DEFAULT_DATA });
   const [scenari, setScenari] = useState({ ...DEFAULT_SCENARI });
@@ -1535,22 +1534,22 @@ export default function App() {
   // LANDING PAGE
   // ============================================================
   const LP_FEATURES = [
-    { Icon: LpIconLightning, title: "Analisi Istantanea", desc: "Inserisci i dati base e ottieni ROI, margine netto e investimento totale in tempo reale." },
-    { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Valuta l'operazione anche nel caso peggiore." },
-    { Icon: LpIconGrid, title: "37 Voci di Ristrutturazione", desc: "Dal pavimento gres alla porta blindata: compila il computo metrico con prezzi precompilati." },
-    { Icon: LpIconShield, title: "Condivisione con NDA", desc: "Condividi via link. Chi accede deve identificarsi con codice fiscale e firmare la riservatezza." },
-    { Icon: LpIconCloud, title: "Multi-Progetto Cloud", desc: "Salva, riprendi e gestisci tutte le tue operazioni. Autosalvataggio automatico." },
-    { Icon: LpIconDownload, title: "Export Excel", desc: "Scarica il conto economico completo in formato spreadsheet, pronto per investitori e banche." },
+    { Icon: LpIconShield, title: "NDA e Identificazione Integrati", desc: "Ogni destinatario deve identificarsi con codice fiscale verificato e firmare un impegno di non divulgazione prima di accedere." },
+    { Icon: LpIconLock, title: "Tracciamento Completo degli Accessi", desc: "Ogni accesso è registrato con identità verificata, data, ora e IP. Sai sempre chi ha visto i tuoi numeri." },
+    { Icon: LpIconLightning, title: "Conto Economico in 30 Secondi", desc: "Inserisci i dati dell'operazione e ottieni margine, ROI e scenari. Il wizard ti guida passo per passo." },
+    { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Valuta la sostenibilità dell'operazione in ogni condizione di mercato." },
+    { Icon: LpIconCloud, title: "Multi-Progetto Cloud", desc: "Gestisci tutte le tue operazioni in un unico spazio sicuro. Autosalvataggio e accesso da qualsiasi dispositivo." },
+    { Icon: LpIconDownload, title: "Export Professionale", desc: "Scarica il conto economico completo in formato Excel, pronto per finanziatori e istituti di credito." },
   ];
   const LP_STEPS = [
-    { num: "01", title: "Inserisci i dati", desc: "Indirizzo, metratura, prezzo di acquisto, numero di unità e prezzo di vendita. Il wizard ti guida passo per passo." },
-    { num: "02", title: "Personalizza i costi", desc: "Aggiungi oneri, professionisti, provvigioni, dettaglio ristrutturazione. Ogni voce è modificabile in tempo reale." },
-    { num: "03", title: "Leggi i risultati", desc: "Dashboard professionale con margine, ROI, scenari e verdetto automatico. Esporta o condividi con un click." },
+    { num: "01", title: "Costruisci l'analisi", desc: "Inserisci i dati dell'operazione: indirizzo, metratura, prezzi, costi. Il wizard guidato ti accompagna in ogni passaggio." },
+    { num: "02", title: "Visualizza i risultati", desc: "Dashboard professionale con margine netto, ROI, scenari e verdetto automatico. Tutto in tempo reale." },
+    { num: "03", title: "Condividi con NDA", desc: "Genera un link protetto. Chi lo riceve deve identificarsi con codice fiscale e firmare la riservatezza prima di accedere." },
   ];
   const LP_TRUST = [
-    { Icon: LpIconShield, title: "GDPR Compliant", desc: "Trattamento conforme al Regolamento UE 2016/679. Informativa privacy trasparente e consenso esplicito per ogni dato." },
-    { Icon: LpIconLock, title: "NDA Automatico", desc: "Chi accede ai tuoi conti economici deve identificarsi con codice fiscale e accettare un impegno di non divulgazione." },
-    { Icon: LpIconServer, title: "Cloud Sicuro UE", desc: "Dati su Supabase con server nell'Unione Europea. Autenticazione sicura con email o Google OAuth." },
+    { Icon: LpIconShield, title: "GDPR Compliant", desc: "Trattamento conforme al Regolamento UE 2016/679. Doppio consenso esplicito: uno per il trattamento dati, uno specifico per il codice fiscale ai sensi dell'Art. 9." },
+    { Icon: LpIconLock, title: "NDA con Valore Legale", desc: "Ogni destinatario firma digitalmente un impegno di non divulgazione. Identificazione univoca tramite codice fiscale verificato algoritmicamente." },
+    { Icon: LpIconServer, title: "Infrastruttura Cloud UE", desc: "Dati custoditi su server nell'Unione Europea. Ogni accesso è registrato con timestamp, identità verificata e indirizzo IP." },
   ];
 
   // Landing scroll-reveal hooks
@@ -1560,9 +1559,9 @@ export default function App() {
   const [dashRef, dashVisible] = useScrollReveal();
   const [trustRef, trustVisible] = useScrollReveal();
   const [ctaRef, ctaVisible] = useScrollReveal();
-  const stat1 = useAnimatedCounter(30, 1800, statsVisible);
-  const stat2 = useAnimatedCounter(7, 1200, statsVisible);
-  const stat3 = useAnimatedCounter(37, 2000, statsVisible);
+  const stat1 = useAnimatedCounter(3, 1200, statsVisible);
+  const stat2 = useAnimatedCounter(16, 1800, statsVisible);
+  const stat3 = useAnimatedCounter(100, 2000, statsVisible);
 
   if (showLanding && !__sharedId) {
     const sectionPad = { maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px" : "80px 24px" };
@@ -1605,23 +1604,23 @@ export default function App() {
         <div style={{ background: `linear-gradient(135deg, #0D2240 0%, #162D50 40%, #1A3558 70%, #0D2240 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
-              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>Analisi immobiliare professionale</div>
+              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>Condivisione sicura per professionisti immobiliari</div>
               <h1 style={{ color: "#FFF", fontSize: isMobile ? 34 : 50, fontWeight: 700, lineHeight: 1.15, margin: "0 0 20px", fontFamily: "'Playfair Display', Georgia, serif", animation: "lp-fadeUp 0.8s ease-out 0.1s both" }}>
-                Calcola il margine del tuo frazionamento in <span style={{ color: C.accent }}>30 secondi</span>
+                Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span>
               </h1>
               <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
-                Inserisci i dati dell'immobile e ottieni istantaneamente ROI, margine netto e analisi scenari. Lo strumento usato dai professionisti del frazionamento.
+                Crea l'analisi economica del tuo frazionamento e condividila con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza.
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
                 <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
-                  Inizia l'analisi gratuita →
+                  Crea il tuo primo progetto →
                 </button>
                 <button onClick={() => document.getElementById("lp-how")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "transparent", color: "#FFF", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: isMobile ? "14px 24px" : "16px 28px", fontWeight: 600, fontSize: isMobile ? 14 : 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   Scopri come funziona
                 </button>
               </div>
               <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 20, fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.5s both" }}>
-                Nessuna carta di credito richiesta · Risultati immediati
+                Gratuito · NDA integrato · Identificazione con codice fiscale
               </p>
             </div>
             {!isMobile && (
@@ -1637,7 +1636,7 @@ export default function App() {
         {/* === STATS BAR === */}
         <div ref={statsRef} style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div style={{ ...sectionPad, padding: isMobile ? "36px 20px" : "48px 24px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 28 : 0, opacity: statsVisible ? 1 : 0, transition: "opacity 0.6s ease" }}>
-            {[[stat1, "secondi per un'analisi completa"], [stat2, "step del wizard guidato"], [stat3, "voci di ristrutturazione dettagliate"]].map(([num, label], i) => (
+            {[[stat1, "verifiche prima dell'accesso"], [stat2, "caratteri di codice fiscale controllati"], [stat3, "% degli accessi tracciati e registrati"]].map(([num, label], i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, position: "relative" }}>
                 {i > 0 && !isMobile && <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 1, height: 40, background: C.border }} />}
                 <div style={{ color: C.navy, fontSize: 48, fontWeight: 700, fontFamily: "'Georgia', serif", lineHeight: 1 }}>{num}</div>
@@ -1650,8 +1649,8 @@ export default function App() {
         {/* === FEATURES === */}
         <div ref={featRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
-            <div style={overline}>Funzionalità</div>
-            <h2 style={sectionTitle("#FFF")}>Tutto quello che serve per analizzare un'operazione</h2>
+            <div style={overline}>La piattaforma</div>
+            <h2 style={sectionTitle("#FFF")}>Condivisione protetta e analisi professionale in un unico strumento</h2>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 48 }}>
               {LP_FEATURES.map(({ Icon, title, desc }, i) => (
                 <div key={i}
@@ -1679,7 +1678,7 @@ export default function App() {
         <div ref={howRef} id="lp-how" style={{ background: C.bg }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
             <div style={overline}>Come funziona</div>
-            <h2 style={sectionTitle()}>Da zero a conto economico in 3 passaggi</h2>
+            <h2 style={sectionTitle()}>Da zero a condivisione protetta in 3 passaggi</h2>
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 32 : 24, marginTop: 48, alignItems: isMobile ? "center" : "flex-start" }}>
               {LP_STEPS.map(({ num, title, desc }, i) => (
                 <div key={i} style={{ flex: 1, textAlign: "center", position: "relative", opacity: howVisible ? 1 : 0, animation: howVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.15}s both` : "none" }}>
@@ -1700,10 +1699,10 @@ export default function App() {
         {/* === DASHBOARD PREVIEW === */}
         <div ref={dashRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
-            <div style={overline}>La Dashboard</div>
-            <h2 style={sectionTitle("#FFF")}>Analisi di livello professionale</h2>
+            <div style={overline}>L'esperienza</div>
+            <h2 style={sectionTitle("#FFF")}>Protezione di livello professionale</h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 16, marginBottom: 40, fontFamily: "-apple-system, sans-serif" }}>
-              Ispirata ai terminali Bloomberg e Il Sole 24 Ore. Tutti i numeri che contano, in un colpo d'occhio.
+              Ogni link condiviso richiede identificazione con codice fiscale, consenso GDPR e firma NDA. I tuoi conti economici sono accessibili solo a chi autorizzato.
             </p>
             <div
               onMouseEnter={() => !isMobile && setDashMockupHover(true)} onMouseLeave={() => setDashMockupHover(false)}
@@ -1718,7 +1717,7 @@ export default function App() {
               </div>
             </div>
             <button onClick={() => handleLandingCTA(false)} style={{ marginTop: 40, background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "16px 36px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
-              Prova il calcolatore →
+              Prova gratuitamente →
             </button>
           </div>
         </div>
@@ -1726,7 +1725,7 @@ export default function App() {
         {/* === TRUST === */}
         <div ref={trustRef} style={{ background: C.bg, borderTop: `3px solid ${C.accent}`, backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`, backgroundSize: "20px 20px" }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
-            <h2 style={sectionTitle()}>I tuoi dati sono al sicuro</h2>
+            <h2 style={sectionTitle()}>Sicurezza e conformità legale</h2>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 40 }}>
               {LP_TRUST.map(({ Icon, title, desc }, i) => (
                 <div key={i} style={{
@@ -1749,9 +1748,9 @@ export default function App() {
         <div ref={ctaRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center", padding: isMobile ? "56px 20px 32px" : "80px 24px 40px" }}>
             <h2 style={{ ...sectionTitle("#FFF"), fontSize: isMobile ? 26 : 38, opacity: ctaVisible ? 1 : 0, animation: ctaVisible ? "lp-fadeUp 0.8s ease-out both" : "none" }}>
-              Pronto a calcolare il tuo prossimo frazionamento?
+              Pronto a condividere le tue analisi in sicurezza?
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>Gratuito · Immediato · Professionale</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>Gratuito · NDA integrato · Tutela legale</p>
             <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: "linear-gradient(90deg, transparent 0%, rgba(196,132,29,0.4) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
               <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "16px 36px" : "18px 56px", fontWeight: 700, fontSize: isMobile ? 16 : 18, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "block" }}>
                 Inizia ora →
@@ -1763,7 +1762,7 @@ export default function App() {
               </button>
             </div>
             <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
-              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento Immobiliare — go.lorenzoloseto.com</p>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — go.lorenzoloseto.com</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
                 <span onClick={() => setShowPrivacy(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Informativa Privacy</span>
                 <span onClick={() => setShowTos(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
@@ -1793,8 +1792,8 @@ export default function App() {
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
         <div style={{ background: C.card, borderRadius: 10, padding: "32px 28px", maxWidth: 480, width: "100%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
-          <h2 style={{ color: C.dark, fontSize: 20, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Accesso al progetto</h2>
-          <p style={{ color: C.textMid, fontSize: 13, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Per visualizzare questo conto economico, inserisci i tuoi dati identificativi.</p>
+          <h2 style={{ color: C.dark, fontSize: 20, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Verifica identità e riservatezza</h2>
+          <p style={{ color: C.textMid, fontSize: 13, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Per accedere a questo conto economico riservato, è necessario verificare la tua identità e sottoscrivere un impegno di non divulgazione.</p>
           {gateError && <div style={{ background: C.redBg, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif" }}>{gateError}</div>}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 12px" }}>
             <AuthInput label="Nome" value={gateForm.nome} onChange={(v) => setGateForm(p => ({ ...p, nome: v }))} placeholder="Mario" autoFocus />
@@ -1871,7 +1870,7 @@ export default function App() {
             {isLogin ? "Accedi" : "Registrati"}
           </h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
-            {isLogin ? "Accedi per salvare e gestire i tuoi conti economici" : "Crea un account per iniziare a salvare le tue analisi"}
+            {isLogin ? "Accedi per gestire e condividere i tuoi conti economici in sicurezza" : "Crea un account per condividere le tue analisi con protezione NDA"}
           </p>
           {authError && <div style={{ background: C.redBg, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif" }}>{authError}</div>}
           <div onKeyDown={(e) => e.key === "Enter" && (isLogin ? handleLogin() : handleRegister())}>
@@ -2118,8 +2117,8 @@ export default function App() {
         {shareModal && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareModal(null)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
-              <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Condividi conto economico</h3>
-              <p style={{ color: C.textMid, fontSize: 13, margin: "0 0 18px", fontFamily: "-apple-system, sans-serif" }}>Inserisci l'email della persona con cui vuoi condividere e scegli il livello di accesso.</p>
+              <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Condividi con protezione NDA</h3>
+              <p style={{ color: C.textMid, fontSize: 13, margin: "0 0 18px", fontFamily: "-apple-system, sans-serif" }}>Il destinatario riceverà accesso al progetto. Per visualizzarlo dovrà identificarsi con codice fiscale e firmare un impegno di riservatezza.</p>
               {shareError && <div style={{ background: C.redBg, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 12, fontFamily: "-apple-system, sans-serif" }}>{shareError}</div>}
               <div onKeyDown={(e) => e.key === "Enter" && handleShare()}>
                 <AuthInput label="Email destinatario" type="email" value={shareEmail} onChange={setShareEmail} placeholder="collaboratore@email.com" autoFocus />
@@ -2164,8 +2163,8 @@ export default function App() {
                   <span style={{ color: C.accent, fontSize: 18 }}>🔗</span>
                 </div>
                 <div>
-                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Condividi progetto</h3>
-                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chiunque abbia il link potrà visualizzare il progetto in sola lettura.</p>
+                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Link protetto con NDA</h3>
+                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chi accede al link dovrà identificarsi con codice fiscale e firmare un NDA prima di visualizzare il progetto.</p>
                 </div>
               </div>
               <div style={{ background: C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 6, padding: "10px 12px", marginBottom: 16, wordBreak: "break-all", fontSize: 12, color: C.textMid, fontFamily: "monospace", maxHeight: 80, overflow: "auto" }}>
@@ -2206,7 +2205,7 @@ export default function App() {
           </div>
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>
-              Calcolatore Frazionamento
+              FRAZIO
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
@@ -2302,8 +2301,8 @@ export default function App() {
                 {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
               </>
             )}
-            {!user && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per salvare</button>}
-            <button onClick={() => setShowPopup(true)} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
+            {!user && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
+            <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
             {user && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
           </div>
@@ -2333,7 +2332,7 @@ export default function App() {
         {/* TABS */}
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => { if (t.id === "comparabili") { setShowPopup(true); return; } setDashTab(t.id); }} style={{
+            <button key={t.id} onClick={() => setDashTab(t.id)} style={{
               background: "transparent", border: "none", borderBottom: dashTab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
               color: dashTab === t.id ? C.dark : C.textLight, padding: "10px 14px", fontWeight: dashTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer",
               fontFamily: "-apple-system, sans-serif", marginBottom: -2, transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0,
@@ -2573,24 +2572,11 @@ export default function App() {
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 0", marginTop: 32 }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento Immobiliare — go.lorenzoloseto.com</p>
+          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — go.lorenzoloseto.com</p>
           <PrivacyLink onClick={() => setShowPrivacy(true)} />
         </div>
       </div>
 
-      {/* POPUP REINNOVA */}
-      {showPopup && (
-        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShowPopup(false)}>
-          <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 8, padding: "28px 24px", maxWidth: 420, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}`, textAlign: "center" }}>
-            <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
-              <span style={{ color: C.accent, fontSize: 22 }}>★</span>
-            </div>
-            <div style={{ color: C.dark, fontSize: 20, fontWeight: 700, fontFamily: "'Georgia', serif", marginBottom: 8 }}>Tecnologia per studenti Reinnova</div>
-            <div style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, fontFamily: "-apple-system, sans-serif", marginBottom: 24 }}>Tecnologia esclusiva per gli studenti del programma Reinnova.</div>
-            <button onClick={() => setShowPopup(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 32px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 8px rgba(196,132,29,0.3)" }}>Ho capito</button>
-          </div>
-        </div>
-      )}
 
       {/* GDPR: Privacy Modal + Cookie Banner */}
       {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}

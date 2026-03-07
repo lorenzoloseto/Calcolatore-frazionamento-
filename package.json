@@ -2,7 +2,7 @@
   "name": "calcolatore-frazionamento",
   "private": true,
   "version": "1.0.0",
-  "description": "Calcolatore Frazionamento Immobiliare — Lorenzo Loseto",
+  "description": "FRAZIO — Condivisione protetta di analisi immobiliari",
   "type": "module",
   "scripts": {
     "dev": "vite",
