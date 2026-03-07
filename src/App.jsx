@@ -182,7 +182,7 @@ function PrivacyPolicyModal({ onClose }) {
         <p style={paragraph}>I dati personali sono trattati per le seguenti finalità:</p>
         <ul style={{ ...paragraph, paddingLeft: 20 }}>
           <li>Creazione e gestione dell'account utente;</li>
-          <li>Esecuzione delle analisi di frazionamento immobiliare e salvataggio dei progetti;</li>
+          <li>Esecuzione delle analisi economiche immobiliari e salvataggio dei progetti;</li>
           <li>Condivisione dei progetti con soggetti terzi tramite link;</li>
           <li>Tracciamento degli accessi ai progetti condivisi, a tutela del titolare del progetto;</li>
           <li>Adempimento di obblighi di legge.</li>
@@ -280,7 +280,7 @@ function TosModal({ onClose }) {
         <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>Condizioni generali di utilizzo del servizio</p>
 
         <h3 style={sectionTitle}>1. Oggetto del servizio</h3>
-        <p style={paragraph}>Il presente servizio, fornito da <strong>Gruppo Loseto srl</strong>, consiste in uno strumento web per il calcolo e l'analisi di operazioni di frazionamento immobiliare. Il servizio permette agli utenti registrati di creare, salvare, modificare e condividere analisi economiche relative a operazioni immobiliari.</p>
+        <p style={paragraph}>Il presente servizio, fornito da <strong>Gruppo Loseto srl</strong>, consiste in uno strumento web per la creazione, condivisione e gestione di conti economici relativi a operazioni immobiliari. Il servizio permette agli utenti registrati di creare, salvare, modificare e condividere analisi economiche con protezione NDA integrata.</p>
 
         <h3 style={sectionTitle}>2. Obblighi dell'utente</h3>
         <p style={paragraph}>L'utente si impegna a:</p>
@@ -692,7 +692,7 @@ function AuthInput({ label, type = "text", value, onChange, placeholder, autoFoc
 // WIZARD STEPS
 // ============================================================
 const STEPS = [
-  { id: "welcome", title: "Nuovo conto economico\ndi frazionamento", subtitle: "Costruisci l'analisi della tua operazione. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
+  { id: "welcome", title: "Nuovo\nconto economico", subtitle: "Costruisci l'analisi della tua operazione immobiliare. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
   { id: "metratura", title: "Superficie totale", subtitle: "La metratura commerciale dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
   { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
@@ -1476,7 +1476,7 @@ export default function App() {
       return row(cell(label), cell(value), cell(unit || ""));
     };
     let sh1 = "";
-    sh1 += row(cell("ANALISI FRAZIONAMENTO IMMOBILIARE", { bold: true, bg: "#0D2240", color: "#FFFFFF" }));
+    sh1 += row(cell("ANALISI OPERAZIONE IMMOBILIARE", { bold: true, bg: "#0D2240", color: "#FFFFFF" }));
     sh1 += row(cell(indirizzo, { bold: true, color: "#C4841D" }));
     sh1 += blank();
     sh1 += section("DATI IMMOBILE");
@@ -1520,7 +1520,7 @@ export default function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     const nome = indirizzo.replace(/[^a-zA-Z0-9\u00C0-\u00FA ]/g, "").trim().replace(/\s+/g, "_") || "Analisi";
-    a.href = url; a.download = `Frazionamento_${nome}.xls`; a.click();
+    a.href = url; a.download = `FRAZIO_${nome}.xls`; a.click();
     URL.revokeObjectURL(url);
   }, [data, calc, ristItems, ristTotale]);
 
@@ -1604,12 +1604,12 @@ export default function App() {
         <div style={{ background: `linear-gradient(135deg, #0D2240 0%, #162D50 40%, #1A3558 70%, #0D2240 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
-              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>Condivisione sicura per professionisti immobiliari</div>
+              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>La piattaforma per condividere conti economici in sicurezza</div>
               <h1 style={{ color: "#FFF", fontSize: isMobile ? 34 : 50, fontWeight: 700, lineHeight: 1.15, margin: "0 0 20px", fontFamily: "'Playfair Display', Georgia, serif", animation: "lp-fadeUp 0.8s ease-out 0.1s both" }}>
                 Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span>
               </h1>
               <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
-                Crea l'analisi economica del tuo frazionamento e condividila con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza.
+                Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza.
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
                 <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
@@ -2283,7 +2283,7 @@ export default function App() {
       <div style={{ background: C.navy }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1 }}>Analisi frazionamento</div>
+            <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1 }}>Conto economico</div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
           </div>
