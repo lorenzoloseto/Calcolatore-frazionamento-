@@ -1013,6 +1013,12 @@ export default function App() {
 
   // Gestisci il callback OAuth e cambi di sessione
   useEffect(() => {
+    // 0. Controlla se l'URL contiene type=recovery (link reset password da email)
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const isRecovery = hashParams.get("type") === "recovery";
+    if (isRecovery) {
+      authScreenRef.current = "reset-password";
+    }
     // 1. Controlla se c'è già una sessione attiva (anche dal redirect OAuth)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -1025,7 +1031,12 @@ export default function App() {
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
-        setAuthScreen("projects");
+        // Se è un recovery, NON mandare a projects — mostra il form nuova password
+        if (authScreenRef.current === "reset-password") {
+          setAuthScreen("reset-password");
+        } else {
+          setAuthScreen("projects");
+        }
         setAuthLoading(false);
       }
     });
