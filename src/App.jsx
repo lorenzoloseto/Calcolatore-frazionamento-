@@ -18,6 +18,8 @@ const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
 const supabase = createClient(SB_URL, SB_KEY);
 const isNative = Capacitor.isNativePlatform();
 const WEB_ORIGIN = "https://go.lorenzoloseto.com";
+const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
+const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
 
 const DB = {
   _user: null,
@@ -130,6 +132,10 @@ const DB = {
   async getShares(pid) {
     const { data } = await supabase.from("project_shares").select("*").eq("project_id", pid);
     return data || [];
+  },
+  trackEvent(eventType, metadata = {}) {
+    const userId = this._user?.id || null;
+    supabase.from("analytics_events").insert({ user_id: userId, event_type: eventType, metadata, session_id: SESSION_ID }).then(() => {}).catch(() => {});
   },
 };
 
@@ -674,6 +680,301 @@ const STEPS = [
 ];
 
 // ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+const EVENT_LABELS = {
+  login: "Accesso", logout: "Uscita", register: "Registrazione",
+  project_create: "Nuovo progetto", project_open: "Apertura", project_save: "Salvataggio",
+  project_delete: "Eliminazione", project_share: "Condivisione", link_share: "Link condiviso",
+  snapshot_view: "Visualizzazione", wizard_step_change: "Step wizard", excel_export: "Export Excel",
+  scenario_toggle: "Analisi scenari",
+};
+const EVENT_COLORS = {
+  login: C.green, logout: C.textLight, register: C.accent,
+  project_create: C.navy, project_open: "#3B82F6", project_save: "#6B7B94",
+  project_delete: C.red, project_share: C.accent, link_share: "#8B5CF6",
+  snapshot_view: "#0EA5E9", wizard_step_change: "#6B7B94", excel_export: C.green,
+  scenario_toggle: "#D97706",
+};
+
+function AdminDashboard({ user, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
+  const [stats, setStats] = useState(null);
+  const [userList, setUserList] = useState([]);
+  const [recentEvents, setRecentEvents] = useState([]);
+  const [funnelData, setFunnelData] = useState(null);
+  const [dailyActive, setDailyActive] = useState([]);
+  const [visitors, setVisitors] = useState([]);
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const [statsRes, usersRes, eventsRes, funnelRes, dauRes, visitorsRes] = await Promise.all([
+          supabase.rpc("admin_get_stats", { admin_email: ADMIN_EMAIL }),
+          supabase.rpc("admin_get_users", { admin_email: ADMIN_EMAIL }),
+          supabase.rpc("admin_get_recent_events", { admin_email: ADMIN_EMAIL }),
+          supabase.rpc("admin_get_funnel", { admin_email: ADMIN_EMAIL }),
+          supabase.rpc("admin_get_dau", { admin_email: ADMIN_EMAIL }),
+          supabase.from("snapshot_visitors").select("*").order("visited_at", { ascending: false }).limit(100),
+        ]);
+        if (statsRes.data) setStats(statsRes.data);
+        if (usersRes.data) setUserList(usersRes.data);
+        if (eventsRes.data) setRecentEvents(eventsRes.data);
+        if (funnelRes.data) setFunnelData(funnelRes.data);
+        if (dauRes.data) setDailyActive(dauRes.data);
+        if (visitorsRes.data) setVisitors(visitorsRes.data);
+      } catch (e) { console.error("Admin load error:", e); }
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  const tabs = [
+    { id: "overview", label: "Panoramica" },
+    { id: "users", label: "Utenti" },
+    { id: "activity", label: "Attività" },
+    { id: "analytics", label: "Comportamento" },
+  ];
+
+  const cardStyle = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" };
+  const kpiVal = { color: C.dark, fontSize: 28, fontWeight: 700, margin: "4px 0 2px" };
+  const kpiLabel = { color: C.textMid, fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif", textTransform: "uppercase", letterSpacing: 0.5 };
+
+  const renderOverview = () => {
+    if (!stats) return null;
+    const s = typeof stats === "string" ? JSON.parse(stats) : (Array.isArray(stats) ? stats[0] : stats);
+    const kpis = [
+      { label: "Utenti totali", value: s.total_users || 0, color: C.navy },
+      { label: "Nuovi (7gg)", value: s.new_users_7d || 0, color: C.green },
+      { label: "Nuovi (30gg)", value: s.new_users_30d || 0, color: C.accent },
+      { label: "Progetti totali", value: s.total_projects || 0, color: C.navy },
+      { label: "Condivisioni", value: s.total_shares || 0, color: "#8B5CF6" },
+    ];
+    const funnel = funnelData ? (typeof funnelData === "string" ? JSON.parse(funnelData) : (Array.isArray(funnelData) ? funnelData[0] : funnelData)) : null;
+    const funnelSteps = funnel ? [
+      { label: "Registrazioni", value: funnel.registrations || 0 },
+      { label: "Hanno creato progetto", value: funnel.created_project || 0 },
+      { label: "Hanno condiviso", value: funnel.shared_project || 0 },
+      { label: "Hanno esportato", value: funnel.exported || 0 },
+    ] : [];
+    const maxFunnel = funnelSteps.length > 0 ? Math.max(...funnelSteps.map(f => f.value), 1) : 1;
+
+    return (
+      <div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
+          {kpis.map((k, i) => (
+            <div key={i} style={{ ...cardStyle, borderLeft: `4px solid ${k.color}` }}>
+              <div style={kpiLabel}>{k.label}</div>
+              <div style={kpiVal}>{k.value}</div>
+            </div>
+          ))}
+        </div>
+        {funnelSteps.length > 0 && (
+          <div style={cardStyle}>
+            <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Funnel di conversione</div>
+            {funnelSteps.map((f, i) => (
+              <div key={i} style={{ marginBottom: 12 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
+                  <span style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>{f.label}</span>
+                  <span style={{ color: C.dark, fontSize: 13, fontWeight: 700, fontFamily: "-apple-system, sans-serif" }}>{f.value}</span>
+                </div>
+                <div style={{ height: 8, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{ height: "100%", width: `${(f.value / maxFunnel) * 100}%`, background: C.accent, borderRadius: 4, transition: "width 0.5s ease" }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderUsers = () => {
+    const users = Array.isArray(userList) ? userList : [];
+    return (
+      <div style={cardStyle}>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utenti registrati ({users.length})</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                {["Nome", "Email", "Registrazione", "Ultima attività", "Progetti", "Condivisioni"].map((h) => (
+                  <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: C.textMid, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 600 }}>{u.name || "-"}</td>
+                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.email || "-"}</td>
+                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</td>
+                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.last_active ? new Date(u.last_active).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</td>
+                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.project_count ?? 0}</td>
+                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.share_count ?? 0}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  const renderActivity = () => {
+    const events = Array.isArray(recentEvents) ? recentEvents : [];
+    return (
+      <div style={cardStyle}>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Ultimi 50 eventi</div>
+        <div style={{ display: "grid", gap: 6 }}>
+          {events.slice(0, 50).map((ev, i) => {
+            const label = EVENT_LABELS[ev.event_type] || ev.event_type;
+            const color = EVENT_COLORS[ev.event_type] || C.textMid;
+            return (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "8px 12px", background: i % 2 === 0 ? C.bg : C.card, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+                <span style={{ background: color, color: "#FFF", padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700, whiteSpace: "nowrap", minWidth: 80, textAlign: "center" }}>{label}</span>
+                <span style={{ color: C.textMid, flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {ev.user_email || "Anonimo"} {ev.metadata && Object.keys(ev.metadata).length > 0 ? "— " + JSON.stringify(ev.metadata) : ""}
+                </span>
+                <span style={{ color: C.textLight, fontSize: 11, whiteSpace: "nowrap" }}>
+                  {ev.created_at ? new Date(ev.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                </span>
+              </div>
+            );
+          })}
+          {events.length === 0 && <div style={{ color: C.textLight, padding: 20, textAlign: "center" }}>Nessun evento registrato</div>}
+        </div>
+      </div>
+    );
+  };
+
+  const renderAnalytics = () => {
+    // Wizard funnel from events
+    const wizardEvents = Array.isArray(recentEvents) ? recentEvents.filter(e => e.event_type === "wizard_step_change") : [];
+    const stepCounts = {};
+    wizardEvents.forEach(e => {
+      const s = e.metadata?.from_step;
+      if (s !== undefined) stepCounts[s] = (stepCounts[s] || 0) + 1;
+    });
+    const stepKeys = Object.keys(stepCounts).sort((a, b) => Number(a) - Number(b));
+    const maxStepCount = stepKeys.length > 0 ? Math.max(...stepKeys.map(k => stepCounts[k]), 1) : 1;
+
+    // DAU chart
+    const dau = Array.isArray(dailyActive) ? dailyActive : [];
+    const maxDau = dau.length > 0 ? Math.max(...dau.map(d => d.active_users || 0), 1) : 1;
+
+    // Feature usage
+    const allEvents = Array.isArray(recentEvents) ? recentEvents : [];
+    const featureCounts = {};
+    allEvents.forEach(e => {
+      const label = EVENT_LABELS[e.event_type] || e.event_type;
+      featureCounts[label] = (featureCounts[label] || 0) + 1;
+    });
+    const featureKeys = Object.keys(featureCounts).sort((a, b) => featureCounts[b] - featureCounts[a]);
+    const maxFeature = featureKeys.length > 0 ? Math.max(...featureKeys.map(k => featureCounts[k]), 1) : 1;
+
+    return (
+      <div style={{ display: "grid", gap: 16 }}>
+        {/* Wizard Funnel */}
+        <div style={cardStyle}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Funnel wizard (per step)</div>
+          {stepKeys.length > 0 ? (
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 180, padding: "0 8px" }}>
+              {stepKeys.map((k) => (
+                <div key={k} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                  <div style={{ color: C.dark, fontSize: 12, fontWeight: 700, marginBottom: 4, fontFamily: "-apple-system, sans-serif" }}>{stepCounts[k]}</div>
+                  <div style={{ width: "100%", maxWidth: 40, height: `${(stepCounts[k] / maxStepCount) * 140}px`, background: C.navy, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                  <div style={{ color: C.textMid, fontSize: 10, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Step {k}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato wizard disponibile</div>
+          )}
+        </div>
+
+        {/* DAU Chart */}
+        <div style={cardStyle}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utenti attivi giornalieri (ultimi 30 giorni)</div>
+          {dau.length > 0 ? (
+            <div style={{ display: "grid", gap: 4 }}>
+              {dau.slice(-30).map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>
+                  <span style={{ color: C.textMid, minWidth: 70, textAlign: "right" }}>{d.day ? new Date(d.day).toLocaleDateString("it-IT", { day: "2-digit", month: "short" }) : ""}</span>
+                  <div style={{ flex: 1, height: 14, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${((d.active_users || 0) / maxDau) * 100}%`, background: C.accent, borderRadius: 3, minWidth: d.active_users > 0 ? 4 : 0 }} />
+                  </div>
+                  <span style={{ color: C.dark, fontWeight: 700, minWidth: 24 }}>{d.active_users || 0}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato DAU disponibile</div>
+          )}
+        </div>
+
+        {/* Feature Usage */}
+        <div style={cardStyle}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utilizzo funzionalità</div>
+          {featureKeys.length > 0 ? (
+            <div style={{ display: "grid", gap: 8 }}>
+              {featureKeys.map((k) => (
+                <div key={k} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+                  <span style={{ color: C.textMid, minWidth: 130, textAlign: "right" }}>{k}</span>
+                  <div style={{ flex: 1, height: 16, background: C.border, borderRadius: 4, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${(featureCounts[k] / maxFeature) * 100}%`, background: C.green, borderRadius: 4, minWidth: 4 }} />
+                  </div>
+                  <span style={{ color: C.dark, fontWeight: 700, minWidth: 30 }}>{featureCounts[k]}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato disponibile</div>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif" }}>
+      <div style={{ background: C.navy }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          <div>
+            <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Admin Dashboard</div>
+            <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>Pannello di controllo</div>
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
+        </div>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 16px", display: "flex", gap: 0 }}>
+          {tabs.map((t) => (
+            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+              background: activeTab === t.id ? C.accent : "transparent", color: activeTab === t.id ? "#FFF" : "rgba(255,255,255,0.6)",
+              border: "none", borderRadius: "6px 6px 0 0", padding: "8px 18px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif",
+            }}>{t.label}</button>
+          ))}
+        </div>
+        <div style={{ height: 3, background: C.accent }} />
+      </div>
+      <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
+        {loading ? (
+          <div style={{ textAlign: "center", padding: "60px 20px", color: C.textMid, fontSize: 15, fontFamily: "-apple-system, sans-serif" }}>Caricamento dati...</div>
+        ) : (
+          <>
+            {activeTab === "overview" && renderOverview()}
+            {activeTab === "users" && renderUsers()}
+            {activeTab === "activity" && renderActivity()}
+            {activeTab === "analytics" && renderAnalytics()}
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // MAIN APP
 // ============================================================
 export default function App() {
@@ -717,6 +1018,7 @@ export default function App() {
         setShowLanding(false);
         setAuthScreen("projects");
         setAuthLoading(false);
+        if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
       } else if (event === "SIGNED_OUT") {
         DB._user = null;
         setUser(null);
@@ -825,9 +1127,12 @@ export default function App() {
   const upd = useCallback((f, v) => setData((p) => ({ ...p, [f]: v })), []);
   const animTo = useCallback((fn) => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 180); }, []);
   const goNext = () => {
-    if (step < STEPS.length - 1) animTo(() => setStep((s) => s + 1));
+    const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
+    DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep });
+    if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
     else animTo(() => {
       setShowDash(true);
+      window._stepEnteredAt = Date.now();
       // Auto-crea progetto al primo accesso alla dashboard se loggato
       if (user && !editingProjectId) {
         setTimeout(async () => {
@@ -837,7 +1142,7 @@ export default function App() {
       }
     });
   };
-  const goBack = () => { if (step > 0) animTo(() => setStep((s) => s - 1)); };
+  const goBack = () => { if (step > 0) { const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null; DB.trackEvent("wizard_step_change", { from_step: step, to_step: step - 1, direction: "back", seconds_on_step: timeOnStep }); animTo(() => { setStep((s) => s - 1); window._stepEnteredAt = Date.now(); }); } };
 
   // ============================================================
   // AUTOSAVE — salva automaticamente ogni volta che i dati cambiano
@@ -849,7 +1154,7 @@ export default function App() {
     if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
     setSaveStatus("saving");
     autoSaveTimer.current = setTimeout(async () => {
-      await handleSaveProject();
+      await handleSaveProject(true);
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus(""), 2000);
     }, 1200);
@@ -862,7 +1167,7 @@ export default function App() {
   const handleLogin = async () => {
     setAuthError("");
     const res = await DB.login(authForm.email, authForm.password);
-    if (res.ok) { setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); }
+    if (res.ok) { setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); DB.trackEvent("login", { method: "email" }); }
     else setAuthError(res.error);
   };
   const handleRegister = async () => {
@@ -876,11 +1181,12 @@ export default function App() {
     if (res.ok && res.user) {
       supabase.from("profiles").update({ privacy_consent_at: new Date().toISOString() }).eq("id", res.user.id).then(() => {});
       setUser(res.user); setAuthScreen(null); setAuthForm({ name: "", email: "", password: "" }); setRegPrivacy(false); setRegTos(false);
+      DB.trackEvent("register", { method: "email" });
     }
     else if (res.ok && res.confirmEmail) { setAuthError("Controlla la tua email per confermare la registrazione, poi accedi."); }
     else setAuthError(res.error);
   };
-  const handleLogout = async () => { await DB.logout(); setUser(null); setAuthScreen(null); };
+  const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(null); };
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
   // Landing: responsive
   useEffect(() => { const h = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
@@ -922,9 +1228,10 @@ export default function App() {
       alert("Si è verificato un errore durante la cancellazione. Riprova o contatta lorenzoloseto@hotmail.it");
     }
   };
-  const handleSaveProject = async () => {
+  const handleSaveProject = async (isAutoSave = false) => {
     const indirizzo = [data.via, data.civico].filter(Boolean).join(" ");
     const nome = projectName || [indirizzo, data.citta].filter(Boolean).join(", ") || "Nuova operazione";
+    const isCreate = !editingProjectId;
     const res = await DB.saveProject({
       id: editingProjectId,
       name: nome,
@@ -933,7 +1240,10 @@ export default function App() {
       comparabili: [...comparabili],
       ristItems: [...ristItems],
     });
-    if (res.ok) { setEditingProjectId(res.project.id); setProjectName(nome); }
+    if (res.ok) {
+      setEditingProjectId(res.project.id); setProjectName(nome);
+      if (!isAutoSave) DB.trackEvent(isCreate ? "project_create" : "project_save", { project_id: res.project.id, project_name: nome });
+    }
     return res;
   };
   const handleLoadProject = (project) => {
@@ -946,6 +1256,7 @@ export default function App() {
     setViewOnly(project._shared && project._permission === "view");
     setShowDash(true);
     setAuthScreen(null);
+    DB.trackEvent("project_open", { project_id: project.id, project_name: project.name });
   };
   const handleNewProject = () => {
     setData({ ...DEFAULT_DATA });
@@ -963,7 +1274,7 @@ export default function App() {
     setShareError("");
     if (!shareEmail.trim()) { setShareError("Inserisci un'email"); return; }
     const res = await DB.shareProject(shareModal, shareEmail, sharePermission);
-    if (res.ok) { setShareEmail(""); setShareError(""); const sh = await DB.getShares(shareModal); setSharesForModal(sh); }
+    if (res.ok) { setShareEmail(""); setShareError(""); const sh = await DB.getShares(shareModal); setSharesForModal(sh); DB.trackEvent("project_share", { project_id: shareModal, shared_with_email: shareEmail }); }
     else setShareError(res.error);
   };
   const handleGateSubmit = () => {
@@ -994,6 +1305,7 @@ export default function App() {
       privacy_consent: true, nda_accepted: true, cf_consent: true
     }).then(() => {});
     setShareGateCompleted(true);
+    DB.trackEvent("snapshot_view", { visitor_email: gateForm.email?.trim() || "" });
   };
   // Load projects and their visitors when opening projects screen
   useEffect(() => {
@@ -1064,6 +1376,7 @@ export default function App() {
   // EXPORT EXCEL (same as v1)
   // ============================================================
   const exportExcel = useCallback(() => {
+    DB.trackEvent("excel_export", { project_id: editingProjectId });
     const indirizzo = (() => { const s = [data.via, data.civico].filter(Boolean).join(" "); return [s, data.citta].filter(Boolean).join(", ") || "Nuova operazione"; })();
     const r = Math.round;
     const esc = (v) => String(v).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
@@ -1604,8 +1917,8 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
-                          <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
+                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
+                          <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); DB.trackEvent("project_delete", { project_id: p.id }); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
                     </div>
@@ -1739,6 +2052,13 @@ export default function App() {
   }
 
   // ============================================================
+  // ADMIN DASHBOARD SCREEN
+  // ============================================================
+  if (authScreen === "admin" && user?.email === ADMIN_EMAIL) {
+    return <AdminDashboard user={user} onClose={() => setAuthScreen(null)} />;
+  }
+
+  // ============================================================
   // WIZARD SCREEN
   // ============================================================
   if (!showDash) {
@@ -1759,6 +2079,7 @@ export default function App() {
               {user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => setAuthScreen("projects")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
+                  {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
               ) : (
@@ -1844,6 +2165,7 @@ export default function App() {
                 <button onClick={() => setAuthScreen("projects")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   I miei progetti
                 </button>
+                {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
               </>
             )}
             {!user && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per salvare</button>}
