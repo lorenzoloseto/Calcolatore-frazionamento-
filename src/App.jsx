@@ -721,6 +721,7 @@ const EVENT_COLORS = {
 };
 
 function AdminDashboard({ user, onClose }) {
+  // --- EXISTING STATES ---
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const [stats, setStats] = useState(null);
@@ -730,41 +731,192 @@ function AdminDashboard({ user, onClose }) {
   const [dailyActive, setDailyActive] = useState([]);
   const [visitors, setVisitors] = useState([]);
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const [statsRes, usersRes, eventsRes, funnelRes, dauRes, visitorsRes] = await Promise.all([
-          supabase.rpc("admin_get_stats", { admin_email: ADMIN_EMAIL }),
-          supabase.rpc("admin_get_users", { admin_email: ADMIN_EMAIL }),
-          supabase.rpc("admin_get_recent_events", { admin_email: ADMIN_EMAIL }),
-          supabase.rpc("admin_get_funnel", { admin_email: ADMIN_EMAIL }),
-          supabase.rpc("admin_get_dau", { admin_email: ADMIN_EMAIL }),
-          supabase.from("snapshot_visitors").select("*").order("visited_at", { ascending: false }).limit(100),
-        ]);
-        if (statsRes.data) setStats(statsRes.data);
-        if (usersRes.data) setUserList(usersRes.data);
-        if (eventsRes.data) setRecentEvents(eventsRes.data);
-        if (funnelRes.data) setFunnelData(funnelRes.data);
-        if (dauRes.data) setDailyActive(dauRes.data);
-        if (visitorsRes.data) setVisitors(visitorsRes.data);
-      } catch (e) { console.error("Admin load error:", e); }
-      setLoading(false);
-    }
-    load();
+  // --- NEW STATES for management ---
+  const [allProjects, setAllProjects] = useState([]);
+  const [allShares, setAllShares] = useState([]);
+
+  // UI control states
+  const [searchTerm, setSearchTerm] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState(null);
+  const [actionStatus, setActionStatus] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [userDetails, setUserDetails] = useState(null);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [activityFilter, setActivityFilter] = useState("");
+
+  // --- DATA LOADING ---
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [statsRes, usersRes, eventsRes, funnelRes, dauRes, projectsRes, sharesRes, visitorsRes] = await Promise.all([
+        supabase.rpc("admin_get_stats", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_users", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_recent_events", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_funnel", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_dau", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_projects", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_shares", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_visitors", { admin_email: ADMIN_EMAIL }),
+      ]);
+      if (statsRes.data) setStats(statsRes.data);
+      if (usersRes.data) setUserList(usersRes.data);
+      if (eventsRes.data) setRecentEvents(eventsRes.data);
+      if (funnelRes.data) setFunnelData(funnelRes.data);
+      if (dauRes.data) setDailyActive(dauRes.data);
+      if (projectsRes.data) setAllProjects(projectsRes.data);
+      if (sharesRes.data) setAllShares(sharesRes.data);
+      if (visitorsRes.data) setVisitors(visitorsRes.data);
+    } catch (e) { console.error("Admin load error:", e); }
+    setLoading(false);
   }, []);
 
+  const reloadData = useCallback(async () => {
+    try {
+      const [statsRes, usersRes, projectsRes, sharesRes, visitorsRes] = await Promise.all([
+        supabase.rpc("admin_get_stats", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_users", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_projects", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_shares", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_all_visitors", { admin_email: ADMIN_EMAIL }),
+      ]);
+      if (statsRes.data) setStats(statsRes.data);
+      if (usersRes.data) setUserList(usersRes.data);
+      if (projectsRes.data) setAllProjects(projectsRes.data);
+      if (sharesRes.data) setAllShares(sharesRes.data);
+      if (visitorsRes.data) setVisitors(visitorsRes.data);
+    } catch (e) { console.error("Admin reload error:", e); }
+  }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // --- TOAST ---
+  const showStatus = useCallback((type, message) => {
+    setActionStatus({ type, message });
+    setTimeout(() => setActionStatus(null), 3500);
+  }, []);
+
+  // --- ACTION HANDLERS ---
+  const handleResetPassword = (email) => {
+    setConfirmDialog({
+      title: "Reset password",
+      message: `Verra inviata un'email di reset password a ${email}. L'utente dovra cliccare il link per impostare una nuova password.`,
+      confirmLabel: "Invia email di reset",
+      danger: false, loading: false,
+      onConfirm: async () => {
+        setConfirmDialog(prev => prev ? { ...prev, loading: true } : null);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: WEB_ORIGIN });
+        setConfirmDialog(null);
+        if (error) showStatus("error", `Errore: ${error.message}`);
+        else showStatus("success", `Email di reset inviata a ${email}`);
+      },
+    });
+  };
+
+  const handleAdminDeleteProject = (project) => {
+    setConfirmDialog({
+      title: "Elimina progetto",
+      message: `Stai per eliminare "${project.name}" di ${project.owner_name || "utente sconosciuto"}. Verranno eliminati anche condivisioni, snapshot e visitatori. Azione irreversibile.`,
+      confirmLabel: "Elimina progetto",
+      danger: true, loading: false,
+      onConfirm: async () => {
+        setConfirmDialog(prev => prev ? { ...prev, loading: true } : null);
+        const { error } = await supabase.rpc("admin_delete_project", { admin_email: ADMIN_EMAIL, target_project_id: project.id });
+        setConfirmDialog(null);
+        if (error) showStatus("error", `Errore: ${error.message}`);
+        else { showStatus("success", "Progetto eliminato"); await reloadData(); }
+      },
+    });
+  };
+
+  const handleAdminRemoveShare = (share) => {
+    setConfirmDialog({
+      title: "Rimuovi condivisione",
+      message: `Rimuovere l'accesso di ${share.shared_with_email} al progetto "${share.project_name}"?`,
+      confirmLabel: "Rimuovi",
+      danger: true, loading: false,
+      onConfirm: async () => {
+        setConfirmDialog(prev => prev ? { ...prev, loading: true } : null);
+        const { error } = await supabase.rpc("admin_remove_share", { admin_email: ADMIN_EMAIL, target_project_id: share.project_id, target_email: share.shared_with_email });
+        setConfirmDialog(null);
+        if (error) showStatus("error", `Errore: ${error.message}`);
+        else { showStatus("success", "Condivisione rimossa"); await reloadData(); }
+      },
+    });
+  };
+
+  const handleAdminDeleteUser = (userItem) => {
+    if (userItem.email === ADMIN_EMAIL) { showStatus("error", "Non puoi eliminare l'account admin"); return; }
+    setConfirmDialog({
+      title: "Elimina utente",
+      message: `ATTENZIONE: Stai per eliminare DEFINITIVAMENTE ${userItem.name || ""} (${userItem.email}) e TUTTI i suoi dati: profilo, progetti, condivisioni, snapshot, visitatori ed eventi. IRREVERSIBILE.`,
+      confirmLabel: "Elimina utente e tutti i dati",
+      danger: true, loading: false,
+      onConfirm: async () => {
+        setConfirmDialog(prev => prev ? { ...prev, loading: true } : null);
+        try {
+          // Try Edge Function first for complete auth deletion
+          const { data: { session } } = await supabase.auth.getSession();
+          let edgeFunctionWorked = false;
+          if (session?.access_token) {
+            try {
+              const resp = await fetch(`${SB_URL}/functions/v1/admin-delete-user`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": `Bearer ${session.access_token}` },
+                body: JSON.stringify({ admin_email: ADMIN_EMAIL, target_user_id: userItem.user_id }),
+              });
+              if (resp.ok) {
+                const result = await resp.json();
+                if (result.ok) edgeFunctionWorked = true;
+              }
+            } catch (e) { /* Edge Function not deployed, fallback to RPC */ }
+          }
+          if (!edgeFunctionWorked) {
+            // Fallback: delete user data only (profile + data, auth.users entry remains)
+            const { error } = await supabase.rpc("admin_delete_user_data", { admin_email: ADMIN_EMAIL, target_user_id: userItem.user_id });
+            if (error) { setConfirmDialog(null); showStatus("error", `Errore: ${error.message}`); return; }
+          }
+          setConfirmDialog(null);
+          showStatus("success", "Utente eliminato");
+          await reloadData();
+        } catch (err) { setConfirmDialog(null); showStatus("error", `Errore: ${err.message}`); }
+      },
+    });
+  };
+
+  const handleViewUserDetails = async (userId) => {
+    try {
+      const { data, error } = await supabase.rpc("admin_get_user_details", { admin_email: ADMIN_EMAIL, target_user_id: userId });
+      if (error) { showStatus("error", `Errore: ${error.message}`); return; }
+      setUserDetails(typeof data === "string" ? JSON.parse(data) : data);
+      setSelectedUser(userId);
+    } catch (e) { showStatus("error", `Errore: ${e.message}`); }
+  };
+
+  // --- TABS ---
   const tabs = [
     { id: "overview", label: "Panoramica" },
     { id: "users", label: "Utenti" },
-    { id: "activity", label: "Attività" },
+    { id: "projects", label: "Progetti" },
+    { id: "shares", label: "Condivisioni" },
+    { id: "visitors", label: "Visitatori" },
+    { id: "activity", label: "Attivita" },
     { id: "analytics", label: "Comportamento" },
   ];
 
+  // --- STYLES ---
   const cardStyle = { background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "18px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)" };
   const kpiVal = { color: C.dark, fontSize: 28, fontWeight: 700, margin: "4px 0 2px" };
   const kpiLabel = { color: C.textMid, fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif", textTransform: "uppercase", letterSpacing: 0.5 };
+  const thStyle = { textAlign: "left", padding: "8px 10px", color: C.textMid, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 };
+  const tdStyle = { padding: "10px 10px", color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" };
+  const searchStyle = { width: "100%", boxSizing: "border-box", padding: "10px 14px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 14, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card, marginBottom: 16 };
+  const actionBtn = (color, bg) => ({ background: bg || "transparent", color: color, border: `1px solid ${color}`, borderRadius: 4, padding: "4px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" });
+  const fmtDate = (d) => d ? new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "-";
+  const fmtDateTime = (d) => d ? new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : "-";
 
+  // ============================================================
+  // TAB: PANORAMICA
+  // ============================================================
   const renderOverview = () => {
     if (!stats) return null;
     const s = typeof stats === "string" ? JSON.parse(stats) : (Array.isArray(stats) ? stats[0] : stats);
@@ -774,6 +926,8 @@ function AdminDashboard({ user, onClose }) {
       { label: "Nuovi (30gg)", value: s.new_users_30d || 0, color: C.accent },
       { label: "Progetti totali", value: s.total_projects || 0, color: C.navy },
       { label: "Condivisioni", value: s.total_shares || 0, color: "#8B5CF6" },
+      { label: "Visitatori NDA", value: visitors.length, color: "#0EA5E9" },
+      { label: "Snapshot attivi", value: allProjects.reduce((sum, p) => sum + (p.snapshot_count || 0), 0), color: "#D97706" },
     ];
     const funnel = funnelData ? (typeof funnelData === "string" ? JSON.parse(funnelData) : (Array.isArray(funnelData) ? funnelData[0] : funnelData)) : null;
     const funnelSteps = funnel ? [
@@ -786,7 +940,7 @@ function AdminDashboard({ user, onClose }) {
 
     return (
       <div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12, marginBottom: 24 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 24 }}>
           {kpis.map((k, i) => (
             <div key={i} style={{ ...cardStyle, borderLeft: `4px solid ${k.color}` }}>
               <div style={kpiLabel}>{k.label}</div>
@@ -814,31 +968,49 @@ function AdminDashboard({ user, onClose }) {
     );
   };
 
+  // ============================================================
+  // TAB: UTENTI (enhanced with actions)
+  // ============================================================
   const renderUsers = () => {
     const users = Array.isArray(userList) ? userList : [];
+    const q = searchTerm.toLowerCase();
+    const filtered = q ? users.filter(u => (u.name || "").toLowerCase().includes(q) || (u.email || "").toLowerCase().includes(q)) : users;
     return (
       <div style={cardStyle}>
-        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utenti registrati ({users.length})</div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700 }}>Utenti registrati ({filtered.length})</div>
+        </div>
+        <input type="text" placeholder="Cerca per nome o email..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={searchStyle} />
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.border}` }}>
-                {["Nome", "Email", "Registrazione", "Ultima attività", "Progetti", "Condivisioni"].map((h) => (
-                  <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: C.textMid, fontWeight: 700, fontSize: 11, textTransform: "uppercase", letterSpacing: 0.5 }}>{h}</th>
+                {["Nome", "Email", "Registrazione", "Ultima attivita", "Progetti", "Cond.", "Azioni"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {users.map((u, i) => (
+              {filtered.map((u, i) => (
                 <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 600 }}>{u.name || "-"}</td>
-                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.email || "-"}</td>
-                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.created_at ? new Date(u.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</td>
-                  <td style={{ padding: "10px 12px", color: C.textMid }}>{u.last_active ? new Date(u.last_active).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" }) : "-"}</td>
-                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.project_count ?? 0}</td>
-                  <td style={{ padding: "10px 12px", color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.share_count ?? 0}</td>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{u.name || "-"}</td>
+                  <td style={tdStyle}>{u.email || "-"}</td>
+                  <td style={tdStyle}>{fmtDate(u.created_at)}</td>
+                  <td style={tdStyle}>{fmtDate(u.last_active)}</td>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.project_count ?? 0}</td>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 700, textAlign: "center" }}>{u.share_count ?? 0}</td>
+                  <td style={{ ...tdStyle, display: "flex", gap: 4, flexWrap: "wrap" }}>
+                    <button onClick={() => handleViewUserDetails(u.user_id)} style={actionBtn(C.navy)}>Dettagli</button>
+                    <button onClick={() => handleResetPassword(u.email)} style={actionBtn(C.accent)}>Reset pwd</button>
+                    {u.email !== ADMIN_EMAIL && (
+                      <button onClick={() => handleAdminDeleteUser(u)} style={actionBtn(C.red)}>Elimina</button>
+                    )}
+                  </td>
                 </tr>
               ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessun utente trovato</td></tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -846,13 +1018,171 @@ function AdminDashboard({ user, onClose }) {
     );
   };
 
-  const renderActivity = () => {
-    const events = Array.isArray(recentEvents) ? recentEvents : [];
+  // ============================================================
+  // TAB: PROGETTI (new)
+  // ============================================================
+  const renderProjects = () => {
+    const projects = Array.isArray(allProjects) ? allProjects : [];
+    const q = searchTerm.toLowerCase();
+    const filtered = q ? projects.filter(p => (p.name || "").toLowerCase().includes(q) || (p.owner_name || "").toLowerCase().includes(q) || (p.owner_email || "").toLowerCase().includes(q)) : projects;
     return (
       <div style={cardStyle}>
-        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Ultimi 50 eventi</div>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Tutti i progetti ({filtered.length})</div>
+        <input type="text" placeholder="Cerca per nome progetto o proprietario..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={searchStyle} />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                {["Progetto", "Proprietario", "Email", "Aggiornato", "Cond.", "Snap.", "Azioni"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{p.name || "Senza nome"}</td>
+                  <td style={tdStyle}>{p.owner_name || "-"}</td>
+                  <td style={tdStyle}>{p.owner_email || "-"}</td>
+                  <td style={tdStyle}>{fmtDate(p.updated_at)}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, color: C.dark }}>{p.share_count ?? 0}</td>
+                  <td style={{ ...tdStyle, textAlign: "center", fontWeight: 700, color: C.dark }}>{p.snapshot_count ?? 0}</td>
+                  <td style={{ ...tdStyle, display: "flex", gap: 4 }}>
+                    <button onClick={() => setSelectedProject(p)} style={actionBtn(C.navy)}>Visualizza</button>
+                    <button onClick={() => handleAdminDeleteProject(p)} style={actionBtn(C.red)}>Elimina</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={7} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessun progetto trovato</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // TAB: CONDIVISIONI (new)
+  // ============================================================
+  const renderShares = () => {
+    const shares = Array.isArray(allShares) ? allShares : [];
+    const q = searchTerm.toLowerCase();
+    const filtered = q ? shares.filter(s => (s.project_name || "").toLowerCase().includes(q) || (s.shared_with_email || "").toLowerCase().includes(q) || (s.owner_name || "").toLowerCase().includes(q)) : shares;
+    return (
+      <div style={cardStyle}>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Condivisioni attive ({filtered.length})</div>
+        <input type="text" placeholder="Cerca per progetto, destinatario o proprietario..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={searchStyle} />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                {["Progetto", "Proprietario", "Condiviso con", "Permesso", "Azioni"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((s, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{s.project_name || "-"}</td>
+                  <td style={tdStyle}>{s.owner_name || "-"}</td>
+                  <td style={tdStyle}>{s.shared_with_email || "-"}</td>
+                  <td style={tdStyle}>
+                    <span style={{ background: s.permission === "edit" ? C.accentLight : C.border, color: s.permission === "edit" ? C.accent : C.textMid, padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+                      {s.permission === "edit" ? "Modifica" : "Lettura"}
+                    </span>
+                  </td>
+                  <td style={tdStyle}>
+                    <button onClick={() => handleAdminRemoveShare(s)} style={actionBtn(C.red)}>Rimuovi</button>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={5} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessuna condivisione trovata</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // TAB: VISITATORI NDA (new — fixes dead state)
+  // ============================================================
+  const renderVisitors = () => {
+    const vis = Array.isArray(visitors) ? visitors : [];
+    const q = searchTerm.toLowerCase();
+    const filtered = q ? vis.filter(v => (v.nome || "").toLowerCase().includes(q) || (v.cognome || "").toLowerCase().includes(q) || (v.email || "").toLowerCase().includes(q) || (v.cf || "").toLowerCase().includes(q) || (v.project_name || "").toLowerCase().includes(q)) : vis;
+    return (
+      <div style={cardStyle}>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Visitatori NDA ({filtered.length})</div>
+        <input type="text" placeholder="Cerca per nome, cognome, email, CF o progetto..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} style={searchStyle} />
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                {["Nome", "Cognome", "Email", "Codice Fiscale", "Progetto", "Proprietario", "Data accesso", "NDA", "Privacy"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((v, i) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                  <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{v.nome || "-"}</td>
+                  <td style={{ ...tdStyle, color: C.dark }}>{v.cognome || "-"}</td>
+                  <td style={tdStyle}>{v.email || "-"}</td>
+                  <td style={{ ...tdStyle, fontFamily: "monospace", fontSize: 12, letterSpacing: 0.5 }}>{v.cf || "-"}</td>
+                  <td style={tdStyle}>{v.project_name || "-"}</td>
+                  <td style={tdStyle}>{v.owner_name || "-"}</td>
+                  <td style={tdStyle}>{fmtDateTime(v.visited_at)}</td>
+                  <td style={tdStyle}>
+                    <span style={{ background: v.nda_accepted ? C.greenBg : C.redBg, color: v.nda_accepted ? C.green : C.red, padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+                      {v.nda_accepted ? "Firmato" : "No"}
+                    </span>
+                  </td>
+                  <td style={tdStyle}>
+                    <span style={{ background: v.privacy_consent ? C.greenBg : C.redBg, color: v.privacy_consent ? C.green : C.red, padding: "2px 8px", borderRadius: 10, fontSize: 11, fontWeight: 700 }}>
+                      {v.privacy_consent ? "OK" : "No"}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {filtered.length === 0 && (
+                <tr><td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessun visitatore trovato</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // TAB: ATTIVITA (enhanced with filter)
+  // ============================================================
+  const renderActivity = () => {
+    const events = Array.isArray(recentEvents) ? recentEvents : [];
+    const eventTypes = [...new Set(events.map(e => e.event_type))].sort();
+    const filtered = activityFilter ? events.filter(e => e.event_type === activityFilter) : events;
+    return (
+      <div style={cardStyle}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700 }}>Ultimi eventi ({filtered.length})</div>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            <button onClick={() => setActivityFilter("")} style={{ background: !activityFilter ? C.navy : "transparent", color: !activityFilter ? "#FFF" : C.textMid, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Tutti</button>
+            {eventTypes.map(t => (
+              <button key={t} onClick={() => setActivityFilter(t)} style={{ background: activityFilter === t ? (EVENT_COLORS[t] || C.navy) : "transparent", color: activityFilter === t ? "#FFF" : C.textMid, border: `1px solid ${C.border}`, borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                {EVENT_LABELS[t] || t}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: "grid", gap: 6 }}>
-          {events.slice(0, 50).map((ev, i) => {
+          {filtered.slice(0, 100).map((ev, i) => {
             const label = EVENT_LABELS[ev.event_type] || ev.event_type;
             const color = EVENT_COLORS[ev.event_type] || C.textMid;
             return (
@@ -862,45 +1192,36 @@ function AdminDashboard({ user, onClose }) {
                   {ev.user_email || "Anonimo"} {ev.metadata && Object.keys(ev.metadata).length > 0 ? "— " + JSON.stringify(ev.metadata) : ""}
                 </span>
                 <span style={{ color: C.textLight, fontSize: 11, whiteSpace: "nowrap" }}>
-                  {ev.created_at ? new Date(ev.created_at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }) : ""}
+                  {fmtDateTime(ev.created_at)}
                 </span>
               </div>
             );
           })}
-          {events.length === 0 && <div style={{ color: C.textLight, padding: 20, textAlign: "center" }}>Nessun evento registrato</div>}
+          {filtered.length === 0 && <div style={{ color: C.textLight, padding: 20, textAlign: "center" }}>Nessun evento registrato</div>}
         </div>
       </div>
     );
   };
 
+  // ============================================================
+  // TAB: COMPORTAMENTO (unchanged)
+  // ============================================================
   const renderAnalytics = () => {
-    // Wizard funnel from events
     const wizardEvents = Array.isArray(recentEvents) ? recentEvents.filter(e => e.event_type === "wizard_step_change") : [];
     const stepCounts = {};
-    wizardEvents.forEach(e => {
-      const s = e.metadata?.from_step;
-      if (s !== undefined) stepCounts[s] = (stepCounts[s] || 0) + 1;
-    });
+    wizardEvents.forEach(e => { const s = e.metadata?.from_step; if (s !== undefined) stepCounts[s] = (stepCounts[s] || 0) + 1; });
     const stepKeys = Object.keys(stepCounts).sort((a, b) => Number(a) - Number(b));
     const maxStepCount = stepKeys.length > 0 ? Math.max(...stepKeys.map(k => stepCounts[k]), 1) : 1;
-
-    // DAU chart
     const dau = Array.isArray(dailyActive) ? dailyActive : [];
     const maxDau = dau.length > 0 ? Math.max(...dau.map(d => d.active_users || 0), 1) : 1;
-
-    // Feature usage
     const allEvents = Array.isArray(recentEvents) ? recentEvents : [];
     const featureCounts = {};
-    allEvents.forEach(e => {
-      const label = EVENT_LABELS[e.event_type] || e.event_type;
-      featureCounts[label] = (featureCounts[label] || 0) + 1;
-    });
+    allEvents.forEach(e => { const label = EVENT_LABELS[e.event_type] || e.event_type; featureCounts[label] = (featureCounts[label] || 0) + 1; });
     const featureKeys = Object.keys(featureCounts).sort((a, b) => featureCounts[b] - featureCounts[a]);
     const maxFeature = featureKeys.length > 0 ? Math.max(...featureKeys.map(k => featureCounts[k]), 1) : 1;
 
     return (
       <div style={{ display: "grid", gap: 16 }}>
-        {/* Wizard Funnel */}
         <div style={cardStyle}>
           <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Funnel wizard (per step)</div>
           {stepKeys.length > 0 ? (
@@ -917,8 +1238,6 @@ function AdminDashboard({ user, onClose }) {
             <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato wizard disponibile</div>
           )}
         </div>
-
-        {/* DAU Chart */}
         <div style={cardStyle}>
           <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utenti attivi giornalieri (ultimi 30 giorni)</div>
           {dau.length > 0 ? (
@@ -937,10 +1256,8 @@ function AdminDashboard({ user, onClose }) {
             <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato DAU disponibile</div>
           )}
         </div>
-
-        {/* Feature Usage */}
         <div style={cardStyle}>
-          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utilizzo funzionalità</div>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utilizzo funzionalita</div>
           {featureKeys.length > 0 ? (
             <div style={{ display: "grid", gap: 8 }}>
               {featureKeys.map((k) => (
@@ -961,8 +1278,222 @@ function AdminDashboard({ user, onClose }) {
     );
   };
 
+  // ============================================================
+  // MODAL: DETTAGLI UTENTE
+  // ============================================================
+  const renderUserDetailsModal = () => {
+    if (!selectedUser || !userDetails) return null;
+    const p = userDetails.profile || {};
+    const projects = userDetails.projects || [];
+    const sharesGiven = userDetails.shares_given || [];
+    const sharesReceived = userDetails.shares_received || [];
+    const events = userDetails.recent_events || [];
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => { setSelectedUser(null); setUserDetails(null); }}>
+        <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, maxWidth: 700, width: "100%", maxHeight: "85vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
+          <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: C.dark, fontSize: 18, fontWeight: 700 }}>{p.name || "Utente"}</div>
+              <div style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>{p.email || "-"}</div>
+            </div>
+            <button onClick={() => { setSelectedUser(null); setUserDetails(null); }} style={{ background: "transparent", border: "none", color: C.textLight, fontSize: 22, cursor: "pointer", padding: "4px 8px" }}>x</button>
+          </div>
+          <div style={{ padding: "16px 24px" }}>
+            {/* Profile info */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 20 }}>
+              <div style={cardStyle}><div style={kpiLabel}>Privacy consent</div><div style={{ color: C.dark, fontSize: 14, fontWeight: 600, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>{p.privacy_consent_at ? fmtDateTime(p.privacy_consent_at) : "Non dato"}</div></div>
+              <div style={cardStyle}><div style={kpiLabel}>Progetti</div><div style={{ color: C.dark, fontSize: 14, fontWeight: 600, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>{projects.length}</div></div>
+            </div>
+
+            {/* Projects */}
+            <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Progetti ({projects.length})</div>
+            {projects.length > 0 ? (
+              <div style={{ marginBottom: 20 }}>
+                {projects.map((proj, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: i % 2 === 0 ? C.bg : C.card, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 2 }}>
+                    <span style={{ color: C.dark, fontWeight: 600 }}>{proj.name || "Senza nome"}</span>
+                    <span style={{ color: C.textLight, fontSize: 11 }}>{fmtDate(proj.updated_at)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 20 }}>Nessun progetto</div>
+            )}
+
+            {/* Shares given */}
+            <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Condivisioni effettuate ({sharesGiven.length})</div>
+            {sharesGiven.length > 0 ? (
+              <div style={{ marginBottom: 20 }}>
+                {sharesGiven.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: i % 2 === 0 ? C.bg : C.card, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 2 }}>
+                    <span style={{ color: C.dark }}>{s.project_name || "-"} → {s.shared_with_email}</span>
+                    <span style={{ background: C.accentLight, color: C.accent, padding: "2px 6px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{s.permission}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 20 }}>Nessuna condivisione effettuata</div>
+            )}
+
+            {/* Shares received */}
+            <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Condivisioni ricevute ({sharesReceived.length})</div>
+            {sharesReceived.length > 0 ? (
+              <div style={{ marginBottom: 20 }}>
+                {sharesReceived.map((s, i) => (
+                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: i % 2 === 0 ? C.bg : C.card, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 2 }}>
+                    <span style={{ color: C.dark }}>{s.project_name || "-"} da {s.owner_name || "-"}</span>
+                    <span style={{ background: C.border, color: C.textMid, padding: "2px 6px", borderRadius: 8, fontSize: 10, fontWeight: 700 }}>{s.permission}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif", marginBottom: 20 }}>Nessuna condivisione ricevuta</div>
+            )}
+
+            {/* Recent events */}
+            <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Ultimi eventi ({events.length})</div>
+            {events.length > 0 ? (
+              <div style={{ maxHeight: 250, overflow: "auto" }}>
+                {events.map((ev, i) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 10px", background: i % 2 === 0 ? C.bg : C.card, borderRadius: 4, fontSize: 12, fontFamily: "-apple-system, sans-serif", marginBottom: 1 }}>
+                    <span style={{ background: EVENT_COLORS[ev.event_type] || C.textMid, color: "#FFF", padding: "1px 6px", borderRadius: 8, fontSize: 10, fontWeight: 700, whiteSpace: "nowrap" }}>{EVENT_LABELS[ev.event_type] || ev.event_type}</span>
+                    <span style={{ color: C.textLight, fontSize: 10, marginLeft: "auto", whiteSpace: "nowrap" }}>{fmtDateTime(ev.created_at)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Nessun evento</div>
+            )}
+
+            {/* Action buttons */}
+            <div style={{ display: "flex", gap: 8, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+              <button onClick={() => handleResetPassword(p.email)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Reset password</button>
+              {p.email !== ADMIN_EMAIL && (
+                <button onClick={() => { setSelectedUser(null); setUserDetails(null); handleAdminDeleteUser({ user_id: selectedUser, name: p.name, email: p.email }); }} style={{ background: C.red, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Elimina utente</button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // MODAL: VISUALIZZA PROGETTO
+  // ============================================================
+  const renderProjectModal = () => {
+    if (!selectedProject) return null;
+    const p = selectedProject;
+    const d = typeof p.data === "string" ? JSON.parse(p.data) : (p.data || {});
+    const sc = typeof p.scenari === "string" ? JSON.parse(p.scenari) : (p.scenari || {});
+    const comp = typeof p.comparabili === "string" ? JSON.parse(p.comparabili) : (p.comparabili || []);
+    const rist = typeof p.rist_items === "string" ? JSON.parse(p.rist_items) : (p.rist_items || []);
+    const dataFields = [
+      { k: "via", l: "Indirizzo" }, { k: "civico", l: "Civico" }, { k: "citta", l: "Citta" },
+      { k: "mqTotali", l: "Metratura totale" }, { k: "numUnita", l: "Unita" },
+      { k: "prezzoAcquisto", l: "Prezzo acquisto" }, { k: "prezzoVenditaMq", l: "Prezzo vendita/mq" },
+      { k: "costoRistMq", l: "Costo rist./mq" }, { k: "durataOp", l: "Durata (mesi)" },
+    ];
+    return (
+      <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => setSelectedProject(null)}>
+        <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, maxWidth: 650, width: "100%", maxHeight: "85vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
+          <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <div>
+              <div style={{ color: C.dark, fontSize: 18, fontWeight: 700 }}>{p.name || "Progetto"}</div>
+              <div style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>{p.owner_name || "-"} ({p.owner_email || "-"})</div>
+            </div>
+            <button onClick={() => setSelectedProject(null)} style={{ background: "transparent", border: "none", color: C.textLight, fontSize: 22, cursor: "pointer", padding: "4px 8px" }}>x</button>
+          </div>
+          <div style={{ padding: "16px 24px" }}>
+            <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 12 }}>Dati operazione</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
+              {dataFields.map(f => (
+                <div key={f.k} style={{ padding: "8px 12px", background: C.bg, borderRadius: 4 }}>
+                  <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.5, fontFamily: "-apple-system, sans-serif" }}>{f.l}</div>
+                  <div style={{ color: C.dark, fontSize: 14, fontWeight: 600, fontFamily: "-apple-system, sans-serif", marginTop: 2 }}>{d[f.k] ?? "-"}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Scenari */}
+            {sc && Object.keys(sc).length > 0 && (
+              <>
+                <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Scenari</div>
+                <div style={{ padding: "10px 14px", background: C.bg, borderRadius: 6, marginBottom: 20, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", color: C.textMid, maxHeight: 200, overflow: "auto" }}>
+                  {JSON.stringify(sc, null, 2)}
+                </div>
+              </>
+            )}
+
+            {/* Comparabili */}
+            {Array.isArray(comp) && comp.length > 0 && (
+              <>
+                <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Comparabili ({comp.length})</div>
+                <div style={{ padding: "10px 14px", background: C.bg, borderRadius: 6, marginBottom: 20, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", color: C.textMid, maxHeight: 200, overflow: "auto" }}>
+                  {JSON.stringify(comp, null, 2)}
+                </div>
+              </>
+            )}
+
+            {/* Ristrutturazione */}
+            {Array.isArray(rist) && rist.length > 0 && (
+              <>
+                <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, marginBottom: 8 }}>Voci ristrutturazione ({rist.length})</div>
+                <div style={{ padding: "10px 14px", background: C.bg, borderRadius: 6, marginBottom: 20, fontSize: 12, fontFamily: "monospace", whiteSpace: "pre-wrap", color: C.textMid, maxHeight: 200, overflow: "auto" }}>
+                  {JSON.stringify(rist, null, 2)}
+                </div>
+              </>
+            )}
+
+            <div style={{ display: "flex", gap: 8, marginTop: 12, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
+              <button onClick={() => { setSelectedProject(null); handleAdminDeleteProject(p); }} style={{ background: C.red, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Elimina progetto</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // MAIN RENDER
+  // ============================================================
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif" }}>
+      {/* Toast notification */}
+      {actionStatus && (
+        <div style={{ position: "fixed", top: 16, right: 16, zIndex: 10000, background: actionStatus.type === "success" ? C.green : C.red, color: "#FFF", padding: "12px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 16px rgba(0,0,0,0.15)", maxWidth: 360 }}>
+          {actionStatus.message}
+        </div>
+      )}
+
+      {/* Confirm dialog */}
+      {confirmDialog && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !confirmDialog.loading && setConfirmDialog(null)}>
+          <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: confirmDialog.danger ? `2px solid ${C.red}` : `1px solid ${C.border}` }}>
+            <div style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ width: 48, height: 48, borderRadius: "50%", background: confirmDialog.danger ? C.redBg : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22 }}>
+                {confirmDialog.danger ? "!" : "i"}
+              </div>
+              <h3 style={{ color: confirmDialog.danger ? C.red : C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 8px" }}>{confirmDialog.title}</h3>
+              <p style={{ color: C.textMid, fontSize: 13, margin: 0, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>{confirmDialog.message}</p>
+            </div>
+            <button onClick={confirmDialog.onConfirm} disabled={confirmDialog.loading} style={{ background: confirmDialog.danger ? C.red : C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: confirmDialog.loading ? "not-allowed" : "pointer", fontFamily: "-apple-system, sans-serif", width: "100%", opacity: confirmDialog.loading ? 0.6 : 1, marginBottom: 10 }}>
+              {confirmDialog.loading ? "Attendere..." : confirmDialog.confirmLabel}
+            </button>
+            <button onClick={() => setConfirmDialog(null)} disabled={confirmDialog.loading} style={{ background: "transparent", color: C.textMid, border: `1px solid ${C.border}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" }}>
+              Annulla
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* User details modal */}
+      {renderUserDetailsModal()}
+
+      {/* Project viewer modal */}
+      {renderProjectModal()}
+
+      {/* Header */}
       <div style={{ background: C.navy }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div>
@@ -971,16 +1502,18 @@ function AdminDashboard({ user, onClose }) {
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
         </div>
-        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 16px", display: "flex", gap: 0 }}>
+        <div style={{ maxWidth: 1100, margin: "0 auto", padding: "0 16px", display: "flex", gap: 0, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
+            <button key={t.id} onClick={() => { setActiveTab(t.id); setSearchTerm(""); }} style={{
               background: activeTab === t.id ? C.accent : "transparent", color: activeTab === t.id ? "#FFF" : "rgba(255,255,255,0.6)",
-              border: "none", borderRadius: "6px 6px 0 0", padding: "8px 18px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif",
+              border: "none", borderRadius: "6px 6px 0 0", padding: "8px 14px", fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap", flexShrink: 0,
             }}>{t.label}</button>
           ))}
         </div>
         <div style={{ height: 3, background: C.accent }} />
       </div>
+
+      {/* Content */}
       <div style={{ maxWidth: 1100, margin: "0 auto", padding: "24px 16px" }}>
         {loading ? (
           <div style={{ textAlign: "center", padding: "60px 20px", color: C.textMid, fontSize: 15, fontFamily: "-apple-system, sans-serif" }}>Caricamento dati...</div>
@@ -988,6 +1521,9 @@ function AdminDashboard({ user, onClose }) {
           <>
             {activeTab === "overview" && renderOverview()}
             {activeTab === "users" && renderUsers()}
+            {activeTab === "projects" && renderProjects()}
+            {activeTab === "shares" && renderShares()}
+            {activeTab === "visitors" && renderVisitors()}
             {activeTab === "activity" && renderActivity()}
             {activeTab === "analytics" && renderAnalytics()}
           </>
