@@ -667,12 +667,21 @@ function ScenarioBlock({ title, subtitle, margine, roi, roiAnn, durata, investim
 // ============================================================
 function AuthInput({ label, type = "text", value, onChange, placeholder, autoFocus }) {
   const ref = useRef(null);
+  const [showPw, setShowPw] = useState(false);
   useEffect(() => { if (autoFocus && ref.current) ref.current.focus(); }, [autoFocus]);
+  const isPassword = type === "password";
   return (
     <div style={{ marginBottom: 16 }}>
       <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 4, fontFamily: "-apple-system, sans-serif" }}>{label}</label>
-      <input ref={ref} type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
-        style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card }} />
+      <div style={{ position: "relative" }}>
+        <input ref={ref} type={isPassword && showPw ? "text" : type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
+          style={{ width: "100%", boxSizing: "border-box", padding: isPassword ? "10px 42px 10px 14px" : "10px 14px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card }} />
+        {isPassword && (
+          <button type="button" onClick={() => setShowPw(p => !p)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4, color: C.textMid, fontSize: 18, lineHeight: 1 }} title={showPw ? "Nascondi password" : "Mostra password"}>
+            {showPw ? "🙈" : "👁️"}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
