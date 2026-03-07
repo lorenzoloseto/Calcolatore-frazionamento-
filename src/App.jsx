@@ -72,6 +72,18 @@ const DB = {
     if (error) return { ok: false, error: error.message };
     return { ok: true };
   },
+  async resetPasswordForEmail(email) {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: isNative ? "com.lorenzoloseto.frazio://auth/callback" : window.location.origin + window.location.pathname,
+    });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
+  async updatePassword(newPassword) {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) return { ok: false, error: error.message };
+    return { ok: true };
+  },
   async logout() {
     await supabase.auth.signOut();
     this._user = null;
@@ -982,7 +994,9 @@ export default function App() {
   const [user, setUser] = useState(() => DB.getUser());
   const [projectsList, setProjectsList] = useState([]);
   const [sharesForModal, setSharesForModal] = useState([]);
-  const [authScreen, setAuthScreen] = useState(null); // null | "login" | "register" | "projects"
+  const [authScreen, setAuthScreen] = useState(null); // null | "login" | "register" | "projects" | "forgot" | "reset-password"
+  const authScreenRef = useRef(null);
+  const setAuthScreenTracked = (v) => { authScreenRef.current = v; setAuthScreen(v); };
   const [authForm, setAuthForm] = useState({ name: "", email: "", password: "" });
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -1006,6 +1020,23 @@ export default function App() {
     });
     // 2. Ascolta cambi futuri di sessione
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        // Utente ha cliccato il link di reset password — mostra il form nuova password
+        if (session?.user) {
+          const u = {
+            id: session.user.id,
+            name: session.user.user_metadata?.name || session.user.user_metadata?.full_name || session.user.email?.split("@")[0] || "Utente",
+            email: session.user.email,
+          };
+          DB._user = u;
+          setUser(u);
+        }
+        setShowLanding(false);
+        authScreenRef.current = "reset-password";
+        setAuthScreen("reset-password");
+        setAuthLoading(false);
+        return;
+      }
       if ((event === "SIGNED_IN" || event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") && session?.user) {
         const u = {
           id: session.user.id,
@@ -1016,7 +1047,7 @@ export default function App() {
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
-        setAuthScreen("projects");
+        if (authScreenRef.current !== "reset-password") setAuthScreen("projects");
         setAuthLoading(false);
         if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
       } else if (event === "SIGNED_OUT") {
@@ -1186,6 +1217,27 @@ export default function App() {
     else if (res.ok && res.confirmEmail) { setAuthError("Controlla la tua email per confermare la registrazione, poi accedi."); }
     else setAuthError(res.error);
   };
+  const handleForgotPassword = async () => {
+    setAuthError("");
+    if (!authForm.email.trim()) { setAuthError("Inserisci la tua email per ricevere il link di reset"); return; }
+    const res = await DB.resetPasswordForEmail(authForm.email);
+    if (res.ok) { setAuthError("✅ Email inviata! Controlla la tua casella (anche spam) e clicca il link per reimpostare la password."); }
+    else setAuthError(res.error);
+  };
+  const handleUpdatePassword = async () => {
+    setAuthError("");
+    if (!newPassword.trim() || newPassword.length < 8) { setAuthError("La nuova password deve essere di almeno 8 caratteri"); return; }
+    if (newPassword !== confirmPassword) { setAuthError("Le password non coincidono"); return; }
+    const res = await DB.updatePassword(newPassword);
+    if (res.ok) {
+      setNewPassword(""); setConfirmPassword("");
+      authScreenRef.current = "projects";
+      setAuthScreen("projects");
+      DB.trackEvent("password_reset");
+    } else setAuthError(res.error);
+  };
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(null); };
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
   // Landing: responsive
@@ -1823,6 +1875,13 @@ export default function App() {
             </div>
             </>
           )}
+          {isLogin && (
+            <div style={{ textAlign: "right", marginBottom: 12 }}>
+              <button onClick={() => { setAuthScreen("forgot"); setAuthError(""); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>
+                Password dimenticata?
+              </button>
+            </div>
+          )}
           <button onClick={isLogin ? handleLogin : handleRegister} style={btnPrimary}>{isLogin ? "Accedi" : "Crea account"}</button>
           <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "18px 0" }}>
             <div style={{ flex: 1, height: 1, background: C.border }} />
@@ -1853,6 +1912,58 @@ export default function App() {
         </div>
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
         {showTos && <TosModal onClose={() => setShowTos(false)} />}
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
+      </div>
+    );
+  }
+
+  // ============================================================
+  // FORGOT PASSWORD SCREEN (richiesta email)
+  // ============================================================
+  if (authScreen === "forgot") {
+    return (
+      <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Password dimenticata</h2>
+          <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
+            Inserisci la tua email e ti invieremo un link per reimpostare la password.
+          </p>
+          {authError && <div style={{ background: authError.startsWith("✅") ? "#e8f5e9" : C.redBg, color: authError.startsWith("✅") ? "#2e7d32" : C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif" }}>{authError}</div>}
+          <div onKeyDown={(e) => e.key === "Enter" && handleForgotPassword()}>
+            <AuthInput label="Email" type="email" value={authForm.email} onChange={(v) => setAuthForm((p) => ({ ...p, email: v }))} placeholder="mario@email.com" autoFocus />
+          </div>
+          <button onClick={handleForgotPassword} style={btnPrimary}>Invia link di reset</button>
+          <div style={{ textAlign: "center", marginTop: 16 }}>
+            <button onClick={() => { setAuthScreen("login"); setAuthError(""); }} style={{ background: "none", border: "none", color: C.accent, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+              ← Torna al login
+            </button>
+          </div>
+        </div>
+        {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
+      </div>
+    );
+  }
+
+  // ============================================================
+  // RESET PASSWORD SCREEN (inserimento nuova password)
+  // ============================================================
+  if (authScreen === "reset-password") {
+    return (
+      <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
+          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Nuova password</h2>
+          <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
+            Scegli una nuova password per il tuo account.
+          </p>
+          {authError && <div style={{ background: C.redBg, color: C.red, padding: "8px 12px", borderRadius: 4, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif" }}>{authError}</div>}
+          <div onKeyDown={(e) => e.key === "Enter" && handleUpdatePassword()}>
+            <AuthInput label="Nuova password" type="password" value={newPassword} onChange={setNewPassword} placeholder="Minimo 8 caratteri" autoFocus />
+            <AuthInput label="Conferma password" type="password" value={confirmPassword} onChange={setConfirmPassword} placeholder="Ripeti la password" />
+          </div>
+          <button onClick={handleUpdatePassword} style={btnPrimary}>Salva nuova password</button>
+        </div>
         {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
       </div>
     );
