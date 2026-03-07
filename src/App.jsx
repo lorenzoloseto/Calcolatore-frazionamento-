@@ -677,8 +677,10 @@ function AuthInput({ label, type = "text", value, onChange, placeholder, autoFoc
         <input ref={ref} type={isPassword && showPw ? "text" : type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder}
           style={{ width: "100%", boxSizing: "border-box", padding: isPassword ? "10px 42px 10px 14px" : "10px 14px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.card }} />
         {isPassword && (
-          <button type="button" onClick={() => setShowPw(p => !p)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4, color: C.textMid, fontSize: 18, lineHeight: 1 }} title={showPw ? "Nascondi password" : "Mostra password"}>
-            {showPw ? "🙈" : "👁️"}
+          <button type="button" onClick={() => setShowPw(p => !p)} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 4, color: C.textLight, lineHeight: 1, display: "flex", alignItems: "center" }} title={showPw ? "Nascondi password" : "Mostra password"}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              {showPw ? (<><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></>) : (<><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></>)}
+            </svg>
           </button>
         )}
       </div>
