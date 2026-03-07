@@ -2130,7 +2130,7 @@ export default function App() {
         `}</style>
 
         {/* === NAVBAR === */}
-        <div className={isNative ? "cap-safe-top" : ""} style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
               <LpBrandLogo size={isMobile ? 22 : 32} />
@@ -2553,7 +2553,7 @@ export default function App() {
     const projects = projectsList;
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif" }}>
-        <div style={{ background: C.navy }}>
+        <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ maxWidth: 800, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
               <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Area privata</div>
@@ -2755,7 +2755,7 @@ export default function App() {
     const progress = (step / STEPS.length) * 100;
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }} onKeyDown={(e) => e.key === "Enter" && goNext()}>
-        <div style={{ background: C.navy, padding: "0" }}>
+        <div style={{ background: C.navy, padding: "0", paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ height: 3, background: "#0a1a33" }}>
             <div style={{ height: 3, background: C.accent, width: `${progress}%`, transition: "width 0.4s ease" }} />
           </div>
@@ -2836,7 +2836,7 @@ export default function App() {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
       {/* HEADER */}
-      <div style={{ background: C.navy }}>
+      <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1 }}>Conto economico</div>
