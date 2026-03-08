@@ -130,6 +130,10 @@ const DB = {
     const { error } = await supabase.from("projects").delete().eq("id", pid);
     return { ok: !error };
   },
+  async renameProject(pid, newName) {
+    const { error } = await supabase.from("projects").update({ name: newName }).eq("id", pid);
+    return { ok: !error };
+  },
   async shareProject(pid, email, permission) {
     if (!this._user) return { ok: false, error: "Non autenticato" };
     if (email === this._user.email) return { ok: false, error: "Non puoi condividere con te stesso" };
@@ -1658,6 +1662,8 @@ export default function App() {
   const [shareError, setShareError] = useState("");
   const [projectName, setProjectName] = useState("");
   const [editingProjectId, setEditingProjectId] = useState(null);
+  const [renamingProject, setRenamingProject] = useState(null);
+  const [renameValue, setRenameValue] = useState("");
 
   // APP STATE
   const [step, setStep] = useState(0);
@@ -2605,6 +2611,7 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
+                          <button onClick={() => { setRenamingProject(p); setRenameValue(p.name); }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rinomina"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                           <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); DB.trackEvent("project_delete", { project_id: p.id }); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
@@ -2646,6 +2653,24 @@ export default function App() {
             </button>
           </div>
         </div>
+        {/* RENAME PROJECT MODAL */}
+        {renamingProject && (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setRenamingProject(null)}>
+            <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 400, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} onClick={(e) => e.stopPropagation()}>
+              <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 16px" }}>Rinomina progetto</h3>
+              <input
+                type="text" value={renameValue} onChange={(e) => setRenameValue(e.target.value)} autoFocus
+                onKeyDown={(e) => { if (e.key === "Enter" && renameValue.trim()) { DB.renameProject(renamingProject.id, renameValue.trim()).then(async (res) => { if (res.ok) { const updated = await DB.getProjects(); setProjectsList(updated); setRenamingProject(null); } }); } }}
+                style={{ width: "100%", boxSizing: "border-box", padding: "10px 14px", border: `1px solid ${C.borderDark}`, borderRadius: 6, fontSize: 15, color: C.dark, outline: "none", fontFamily: "-apple-system, sans-serif", background: C.bg }}
+                placeholder="Nome del progetto"
+              />
+              <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+                <button onClick={() => setRenamingProject(null)} style={{ background: "transparent", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 6, padding: "8px 16px", fontWeight: 600, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Annulla</button>
+                <button onClick={async () => { if (renameValue.trim()) { const res = await DB.renameProject(renamingProject.id, renameValue.trim()); if (res.ok) { const updated = await DB.getProjects(); setProjectsList(updated); setRenamingProject(null); } } }} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "8px 16px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Salva</button>
+              </div>
+            </div>
+          </div>
+        )}
         {/* DELETE ACCOUNT MODAL */}
         {showDeleteAccount && (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !deleteAccountLoading && setShowDeleteAccount(false)}>
