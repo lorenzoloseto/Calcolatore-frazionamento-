@@ -696,7 +696,6 @@ const STEPS = [
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
   { id: "metratura", title: "Superficie totale", subtitle: "La metratura commerciale dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
   { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
-  { id: "unita", title: "Numero di unità", subtitle: "In quante unità indipendenti vuoi dividere l'immobile.", field: "numUnita", type: "slider", min: 2, max: 6, labels: ["2", "3", "4", "5", "6"] },
   { id: "vendita", title: "Prezzo di vendita al mq", subtitle: "Prezzo medio al metro quadro delle unità piccole nella zona.", field: "prezzoVenditaMq", type: "number", suffix: "€/mq", step: 100 },
   { id: "rist", title: "Costo ristrutturazione", subtitle: "Costo al mq comprensivo di ristrutturazione e impiantistica.", field: "costoRistMq", type: "number", suffix: "€/mq", step: 50 },
   { id: "durata", title: "Durata dell'operazione", subtitle: "Tempistica prevista dalla firma all'ultima vendita.", field: "durataOp", type: "slider", min: 3, max: 24, labels: ["3 mesi", "12", "24 mesi"], unit: "mesi" },
@@ -2760,7 +2759,7 @@ export default function App() {
             <div style={{ height: 3, background: C.accent, width: `${progress}%`, transition: "width 0.4s ease" }} />
           </div>
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>
+            <div onClick={() => setShowLanding(true)} style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", cursor: "pointer" }}>
               FRAZIO
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -2806,7 +2805,6 @@ export default function App() {
           {s.type === "slider" && <WizardSlider value={data[s.field]} onChange={(v) => upd(s.field, v)} min={s.min} max={s.max} labels={s.labels} unit={s.unit} />}
           {s.field === "prezzoAcquisto" && data.metratura > 0 && <div style={{ marginTop: 14, color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Equivale a {fmtEur(Math.round(data.prezzoAcquisto / data.metratura))}/mq</div>}
           {s.field === "prezzoVenditaMq" && <div style={{ marginTop: 14, color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Ricavo totale stimato: <strong style={{ color: C.dark }}>{fmtEur(data.prezzoVenditaMq * data.metratura)}</strong></div>}
-          {s.field === "numUnita" && data.metratura > 0 && <div style={{ marginTop: 14, color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Superficie media per unità: <strong style={{ color: C.dark }}>{fmtMq(Math.round(data.metratura / data.numUnita))}</strong></div>}
         </div>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 20px 24px", display: "flex", justifyContent: "center", gap: 10 }}>
           {step > 0 && <button onClick={goBack} style={{ background: "transparent", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 6, padding: "12px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Indietro</button>}
@@ -2839,7 +2837,7 @@ export default function App() {
       <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1 }}>Conto economico</div>
+            <div onClick={() => setShowLanding(true)} style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1, cursor: "pointer" }}>FRAZIO</div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
           </div>
