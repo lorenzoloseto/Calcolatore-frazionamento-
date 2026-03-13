@@ -444,7 +444,7 @@ const C = {
 
 const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
-  prezzoVenditaMq: 3200, costoRistMq: 500, durataOp: 8,
+  prezzoVenditaMq: 3200, costoRistMq: 500, costoRistCorpo: 0, durataOp: 8,
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
@@ -1970,7 +1970,7 @@ export default function App() {
   // ============================================================
   const calc = useMemo(() => {
     const d = data;
-    const costoRistTot = d.metratura * d.costoRistMq;
+    const costoRistTot = d.metratura * d.costoRistMq + (d.costoRistCorpo || 0);
     const buffer = costoRistTot * d.bufferPct;
     const tasseAcquisto = d.prezzoAcquisto * d.tasseAcquistoPct;
     const speseBancarie = d.speseBancarieSomma * d.speseBancariePct;
@@ -2940,6 +2940,7 @@ export default function App() {
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Struttura costi</div>
               <DashInput label="Ristrutturazione/mq" value={data.costoRistMq} onChange={(v) => upd("costoRistMq", v)} suffix="€/mq" step={50} note="Comprensivo di impiantistica" disabled={viewOnly} />
+              <DashInput label="Ristrutturazione a corpo" value={data.costoRistCorpo} onChange={(v) => upd("costoRistCorpo", v)} suffix="€" step={500} note="Costo fisso aggiuntivo" disabled={viewOnly} />
               <DashInput label="Oneri comunali" value={data.oneriComunali} onChange={(v) => upd("oneriComunali", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Professionisti" value={data.costiProfessionisti} onChange={(v) => upd("costiProfessionisti", v)} suffix="€" step={1000} disabled={viewOnly} />
               <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} />
