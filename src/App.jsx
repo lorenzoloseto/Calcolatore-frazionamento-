@@ -1611,7 +1611,8 @@ export default function App() {
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
-        if (authScreenRef.current !== "reset-password") setAuthScreen("projects");
+        // Solo al primo login/sessione vai a projects, non su TOKEN_REFRESHED (cambio tab)
+        if (event !== "TOKEN_REFRESHED" && authScreenRef.current !== "reset-password") setAuthScreen("projects");
         setAuthLoading(false);
         if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
       } else if (event === "SIGNED_OUT") {
