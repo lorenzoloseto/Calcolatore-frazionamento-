@@ -1570,6 +1570,7 @@ export default function App() {
           email: session.user.email,
         };
         DB._user = u;
+        DB._wasAuthenticated = true;
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
@@ -1611,12 +1612,14 @@ export default function App() {
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
-        // Solo al primo login/sessione vai a projects, non su TOKEN_REFRESHED (cambio tab)
-        if (event !== "TOKEN_REFRESHED" && authScreenRef.current !== "reset-password") setAuthScreen("projects");
+        // Vai a projects solo se l'utente non era già autenticato (evita reset vista al cambio tab)
+        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password") setAuthScreen("projects");
+        DB._wasAuthenticated = true;
         setAuthLoading(false);
         if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
       } else if (event === "SIGNED_OUT") {
         DB._user = null;
+        DB._wasAuthenticated = false;
         setUser(null);
       }
     });
