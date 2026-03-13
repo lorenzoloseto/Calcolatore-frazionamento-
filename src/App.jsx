@@ -1579,6 +1579,7 @@ export default function App() {
           setAuthScreen("reset-password");
         } else {
           setAuthScreen("projects");
+          window.history.replaceState({ screen: "projects" }, "");
         }
         setAuthLoading(false);
       }
@@ -1668,6 +1669,25 @@ export default function App() {
   const [editingProjectId, setEditingProjectId] = useState(null);
   const [renamingProject, setRenamingProject] = useState(null);
   const [renameValue, setRenameValue] = useState("");
+
+  // BROWSER HISTORY — gestione tasto "indietro"
+  useEffect(() => {
+    const onPopState = (e) => {
+      const s = e.state;
+      if (s?.screen === "projects") {
+        setShowDash(false);
+        setAuthScreen("projects");
+      } else if (s?.screen === "dash") {
+        setShowDash(true);
+        setAuthScreen(null);
+      } else if (s?.screen === "wizard") {
+        setShowDash(false);
+        setAuthScreen(null);
+      }
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, []);
 
   // APP STATE
   const [step, setStep] = useState(0);
@@ -1887,6 +1907,7 @@ export default function App() {
     setViewOnly(project._shared && project._permission === "view");
     setShowDash(true);
     setAuthScreen(null);
+    window.history.pushState({ screen: "dash" }, "");
     DB.trackEvent("project_open", { project_id: project.id, project_name: project.name });
   };
   const handleNewProject = () => {
@@ -1900,6 +1921,7 @@ export default function App() {
     setShowDash(false);
     setStep(0);
     setAuthScreen(null);
+    window.history.pushState({ screen: "wizard" }, "");
   };
   const handleShare = async () => {
     setShareError("");
@@ -2796,7 +2818,7 @@ export default function App() {
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
               {user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <button onClick={() => setAuthScreen("projects")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
+                  <button onClick={() => { setAuthScreen("projects"); window.history.pushState({ screen: "projects" }, ""); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
                   {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
@@ -2879,7 +2901,7 @@ export default function App() {
                     {saveStatus === "saving" ? "Salvataggio..." : "✓ Salvato"}
                   </span>
                 )}
-                <button onClick={() => setAuthScreen("projects")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                <button onClick={() => { setAuthScreen("projects"); window.history.pushState({ screen: "projects" }, ""); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   I miei progetti
                 </button>
                 {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
