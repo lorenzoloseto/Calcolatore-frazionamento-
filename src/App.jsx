@@ -1898,12 +1898,14 @@ export default function App() {
     return res;
   };
   const handleLoadProject = (project) => {
+    // Cancella autosave in coda per evitare che salvi dati vecchi sul nuovo progetto
+    if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
+    setEditingProjectId(project.id);
+    setProjectName(project.name);
     setData({ ...DEFAULT_DATA, ...project.data });
     setScenari({ ...DEFAULT_SCENARI, ...project.scenari });
     setComparabili(project.comparabili || [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
     setRistItems((project.rist_items || [...RIST_INIT]).sort((a, b) => a.nome.localeCompare(b.nome)));
-    setEditingProjectId(project.id);
-    setProjectName(project.name);
     setViewOnly(project._shared && project._permission === "view");
     setShowDash(true);
     setAuthScreen(null);
