@@ -1579,7 +1579,7 @@ export default function App() {
           setAuthScreen("reset-password");
         } else {
           setAuthScreen("projects");
-          window.history.replaceState({ screen: "projects" }, "");
+          historyRef.current = ["projects"];
         }
         setAuthLoading(false);
       }
@@ -1614,7 +1614,7 @@ export default function App() {
         setUser(u);
         setShowLanding(false);
         // Vai a projects solo se l'utente non era già autenticato (evita reset vista al cambio tab)
-        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password") setAuthScreen("projects");
+        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password") { setAuthScreen("projects"); historyRef.current = ["projects"]; }
         DB._wasAuthenticated = true;
         setAuthLoading(false);
         if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
@@ -1670,19 +1670,32 @@ export default function App() {
   const [renamingProject, setRenamingProject] = useState(null);
   const [renameValue, setRenameValue] = useState("");
 
-  // BROWSER HISTORY — gestione tasto "indietro"
+  // BROWSER HISTORY — gestione tasto "indietro" del browser
+  const historyRef = useRef([]); // stack delle schermate per gestire il back
+  const pushScreen = (screen) => {
+    historyRef.current.push(screen);
+    window.history.pushState({ screen }, "");
+  };
   useEffect(() => {
+    // Setta lo stato iniziale della history
+    window.history.replaceState({ screen: "landing" }, "");
     const onPopState = (e) => {
-      const s = e.state;
-      if (s?.screen === "projects") {
+      // Rimuovi l'ultima schermata dallo stack
+      historyRef.current.pop();
+      const prev = historyRef.current[historyRef.current.length - 1];
+      if (prev === "projects") {
         setShowDash(false);
         setAuthScreen("projects");
-      } else if (s?.screen === "dash") {
+      } else if (prev === "dash") {
         setShowDash(true);
         setAuthScreen(null);
-      } else if (s?.screen === "wizard") {
+      } else if (prev === "wizard") {
         setShowDash(false);
         setAuthScreen(null);
+      } else {
+        // Nessuna schermata precedente nell'app: rimetti una entry nella history
+        // per evitare di uscire dal sito al prossimo "indietro"
+        window.history.pushState({ screen: "stay" }, "");
       }
     };
     window.addEventListener("popstate", onPopState);
@@ -1909,7 +1922,7 @@ export default function App() {
     setViewOnly(project._shared && project._permission === "view");
     setShowDash(true);
     setAuthScreen(null);
-    window.history.pushState({ screen: "dash" }, "");
+    pushScreen("dash");
     DB.trackEvent("project_open", { project_id: project.id, project_name: project.name });
   };
   const handleNewProject = () => {
@@ -1923,7 +1936,7 @@ export default function App() {
     setShowDash(false);
     setStep(0);
     setAuthScreen(null);
-    window.history.pushState({ screen: "wizard" }, "");
+    pushScreen("wizard");
   };
   const handleShare = async () => {
     setShareError("");
@@ -2640,7 +2653,7 @@ export default function App() {
                       {!isShared && (
                         <>
                           <button onClick={() => { setRenamingProject(p); setRenameValue(p.name); }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rinomina"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                          <button onClick={async () => { const res = await DB.saveProject({ name: "Copia di " + p.name, data: p.data ? { ...p.data } : {}, scenari: p.scenari ? { ...p.scenari } : {}, comparabili: p.comparabili ? [...p.comparabili] : [], ristItems: p.rist_items ? [...p.rist_items] : [] }); if (res.ok) { DB.trackEvent("project_duplicate", { source_project_id: p.id, new_project_id: res.project.id }); const updated = await DB.getProjects(); setProjectsList(updated); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Duplica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+                          <button onClick={async () => { const res = await DB.saveProject({ name: "Copia di " + p.name, data: p.data ? { ...p.data } : {}, scenari: p.scenari ? { ...p.scenari } : {}, comparabili: p.comparabili ? [...p.comparabili] : [], ristItems: p.rist_items ? [...p.rist_items] : [] }); if (res.ok) { DB.trackEvent("project_duplicate", { source_project_id: p.id, new_project_id: res.project.id }); handleLoadProject(res.project); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Duplica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
                           <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); DB.trackEvent("project_delete", { project_id: p.id }); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
@@ -2820,7 +2833,7 @@ export default function App() {
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
               {user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <button onClick={() => { setAuthScreen("projects"); window.history.pushState({ screen: "projects" }, ""); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
+                  <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
                   {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
@@ -2903,7 +2916,7 @@ export default function App() {
                     {saveStatus === "saving" ? "Salvataggio..." : "✓ Salvato"}
                   </span>
                 )}
-                <button onClick={() => { setAuthScreen("projects"); window.history.pushState({ screen: "projects" }, ""); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   I miei progetti
                 </button>
                 {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
