@@ -362,9 +362,29 @@ const LpIconDownload = () => <svg width="24" height="24" viewBox="0 0 24 24" fil
 const LpIconLock = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>;
 const LpIconServer = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={C.accent} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" ry="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>;
 
-function LpBrandLogo({ size = 32 }) {
+function LpBrandLogo({ size = 32, animated = false }) {
   const s = size;
   const sw = 1.5;
+  if (!animated) {
+    // Versione statica — nessuna animazione CSS necessaria
+    return (
+      <svg width={s} height={s * 0.875} viewBox="0 0 32 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g style={{ transform: "translateX(-3px)" }}>
+          <path d="M2 26V6l13-4v24" stroke={C.accent} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="5" y="10" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+          <rect x="5" y="17" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+          <rect x="11" y="10" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+        </g>
+        <g style={{ transform: "translateX(3px)" }}>
+          <path d="M17 2v24l13 0V8z" stroke={C.accent} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+          <rect x="20" y="12" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+          <rect x="20" y="19" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+          <rect x="26" y="12" width="3" height="3" rx="0.5" stroke={C.accent} strokeWidth={sw} />
+        </g>
+        <line x1="16" y1="4" x2="16" y2="26" stroke={C.accent} strokeWidth={1} strokeDasharray="3 2" />
+      </svg>
+    );
+  }
   const dl = "lp-strokeDraw 1.5s ease-out forwards";
   const splitDelay = "1.8s";
   return (
@@ -2180,7 +2200,7 @@ export default function App() {
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
-              <LpBrandLogo size={isMobile ? 22 : 32} />
+              <LpBrandLogo size={isMobile ? 22 : 32} animated />
               <div style={{
                 fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
@@ -2827,8 +2847,9 @@ export default function App() {
             <div style={{ height: 3, background: C.accent, width: `${progress}%`, transition: "width 0.4s ease" }} />
           </div>
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <div onClick={() => setShowLanding(true)} style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", cursor: "pointer" }}>
-              FRAZIO
+            <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
+              <LpBrandLogo size={18} />
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
@@ -2905,7 +2926,10 @@ export default function App() {
       <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
-            <div onClick={() => setShowLanding(true)} style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 1, cursor: "pointer" }}>FRAZIO</div>
+            <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginBottom: 1 }}>
+              <LpBrandLogo size={18} />
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+            </div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
           </div>
