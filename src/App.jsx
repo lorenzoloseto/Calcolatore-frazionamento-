@@ -448,6 +448,7 @@ const DEFAULT_DATA = {
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
+  planimetria: null,
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
@@ -2962,7 +2963,7 @@ export default function App() {
         </div>
 
         {/* RISULTATI TAB */}
-        {dashTab === "risultati" && (
+        {dashTab === "risultati" && (<>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
@@ -3029,7 +3030,46 @@ export default function App() {
               </div>
             </div>
           </div>
-        )}
+          {/* PLANIMETRIA STATO DI FATTO */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Planimetria stato di fatto</div>
+            {data.planimetria ? (
+              <div style={{ position: "relative" }}>
+                <img src={data.planimetria} alt="Planimetria stato di fatto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetria, "_blank")} />
+                {!viewOnly && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                      Sostituisci immagine
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) { alert("Immagine troppo grande (max 5MB)"); return; }
+                        const reader = new FileReader();
+                        reader.onload = (ev) => upd("planimetria", ev.target.result);
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                    <button onClick={() => upd("planimetria", null)} style={{ background: "rgba(220,53,69,0.1)", color: "#DC3545", border: `1px solid rgba(220,53,69,0.3)`, borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Rimuovi</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : "pointer", background: C.bg, transition: "border-color 0.2s" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={C.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : "Carica planimetria"}</div>
+                {!viewOnly && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca o trascina un'immagine (max 5MB)</div>}
+                {!viewOnly && <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { alert("Immagine troppo grande (max 5MB)"); return; }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => upd("planimetria", ev.target.result);
+                  reader.readAsDataURL(file);
+                }} />}
+              </label>
+            )}
+          </div>
+        </>)}
 
         {/* RISTRUTTURAZIONE TAB */}
         {dashTab === "ristrutturazione" && (
