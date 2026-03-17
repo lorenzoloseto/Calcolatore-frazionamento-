@@ -1521,7 +1521,10 @@ function AdminDashboard({ user, onClose }) {
       <div style={{ background: C.navy }}>
         <div style={{ maxWidth: 1100, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div>
-            <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Admin Dashboard</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+              <LpBrandLogo size={16} />
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO — Admin</div>
+            </div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>Pannello di controllo</div>
           </div>
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
@@ -2481,7 +2484,10 @@ export default function App() {
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+            <LpBrandLogo size={28} />
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+          </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>
             {isLogin ? "Accedi" : "Registrati"}
           </h2>
@@ -2568,7 +2574,10 @@ export default function App() {
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+            <LpBrandLogo size={28} />
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+          </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Password dimenticata</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
             Inserisci la tua email e ti invieremo un link per reimpostare la password.
@@ -2596,7 +2605,10 @@ export default function App() {
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
-          <div style={{ width: 48, height: 4, background: C.accent, margin: "0 auto 20px", borderRadius: 2 }} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
+            <LpBrandLogo size={28} />
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+          </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Nuova password</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
             Scegli una nuova password per il tuo account.
@@ -2623,7 +2635,10 @@ export default function App() {
         <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
           <div style={{ maxWidth: 800, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Area privata</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <LpBrandLogo size={16} />
+                <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+              </div>
               <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>I miei conti economici</div>
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
