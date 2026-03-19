@@ -2572,8 +2572,8 @@ export default function App() {
             </button>
           </div>
           <div style={{ textAlign: "center", marginTop: 10 }}>
-            <button onClick={() => setAuthScreen(null)} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
-              Torna al calcolatore
+            <button onClick={() => { setAuthScreen(null); setShowLanding(true); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+              ← Torna indietro
             </button>
           </div>
           <div style={{ textAlign: "center", marginTop: 14, borderTop: `1px solid ${C.border}`, paddingTop: 12, display: "flex", justifyContent: "center", gap: 16 }}>
