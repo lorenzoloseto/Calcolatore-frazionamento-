@@ -1579,6 +1579,78 @@ function AdminDashboard({ user, onClose }) {
 }
 
 // ============================================================
+// PDF -> PNG (lazy-load pdfjs from CDN)
+// ============================================================
+const PDFJS_VERSION = "4.0.379";
+async function loadPdfJs() {
+  if (window.pdfjsLib) return window.pdfjsLib;
+  await new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.min.js`;
+    s.onload = resolve;
+    s.onerror = () => reject(new Error("Impossibile caricare il convertitore PDF"));
+    document.head.appendChild(s);
+  });
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+    `https://cdn.jsdelivr.net/npm/pdfjs-dist@${PDFJS_VERSION}/build/pdf.worker.min.js`;
+  return window.pdfjsLib;
+}
+
+async function pdfFileToPngDataUrl(file) {
+  const pdfjs = await loadPdfJs();
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+  const scale = 2;
+  const canvases = [];
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const viewport = page.getViewport({ scale });
+    const canvas = document.createElement("canvas");
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    await page.render({ canvasContext: canvas.getContext("2d"), viewport }).promise;
+    canvases.push(canvas);
+  }
+  const gap = canvases.length > 1 ? 10 : 0;
+  const totalW = Math.max(...canvases.map((c) => c.width));
+  const totalH = canvases.reduce((s, c) => s + c.height, 0) + (canvases.length - 1) * gap;
+  const out = document.createElement("canvas");
+  out.width = totalW;
+  out.height = totalH;
+  const ctx = out.getContext("2d");
+  ctx.fillStyle = "#FFFFFF";
+  ctx.fillRect(0, 0, totalW, totalH);
+  let y = 0;
+  for (const c of canvases) {
+    ctx.drawImage(c, (totalW - c.width) / 2, y);
+    y += c.height + gap;
+  }
+  return out.toDataURL("image/png");
+}
+
+// Unified upload handler for planimetrie: PDF -> PNG, image -> data URL.
+async function uploadPlanimetria(file, fieldName, updFn, setBusy) {
+  if (!file) return;
+  if (file.size > 10 * 1024 * 1024) { alert("File troppo grande (max 10MB)"); return; }
+  if (file.type === "application/pdf") {
+    try {
+      setBusy && setBusy(true);
+      const png = await pdfFileToPngDataUrl(file);
+      updFn(fieldName, png);
+    } catch (err) {
+      console.error(err);
+      alert("Errore nella conversione del PDF in immagine: " + (err.message || err));
+    } finally {
+      setBusy && setBusy(false);
+    }
+  } else {
+    const reader = new FileReader();
+    reader.onload = (ev) => updFn(fieldName, ev.target.result);
+    reader.readAsDataURL(file);
+  }
+}
+
+// ============================================================
 // MAIN APP
 // ============================================================
 export default function App() {
@@ -1594,6 +1666,7 @@ export default function App() {
     return { name: "", email: "", password: "" };
   });
   const [authLoading, setAuthLoading] = useState(false);
+  const [pdfConverting, setPdfConverting] = useState(false);
 
   // Gestisci il callback OAuth e cambi di sessione
   useEffect(() => {
@@ -3096,44 +3169,23 @@ export default function App() {
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Planimetria stato di fatto</div>
             {data.planimetria ? (
               <div style={{ position: "relative" }}>
-                {(typeof data.planimetria === "string" && data.planimetria.startsWith("data:application/pdf")) ? (
-                  <div style={{ position: "relative" }}>
-                    <iframe src={data.planimetria} title="Planimetria stato di fatto" style={{ width: "100%", height: 500, border: `1px solid ${C.border}`, borderRadius: 4, background: C.bg }} />
-                    <button onClick={() => window.open(data.planimetria, "_blank")} style={{ position: "absolute", top: 8, right: 8, background: "rgba(13,34,64,0.9)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }}>Apri a tutto schermo ↗</button>
-                  </div>
-                ) : (
-                  <img src={data.planimetria} alt="Planimetria stato di fatto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetria, "_blank")} />
-                )}
+                <img src={data.planimetria} alt="Planimetria stato di fatto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetria, "_blank")} />
                 {!viewOnly && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
-                      Sostituisci file
-                      <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        if (file.size > 10 * 1024 * 1024) { alert("File troppo grande (max 10MB)"); return; }
-                        const reader = new FileReader();
-                        reader.onload = (ev) => upd("planimetria", ev.target.result);
-                        reader.readAsDataURL(file);
-                      }} />
+                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: pdfConverting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: pdfConverting ? 0.6 : 1 }}>
+                      {pdfConverting ? "Conversione PDF…" : "Sostituisci file"}
+                      <input type="file" accept="image/*,application/pdf" disabled={pdfConverting} style={{ display: "none" }} onChange={(e) => uploadPlanimetria(e.target.files[0], "planimetria", upd, setPdfConverting)} />
                     </label>
                     <button onClick={() => upd("planimetria", null)} style={{ background: "rgba(220,53,69,0.1)", color: "#DC3545", border: `1px solid rgba(220,53,69,0.3)`, borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Rimuovi</button>
                   </div>
                 )}
               </div>
             ) : (
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : "pointer", background: C.bg, transition: "border-color 0.2s" }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : (pdfConverting ? "wait" : "pointer"), background: C.bg, transition: "border-color 0.2s" }}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={C.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : "Carica planimetria"}</div>
-                {!viewOnly && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per caricare un'immagine o un PDF (max 10MB)</div>}
-                {!viewOnly && <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) { alert("File troppo grande (max 10MB)"); return; }
-                  const reader = new FileReader();
-                  reader.onload = (ev) => upd("planimetria", ev.target.result);
-                  reader.readAsDataURL(file);
-                }} />}
+                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : (pdfConverting ? "Conversione PDF in corso…" : "Carica planimetria")}</div>
+                {!viewOnly && !pdfConverting && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per caricare un'immagine o un PDF (max 10MB)</div>}
+                {!viewOnly && <input type="file" accept="image/*,application/pdf" disabled={pdfConverting} style={{ display: "none" }} onChange={(e) => uploadPlanimetria(e.target.files[0], "planimetria", upd, setPdfConverting)} />}
               </label>
             )}
           </div>
@@ -3142,44 +3194,23 @@ export default function App() {
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Planimetria progetto</div>
             {data.planimetriaProgetto ? (
               <div style={{ position: "relative" }}>
-                {(typeof data.planimetriaProgetto === "string" && data.planimetriaProgetto.startsWith("data:application/pdf")) ? (
-                  <div style={{ position: "relative" }}>
-                    <iframe src={data.planimetriaProgetto} title="Planimetria progetto" style={{ width: "100%", height: 500, border: `1px solid ${C.border}`, borderRadius: 4, background: C.bg }} />
-                    <button onClick={() => window.open(data.planimetriaProgetto, "_blank")} style={{ position: "absolute", top: 8, right: 8, background: "rgba(13,34,64,0.9)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }}>Apri a tutto schermo ↗</button>
-                  </div>
-                ) : (
-                  <img src={data.planimetriaProgetto} alt="Planimetria progetto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetriaProgetto, "_blank")} />
-                )}
+                <img src={data.planimetriaProgetto} alt="Planimetria progetto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetriaProgetto, "_blank")} />
                 {!viewOnly && (
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
-                      Sostituisci file
-                      <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={(e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
-                        if (file.size > 10 * 1024 * 1024) { alert("File troppo grande (max 10MB)"); return; }
-                        const reader = new FileReader();
-                        reader.onload = (ev) => upd("planimetriaProgetto", ev.target.result);
-                        reader.readAsDataURL(file);
-                      }} />
+                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: pdfConverting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: pdfConverting ? 0.6 : 1 }}>
+                      {pdfConverting ? "Conversione PDF…" : "Sostituisci file"}
+                      <input type="file" accept="image/*,application/pdf" disabled={pdfConverting} style={{ display: "none" }} onChange={(e) => uploadPlanimetria(e.target.files[0], "planimetriaProgetto", upd, setPdfConverting)} />
                     </label>
                     <button onClick={() => upd("planimetriaProgetto", null)} style={{ background: "rgba(220,53,69,0.1)", color: "#DC3545", border: `1px solid rgba(220,53,69,0.3)`, borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Rimuovi</button>
                   </div>
                 )}
               </div>
             ) : (
-              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : "pointer", background: C.bg, transition: "border-color 0.2s" }}>
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : (pdfConverting ? "wait" : "pointer"), background: C.bg, transition: "border-color 0.2s" }}>
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={C.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : "Carica planimetria progetto"}</div>
-                {!viewOnly && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per caricare un'immagine o un PDF (max 10MB)</div>}
-                {!viewOnly && <input type="file" accept="image/*,application/pdf" style={{ display: "none" }} onChange={(e) => {
-                  const file = e.target.files[0];
-                  if (!file) return;
-                  if (file.size > 10 * 1024 * 1024) { alert("File troppo grande (max 10MB)"); return; }
-                  const reader = new FileReader();
-                  reader.onload = (ev) => upd("planimetriaProgetto", ev.target.result);
-                  reader.readAsDataURL(file);
-                }} />}
+                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : (pdfConverting ? "Conversione PDF in corso…" : "Carica planimetria progetto")}</div>
+                {!viewOnly && !pdfConverting && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per caricare un'immagine o un PDF (max 10MB)</div>}
+                {!viewOnly && <input type="file" accept="image/*,application/pdf" disabled={pdfConverting} style={{ display: "none" }} onChange={(e) => uploadPlanimetria(e.target.files[0], "planimetriaProgetto", upd, setPdfConverting)} />}
               </label>
             )}
           </div>
