@@ -486,7 +486,7 @@ const DEFAULT_DATA = {
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
   planimetria: null, planimetriaProgetto: null,
-  linkImmobile: "", linkVendita: "",
+  linkImmobile: "", linkComparabile: "",
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
@@ -3097,10 +3097,9 @@ export default function App() {
             {data.planimetria ? (
               <div style={{ position: "relative" }}>
                 {(typeof data.planimetria === "string" && data.planimetria.startsWith("data:application/pdf")) ? (
-                  <div onClick={() => window.open(data.planimetria, "_blank")} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 220, background: C.bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer", padding: 24 }}>
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginTop: 12, fontFamily: "-apple-system, sans-serif" }}>Documento PDF — Stato di fatto</div>
-                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per aprire</div>
+                  <div style={{ position: "relative" }}>
+                    <iframe src={data.planimetria} title="Planimetria stato di fatto" style={{ width: "100%", height: 500, border: `1px solid ${C.border}`, borderRadius: 4, background: C.bg }} />
+                    <button onClick={() => window.open(data.planimetria, "_blank")} style={{ position: "absolute", top: 8, right: 8, background: "rgba(13,34,64,0.9)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }}>Apri a tutto schermo ↗</button>
                   </div>
                 ) : (
                   <img src={data.planimetria} alt="Planimetria stato di fatto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetria, "_blank")} />
@@ -3144,10 +3143,9 @@ export default function App() {
             {data.planimetriaProgetto ? (
               <div style={{ position: "relative" }}>
                 {(typeof data.planimetriaProgetto === "string" && data.planimetriaProgetto.startsWith("data:application/pdf")) ? (
-                  <div onClick={() => window.open(data.planimetriaProgetto, "_blank")} style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 220, background: C.bg, borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer", padding: 24 }}>
-                    <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginTop: 12, fontFamily: "-apple-system, sans-serif" }}>Documento PDF — Progetto</div>
-                    <div style={{ color: C.textMid, fontSize: 12, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca per aprire</div>
+                  <div style={{ position: "relative" }}>
+                    <iframe src={data.planimetriaProgetto} title="Planimetria progetto" style={{ width: "100%", height: 500, border: `1px solid ${C.border}`, borderRadius: 4, background: C.bg }} />
+                    <button onClick={() => window.open(data.planimetriaProgetto, "_blank")} style={{ position: "absolute", top: 8, right: 8, background: "rgba(13,34,64,0.9)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 12px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 6px rgba(0,0,0,0.2)" }}>Apri a tutto schermo ↗</button>
                   </div>
                 ) : (
                   <img src={data.planimetriaProgetto} alt="Planimetria progetto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetriaProgetto, "_blank")} />
@@ -3187,7 +3185,7 @@ export default function App() {
           </div>
           {/* LINK IMMOBILE E VENDITA */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
-            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Link immobile e vendita</div>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Link immobile e comparabile</div>
             <div style={{ display: "grid", gap: 14 }}>
               <div>
                 <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "-apple-system, sans-serif" }}>Link immobile (annuncio di acquisto)</label>
@@ -3197,10 +3195,10 @@ export default function App() {
                 </div>
               </div>
               <div>
-                <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "-apple-system, sans-serif" }}>Link vendita (post-ristrutturazione)</label>
+                <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "-apple-system, sans-serif" }}>Link comparabile</label>
                 <div style={{ display: "flex", gap: 6 }}>
-                  <input type="url" value={data.linkVendita || ""} onChange={(e) => upd("linkVendita", e.target.value)} disabled={viewOnly} placeholder="https://www.immobiliare.it/..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", background: viewOnly ? C.bg : "#FFF", color: C.dark, outline: "none" }} />
-                  {data.linkVendita && <button onClick={() => window.open(data.linkVendita, "_blank")} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "0 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>Apri ↗</button>}
+                  <input type="url" value={data.linkComparabile || ""} onChange={(e) => upd("linkComparabile", e.target.value)} disabled={viewOnly} placeholder="https://www.immobiliare.it/..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", background: viewOnly ? C.bg : "#FFF", color: C.dark, outline: "none" }} />
+                  {data.linkComparabile && <button onClick={() => window.open(data.linkComparabile, "_blank")} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "0 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>Apri ↗</button>}
                 </div>
               </div>
             </div>
