@@ -1581,7 +1581,7 @@ function AdminDashboard({ user, onClose }) {
 // ============================================================
 // PDF -> PNG (lazy-load pdfjs from CDN)
 // ============================================================
-const PDFJS_VERSION = "4.0.379";
+const PDFJS_VERSION = "3.11.174";
 async function loadPdfJs() {
   if (window.pdfjsLib) return window.pdfjsLib;
   await new Promise((resolve, reject) => {
