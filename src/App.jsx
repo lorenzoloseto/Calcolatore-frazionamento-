@@ -485,7 +485,8 @@ const DEFAULT_DATA = {
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
-  planimetria: null,
+  planimetria: null, planimetriaProgetto: null,
+  linkImmobile: "", linkVendita: "",
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
@@ -2217,7 +2218,7 @@ export default function App() {
         `}</style>
 
         {/* === NAVBAR === */}
-        <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
               <LpBrandLogo size={isMobile ? 22 : 32} animated />
@@ -2653,7 +2654,7 @@ export default function App() {
     const projects = projectsList;
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif" }}>
-        <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 800, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
@@ -2878,7 +2879,7 @@ export default function App() {
     const progress = (step / STEPS.length) * 100;
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }} onKeyDown={(e) => e.key === "Enter" && goNext()}>
-        <div style={{ background: C.navy, padding: "0", paddingTop: "env(safe-area-inset-top, 0px)" }}>
+        <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ height: 3, background: "#0a1a33" }}>
             <div style={{ height: 3, background: C.accent, width: `${progress}%`, transition: "width 0.4s ease" }} />
           </div>
@@ -2959,7 +2960,7 @@ export default function App() {
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
       {/* HEADER */}
-      <div style={{ background: C.navy, paddingTop: "env(safe-area-inset-top, 0px)" }}>
+      <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginBottom: 1 }}>
@@ -3128,6 +3129,65 @@ export default function App() {
                 }} />}
               </label>
             )}
+          </div>
+          {/* PLANIMETRIA PROGETTO */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Planimetria progetto</div>
+            {data.planimetriaProgetto ? (
+              <div style={{ position: "relative" }}>
+                <img src={data.planimetriaProgetto} alt="Planimetria progetto" style={{ width: "100%", maxHeight: 600, objectFit: "contain", borderRadius: 4, border: `1px solid ${C.border}`, cursor: "pointer" }} onClick={() => window.open(data.planimetriaProgetto, "_blank")} />
+                {!viewOnly && (
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <label style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                      Sostituisci immagine
+                      <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        if (file.size > 5 * 1024 * 1024) { alert("Immagine troppo grande (max 5MB)"); return; }
+                        const reader = new FileReader();
+                        reader.onload = (ev) => upd("planimetriaProgetto", ev.target.result);
+                        reader.readAsDataURL(file);
+                      }} />
+                    </label>
+                    <button onClick={() => upd("planimetriaProgetto", null)} style={{ background: "rgba(220,53,69,0.1)", color: "#DC3545", border: `1px solid rgba(220,53,69,0.3)`, borderRadius: 4, padding: "8px 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Rimuovi</button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <label style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 180, border: `2px dashed ${C.border}`, borderRadius: 8, cursor: viewOnly ? "default" : "pointer", background: C.bg, transition: "border-color 0.2s" }}>
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke={C.textLight} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                <div style={{ color: C.textMid, fontSize: 13, fontWeight: 600, marginTop: 10, fontFamily: "-apple-system, sans-serif" }}>{viewOnly ? "Nessuna planimetria caricata" : "Carica planimetria progetto"}</div>
+                {!viewOnly && <div style={{ color: C.textLight, fontSize: 11, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Clicca o trascina un'immagine (max 5MB)</div>}
+                {!viewOnly && <input type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => {
+                  const file = e.target.files[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) { alert("Immagine troppo grande (max 5MB)"); return; }
+                  const reader = new FileReader();
+                  reader.onload = (ev) => upd("planimetriaProgetto", ev.target.result);
+                  reader.readAsDataURL(file);
+                }} />}
+              </label>
+            )}
+          </div>
+          {/* LINK IMMOBILE E VENDITA */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Link immobile e vendita</div>
+            <div style={{ display: "grid", gap: 14 }}>
+              <div>
+                <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "-apple-system, sans-serif" }}>Link immobile (annuncio di acquisto)</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input type="url" value={data.linkImmobile || ""} onChange={(e) => upd("linkImmobile", e.target.value)} disabled={viewOnly} placeholder="https://www.immobiliare.it/..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", background: viewOnly ? C.bg : "#FFF", color: C.dark, outline: "none" }} />
+                  {data.linkImmobile && <button onClick={() => window.open(data.linkImmobile, "_blank")} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "0 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>Apri ↗</button>}
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", color: C.textMid, fontSize: 12, fontWeight: 600, marginBottom: 6, fontFamily: "-apple-system, sans-serif" }}>Link vendita (post-ristrutturazione)</label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  <input type="url" value={data.linkVendita || ""} onChange={(e) => upd("linkVendita", e.target.value)} disabled={viewOnly} placeholder="https://www.immobiliare.it/..." style={{ flex: 1, padding: "9px 12px", border: `1px solid ${C.border}`, borderRadius: 4, fontSize: 13, fontFamily: "-apple-system, sans-serif", background: viewOnly ? C.bg : "#FFF", color: C.dark, outline: "none" }} />
+                  {data.linkVendita && <button onClick={() => window.open(data.linkVendita, "_blank")} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "0 16px", fontSize: 12, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>Apri ↗</button>}
+                </div>
+              </div>
+            </div>
           </div>
         </>)}
 
