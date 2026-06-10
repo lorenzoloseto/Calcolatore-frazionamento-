@@ -444,7 +444,7 @@ function LpDashboardMockup({ compact = false }) {
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27c93f" }} />
-        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>FRAZIO — Conto Economico</span>
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO — Conto Economico</span>
       </div>
       <div style={{ background: C.greenBg, borderLeft: `3px solid ${C.green}`, margin: "12px 12px 8px", borderRadius: 4, padding: "8px 12px" }}>
         <span style={{ color: C.green, fontWeight: 700, fontSize: compact ? 10 : 12, fontFamily: "-apple-system, sans-serif" }}>✓ Operazione sostenibile — Margine positivo in tutti gli scenari</span>
@@ -1541,7 +1541,7 @@ function AdminDashboard({ user, onClose }) {
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
               <LpBrandLogo size={16} />
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO — Admin</div>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO — Admin</div>
             </div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>Pannello di controllo</div>
           </div>
@@ -2296,12 +2296,12 @@ export default function App() {
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
               <LpBrandLogo size={isMobile ? 22 : 32} animated />
               <div style={{
-                fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 2 : 3, textTransform: "uppercase",
+                fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 1 : 2.5, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
                 background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
-              }}>FRAZIO</div>
+              }}>LORENZO LOSETO</div>
             </div>
             <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
               <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>
@@ -2472,7 +2472,7 @@ export default function App() {
               </button>
             </div>
             <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
-              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — lorenzoloseto.com/calcolatore-frazionamento</p>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento — lorenzoloseto.com/calcolatore-frazionamento</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
                 <span onClick={() => setShowPrivacy(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Informativa Privacy</span>
                 <span onClick={() => setShowTos(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
@@ -2577,7 +2577,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>
             {isLogin ? "Accedi" : "Registrati"}
@@ -2671,7 +2671,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Password dimenticata</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
@@ -2702,7 +2702,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Nuova password</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
@@ -2732,7 +2732,7 @@ export default function App() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                 <LpBrandLogo size={16} />
-                <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+                <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
               </div>
               <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>I miei conti economici</div>
             </div>
@@ -2959,7 +2959,7 @@ export default function App() {
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
               <LpBrandLogo size={18} />
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
@@ -3038,7 +3038,7 @@ export default function App() {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginBottom: 1 }}>
               <LpBrandLogo size={18} />
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>FRAZIO</div>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
             </div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
@@ -3399,7 +3399,7 @@ export default function App() {
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 0", marginTop: 32 }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — lorenzoloseto.com/calcolatore-frazionamento</p>
+          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento — lorenzoloseto.com/calcolatore-frazionamento</p>
           <PrivacyLink onClick={() => setShowPrivacy(true)} />
         </div>
       </div>
