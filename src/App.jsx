@@ -2293,8 +2293,7 @@ export default function App() {
         {/* === NAVBAR === */}
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", gap: isMobile ? 6 : 10, cursor: "pointer" }}>
-              <LpBrandLogo size={isMobile ? 22 : 32} animated />
+            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
               <div style={{
                 fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 1 : 2.5, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
