@@ -17,7 +17,7 @@ const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
 const supabase = createClient(SB_URL, SB_KEY);
 const isNative = Capacitor.isNativePlatform();
-const WEB_ORIGIN = "https://go.lorenzoloseto.com";
+const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-frazionamento";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
 
@@ -2472,7 +2472,7 @@ export default function App() {
               </button>
             </div>
             <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
-              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — go.lorenzoloseto.com</p>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — lorenzoloseto.com/calcolatore-frazionamento</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
                 <span onClick={() => setShowPrivacy(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Informativa Privacy</span>
                 <span onClick={() => setShowTos(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
@@ -3399,7 +3399,7 @@ export default function App() {
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 0", marginTop: 32 }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — go.lorenzoloseto.com</p>
+          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>FRAZIO by Gruppo Loseto srl — Condivisione protetta di analisi immobiliari — lorenzoloseto.com/calcolatore-frazionamento</p>
           <PrivacyLink onClick={() => setShowPrivacy(true)} />
         </div>
       </div>

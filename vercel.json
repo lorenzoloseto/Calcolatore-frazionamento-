@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    { "source": "/calcolatore-frazionamento/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/calcolatore-frazionamento", "destination": "/" },
+    { "source": "/calcolatore-frazionamento/", "destination": "/" },
+    { "source": "/calcolatore-frazionamento/:path*", "destination": "/" }
+  ]
+}
