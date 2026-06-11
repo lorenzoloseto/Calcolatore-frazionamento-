@@ -38,6 +38,17 @@ const LEAD_UTM = (() => {
     return JSON.parse(localStorage.getItem("ll_calc_utm") || "{}");
   } catch { return {}; }
 })();
+// Pixel Meta + TikTok solo in LEAD_MODE (mai su vercel.app né dentro l'app iOS)
+if (LEAD_MODE && typeof document !== "undefined") {
+  /* eslint-disable */
+  !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
+  window.fbq("init", "850911246223558");
+  window.fbq("track", "PageView");
+  !function(w,d,t){w.TiktokAnalyticsObject=t;var ttq=w[t]=w[t]||[];ttq.methods=["page","track","identify","instances","debug","on","off","once","ready","alias","group","enableCookie","disableCookie","holdConsent","revokeConsent","grantConsent"],ttq.setAndDefer=function(t,e){t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}};for(var i=0;i<ttq.methods.length;i++)ttq.setAndDefer(ttq,ttq.methods[i]);ttq.instance=function(t){for(var e=ttq._i[t]||[],n=0;n<ttq.methods.length;n++)ttq.setAndDefer(e,ttq.methods[n]);return e},ttq.load=function(e,n){var r="https://analytics.tiktok.com/i18n/pixel/events.js",o=n&&n.partner;ttq._i=ttq._i||{},ttq._i[e]=[],ttq._i[e]._u=r,ttq._t=ttq._t||{},ttq._t[e]=+new Date,ttq._o=ttq._o||{},ttq._o[e]=n||{};n=document.createElement("script");n.type="text/javascript",n.async=!0,n.src=r+"?sdkid="+e+"&lib="+t;e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(n,e)}}(window,document,"ttq");
+  window.ttq.load("CK4NBF3C77U7PQISJ0E0");
+  window.ttq.page();
+  /* eslint-enable */
+}
 
 const DB = {
   _user: null,
@@ -286,7 +297,7 @@ function CookieBanner({ onAccept, onShowPrivacy }) {
   return (
     <div className={isNative ? "cap-safe-bottom" : ""} style={{ position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 9998, background: C.dark, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "center", gap: 12, flexWrap: "wrap", boxShadow: "0 -2px 12px rgba(0,0,0,0.15)" }}>
       <p style={{ color: "rgba(255,255,255,0.85)", fontSize: 12, margin: 0, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5, flex: 1, minWidth: 200 }}>
-        Questo sito utilizza cookie tecnici necessari al funzionamento.{" "}
+        {LEAD_MODE ? "Questo sito utilizza cookie tecnici e cookie di marketing di terze parti (Meta, TikTok) per misurare le campagne pubblicitarie." : "Questo sito utilizza cookie tecnici necessari al funzionamento."}{" "}
         <span onClick={onShowPrivacy} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Informativa Privacy</span>
       </p>
       <button onClick={onAccept} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 4, padding: "8px 20px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", whiteSpace: "nowrap" }}>OK, accetto</button>
@@ -1942,7 +1953,7 @@ export default function App() {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
     DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep });
     if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
-    else if (LEAD_MODE && !leadCaptured) { setShowLeadGate(true); }
+    else if (LEAD_MODE && !leadCaptured) { openLeadGate(); }
     else animTo(() => {
       setShowDash(true);
       window._stepEnteredAt = Date.now();
@@ -2034,6 +2045,10 @@ export default function App() {
     if (!LEAD_MODE) return;
     try { localStorage.setItem("ll_calc_state", JSON.stringify({ data, scenari, comparabili, ristItems })); } catch {}
   }, [data, scenari, comparabili, ristItems]);
+  const openLeadGate = () => {
+    setShowLeadGate(true);
+    if (typeof window.fbq !== "undefined") window.fbq("track", "InitiateCheckout");
+  };
   const handleLeadSubmit = async () => {
     setLeadError("");
     const nome = leadForm.nome.trim(), email = leadForm.email.trim();
@@ -2072,6 +2087,8 @@ export default function App() {
         keepalive: true,
       });
       DB.trackEvent("lead_capture", { email, margine: Math.round(calc.margine), roi: (calc.roi * 100).toFixed(1) });
+      if (typeof window.fbq !== "undefined") window.fbq("track", "Lead");
+      if (typeof window.ttq !== "undefined") window.ttq.track("CompleteRegistration");
       localStorage.setItem("ll_lead_captured", "1");
       setLeadCaptured(true);
       setShowLeadGate(false);
@@ -2357,7 +2374,14 @@ export default function App() {
   // ============================================================
   // LANDING PAGE
   // ============================================================
-  const LP_FEATURES = [
+  const LP_FEATURES = LEAD_MODE ? [
+    { Icon: LpIconLightning, title: "Conto Economico in 3 Minuti", desc: "Rispondi a 6 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
+    { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Scopri se l'operazione regge anche quando i prezzi scendono e i costi salgono." },
+    { Icon: LpIconGrid, title: "Ristrutturazione Voce per Voce", desc: "30 voci di costo precaricate: impianti, infissi, frazionamento catastale, oneri. Affina la stima come un cantiere vero." },
+    { Icon: LpIconServer, title: "Confronto Comparabili", desc: "Inserisci gli immobili in vendita nella zona e confronta il tuo prezzo di uscita con la media reale del mercato." },
+    { Icon: LpIconDownload, title: "Export Excel Professionale", desc: "Scarica il conto economico completo, pronto per banche, soci e finanziatori." },
+    { Icon: LpIconShield, title: "Il Metodo di un Costruttore", desc: "La stessa struttura di analisi che Lorenzo Loseto usa da 20 anni sulle sue operazioni di frazionamento a Bari." },
+  ] : [
     { Icon: LpIconShield, title: "NDA e Identificazione Integrati", desc: "Ogni destinatario deve identificarsi con codice fiscale verificato e firmare un impegno di non divulgazione prima di accedere." },
     { Icon: LpIconLock, title: "Tracciamento Completo degli Accessi", desc: "Ogni accesso è registrato con identità verificata, data, ora e IP. Sai sempre chi ha visto i tuoi numeri." },
     { Icon: LpIconLightning, title: "Conto Economico in 30 Secondi", desc: "Inserisci i dati dell'operazione e ottieni margine, ROI e scenari. Il wizard ti guida passo per passo." },
@@ -2365,12 +2389,20 @@ export default function App() {
     { Icon: LpIconCloud, title: "Multi-Progetto Cloud", desc: "Gestisci tutte le tue operazioni in un unico spazio sicuro. Autosalvataggio e accesso da qualsiasi dispositivo." },
     { Icon: LpIconDownload, title: "Export Professionale", desc: "Scarica il conto economico completo in formato Excel, pronto per finanziatori e istituti di credito." },
   ];
-  const LP_STEPS = [
+  const LP_STEPS = LEAD_MODE ? [
+    { num: "01", title: "Rispondi a 6 domande", desc: "Indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. 3 minuti, senza registrazione." },
+    { num: "02", title: "Sblocca il conto economico", desc: "Margine netto, ROI, investimento totale e verdetto automatico: l'operazione regge anche nello scenario pessimistico?" },
+    { num: "03", title: "Affina i numeri", desc: "Ristrutturazione voce per voce, comparabili di zona, scenari personalizzati. Poi scarica tutto in Excel." },
+  ] : [
     { num: "01", title: "Costruisci l'analisi", desc: "Inserisci i dati dell'operazione: indirizzo, metratura, prezzi, costi. Il wizard guidato ti accompagna in ogni passaggio." },
     { num: "02", title: "Visualizza i risultati", desc: "Dashboard professionale con margine netto, ROI, scenari e verdetto automatico. Tutto in tempo reale." },
     { num: "03", title: "Condividi con NDA", desc: "Genera un link protetto. Chi lo riceve deve identificarsi con codice fiscale e firmare la riservatezza prima di accedere." },
   ];
-  const LP_TRUST = [
+  const LP_TRUST = LEAD_MODE ? [
+    { Icon: LpIconShield, title: "20 Anni di Cantieri", desc: "Lorenzo Loseto è costruttore e investitore immobiliare a Bari, terza generazione. Il calcolatore replica il suo metodo di analisi, non una formula teorica." },
+    { Icon: LpIconChart, title: "200+ Operazioni Completate", desc: "Frazionamenti, ristrutturazioni e rivendite. Ogni voce di costo del calcolatore viene dall'esperienza diretta sulle operazioni reali." },
+    { Icon: LpIconServer, title: "500+ Investitori Formati", desc: "Il metodo dietro questo strumento è lo stesso insegnato nei percorsi di formazione di Lorenzo a investitori in tutta Italia." },
+  ] : [
     { Icon: LpIconShield, title: "GDPR Compliant", desc: "Trattamento conforme al Regolamento UE 2016/679. Doppio consenso esplicito: uno per il trattamento dati, uno specifico per il codice fiscale ai sensi dell'Art. 9." },
     { Icon: LpIconLock, title: "NDA con Valore Legale", desc: "Ogni destinatario firma digitalmente un impegno di non divulgazione. Identificazione univoca tramite codice fiscale verificato algoritmicamente." },
     { Icon: LpIconServer, title: "Infrastruttura Cloud UE", desc: "Dati custoditi su server nell'Unione Europea. Ogni accesso è registrato con timestamp, identità verificata e indirizzo IP." },
@@ -2384,7 +2416,7 @@ export default function App() {
   const [trustRef, trustVisible] = useScrollReveal();
   const [ctaRef, ctaVisible] = useScrollReveal();
   const stat1 = useAnimatedCounter(3, 1200, statsVisible);
-  const stat2 = useAnimatedCounter(16, 1800, statsVisible);
+  const stat2 = useAnimatedCounter(LEAD_MODE ? 30 : 16, 1800, statsVisible);
   const stat3 = useAnimatedCounter(100, 2000, statsVisible);
 
   if (showLanding && !__sharedId) {
@@ -2459,7 +2491,10 @@ export default function App() {
         {/* === STATS BAR === */}
         <div ref={statsRef} style={{ background: C.bg, borderBottom: `1px solid ${C.border}` }}>
           <div style={{ ...sectionPad, padding: isMobile ? "36px 20px" : "48px 24px", display: "flex", flexDirection: isMobile ? "column" : "row", alignItems: "center", justifyContent: "center", gap: isMobile ? 28 : 0, opacity: statsVisible ? 1 : 0, transition: "opacity 0.6s ease" }}>
-            {[[stat1, "verifiche prima dell'accesso"], [stat2, "caratteri di codice fiscale controllati"], [stat3, "% degli accessi tracciati e registrati"]].map(([num, label], i) => (
+            {(LEAD_MODE
+              ? [[stat1, "scenari calcolati per ogni operazione"], [stat2, "voci di costo ristrutturazione precaricate"], [stat3, "% gratuito, senza carta di credito"]]
+              : [[stat1, "verifiche prima dell'accesso"], [stat2, "caratteri di codice fiscale controllati"], [stat3, "% degli accessi tracciati e registrati"]]
+            ).map(([num, label], i) => (
               <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, position: "relative" }}>
                 {i > 0 && !isMobile && <div style={{ position: "absolute", left: 0, top: "50%", transform: "translateY(-50%)", width: 1, height: 40, background: C.border }} />}
                 <div style={{ color: C.navy, fontSize: 48, fontWeight: 700, fontFamily: "'Georgia', serif", lineHeight: 1 }}>{num}</div>
@@ -2472,8 +2507,8 @@ export default function App() {
         {/* === FEATURES === */}
         <div ref={featRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
-            <div style={overline}>La piattaforma</div>
-            <h2 style={sectionTitle("#FFF")}>Condivisione protetta e analisi professionale in un unico strumento</h2>
+            <div style={overline}>{LEAD_MODE ? "Il calcolatore" : "La piattaforma"}</div>
+            <h2 style={sectionTitle("#FFF")}>{LEAD_MODE ? "Tutto quello che serve per valutare un frazionamento" : "Condivisione protetta e analisi professionale in un unico strumento"}</h2>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 48 }}>
               {LP_FEATURES.map(({ Icon, title, desc }, i) => (
                 <div key={i}
@@ -2501,7 +2536,7 @@ export default function App() {
         <div ref={howRef} id="lp-how" style={{ background: C.bg }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
             <div style={overline}>Come funziona</div>
-            <h2 style={sectionTitle()}>Da zero a condivisione protetta in 3 passaggi</h2>
+            <h2 style={sectionTitle()}>{LEAD_MODE ? "Dal dubbio al verdetto in 3 passaggi" : "Da zero a condivisione protetta in 3 passaggi"}</h2>
             <div style={{ display: "flex", flexDirection: isMobile ? "column" : "row", gap: isMobile ? 32 : 24, marginTop: 48, alignItems: isMobile ? "center" : "flex-start" }}>
               {LP_STEPS.map(({ num, title, desc }, i) => (
                 <div key={i} style={{ flex: 1, textAlign: "center", position: "relative", opacity: howVisible ? 1 : 0, animation: howVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.15}s both` : "none" }}>
@@ -2523,9 +2558,9 @@ export default function App() {
         <div ref={dashRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
             <div style={overline}>L'esperienza</div>
-            <h2 style={sectionTitle("#FFF")}>Protezione di livello professionale</h2>
+            <h2 style={sectionTitle("#FFF")}>{LEAD_MODE ? "Una dashboard da operatore professionale" : "Protezione di livello professionale"}</h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 16, marginBottom: 40, fontFamily: "-apple-system, sans-serif" }}>
-              Ogni link condiviso richiede identificazione con codice fiscale, consenso GDPR e firma NDA. I tuoi conti economici sono accessibili solo a chi autorizzato.
+              {LEAD_MODE ? "Verdetto automatico sull'operazione, KPI a colpo d'occhio, scenari a confronto e dettaglio costi completo. Quello che un professionista costruisce in ore, tu lo vedi in 3 minuti." : "Ogni link condiviso richiede identificazione con codice fiscale, consenso GDPR e firma NDA. I tuoi conti economici sono accessibili solo a chi autorizzato."}
             </p>
             <div
               onMouseEnter={() => !isMobile && setDashMockupHover(true)} onMouseLeave={() => setDashMockupHover(false)}
@@ -2548,7 +2583,7 @@ export default function App() {
         {/* === TRUST === */}
         <div ref={trustRef} style={{ background: C.bg, borderTop: `3px solid ${C.accent}`, backgroundImage: `radial-gradient(circle, ${C.border} 1px, transparent 1px)`, backgroundSize: "20px 20px" }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
-            <h2 style={sectionTitle()}>Sicurezza e conformità legale</h2>
+            <h2 style={sectionTitle()}>{LEAD_MODE ? "Chi c'è dietro il calcolatore" : "Sicurezza e conformità legale"}</h2>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 40 }}>
               {LP_TRUST.map(({ Icon, title, desc }, i) => (
                 <div key={i} style={{
@@ -3124,7 +3159,7 @@ export default function App() {
             {s.isWelcome ? "Inizia l'analisi" : step === STEPS.length - 1 ? "Vedi i risultati" : "Avanti"}
           </button>
         </div>
-        {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => { if (LEAD_MODE && !leadCaptured) setShowLeadGate(true); else setShowDash(true); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
+        {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => { if (LEAD_MODE && !leadCaptured) openLeadGate(); else setShowDash(true); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
         {showLeadGate && <LeadGateModal form={leadForm} setForm={setLeadForm} error={leadError} submitting={leadSubmitting} privacy={leadPrivacy} setPrivacy={setLeadPrivacy} onSubmit={handleLeadSubmit} onClose={() => setShowLeadGate(false)} onShowPrivacy={() => setShowPrivacy(true)} />}
         {/* GDPR: Privacy Modal + Cookie Banner */}
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
