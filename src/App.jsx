@@ -3225,7 +3225,7 @@ export default function App() {
                 {calc.margine > 0 ? `Margine potenziale di ${fmtEur(calc.margine)}. Lorenzo ti mostra come blindarlo prima del rogito.` : "Margine a rischio? Lorenzo ti mostra come trovare e validare operazioni migliori."}
               </div>
             </div>
-            <a href="/video-mfib/?from=calcolatore" style={{ background: C.accent, color: "#FFF", borderRadius: 8, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxShadow: "0 4px 16px rgba(196,132,29,0.35)", maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
+            <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore" style={{ background: C.accent, color: "#FFF", borderRadius: 8, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxShadow: "0 4px 16px rgba(196,132,29,0.35)", maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
               Guarda il video gratuito (11 min) →
             </a>
           </div>
