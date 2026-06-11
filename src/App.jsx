@@ -27,7 +27,7 @@ const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
 // collegato a Kajabi prima dei risultati, CTA verso il funnel MFIB.
 // Su calcolatore-frazionamento.vercel.app e su iOS resta l'app completa.
 // ============================================================
-const LEAD_MODE = !isNative && typeof window !== "undefined" && /(^|\.)lorenzoloseto\.com$/.test(window.location.hostname);
+const LEAD_MODE = !isNative && typeof window !== "undefined" && (/(^|\.)lorenzoloseto\.com$/.test(window.location.hostname) || new URLSearchParams(window.location.search).has("lead"));
 const LEAD_UTM = (() => {
   if (typeof window === "undefined") return {};
   try {
