@@ -2387,7 +2387,7 @@ export default function App() {
   // LANDING PAGE
   // ============================================================
   const LP_FEATURES = LEAD_MODE ? [
-    { Icon: LpIconLightning, title: "Conto Economico in 3 Minuti", desc: "Rispondi a 6 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
+    { Icon: LpIconLightning, title: "Conto Economico Immediato", desc: "Rispondi a 6 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
     { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Scopri se l'operazione regge anche quando i prezzi scendono e i costi salgono." },
     { Icon: LpIconGrid, title: "Ristrutturazione Voce per Voce", desc: "30 voci di costo precaricate: impianti, infissi, frazionamento catastale, oneri. Affina la stima come un cantiere vero." },
     { Icon: LpIconServer, title: "Confronto Comparabili", desc: "Inserisci gli immobili in vendita nella zona e confronta il tuo prezzo di uscita con la media reale del mercato." },
@@ -2402,7 +2402,7 @@ export default function App() {
     { Icon: LpIconDownload, title: "Export Professionale", desc: "Scarica il conto economico completo in formato Excel, pronto per finanziatori e istituti di credito." },
   ];
   const LP_STEPS = LEAD_MODE ? [
-    { num: "01", title: "Rispondi a 6 domande", desc: "Indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. 3 minuti, senza registrazione." },
+    { num: "01", title: "Rispondi a 6 domande", desc: "Indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. Senza registrazione." },
     { num: "02", title: "Sblocca il conto economico", desc: "Margine netto, ROI, investimento totale e verdetto automatico: l'operazione regge anche nello scenario pessimistico?" },
     { num: "03", title: "Affina i numeri", desc: "Ristrutturazione voce per voce, comparabili di zona, scenari personalizzati. Poi scarica tutto in Excel." },
   ] : [
@@ -2476,7 +2476,7 @@ export default function App() {
                 {LEAD_MODE ? <>Quanto rende davvero il tuo <span style={{ color: C.accent }}>frazionamento</span>?</> : <>Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span></>}
               </h1>
               <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
-                {LEAD_MODE ? "Inserisci i dati della tua operazione: in 3 minuti ottieni margine, ROI e analisi scenari (pessimistico, realistico, ottimistico) come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
+                {LEAD_MODE ? "Inserisci i dati della tua operazione e ottieni subito margine, ROI e analisi scenari (pessimistico, realistico, ottimistico) come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
                 <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
@@ -2487,7 +2487,7 @@ export default function App() {
                 </button>
               </div>
               <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 20, fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.5s both" }}>
-                {LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato in 3 minuti" : "Gratuito · NDA integrato · Identificazione con codice fiscale"}
+                {LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato immediato" : "Gratuito · NDA integrato · Identificazione con codice fiscale"}
               </p>
             </div>
             {!isMobile && (
@@ -2572,7 +2572,7 @@ export default function App() {
             <div style={overline}>L'esperienza</div>
             <h2 style={sectionTitle("#FFF")}>{LEAD_MODE ? "Una dashboard da operatore professionale" : "Protezione di livello professionale"}</h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 16, marginBottom: 40, fontFamily: "-apple-system, sans-serif" }}>
-              {LEAD_MODE ? "Verdetto automatico sull'operazione, KPI a colpo d'occhio, scenari a confronto e dettaglio costi completo. Quello che un professionista costruisce in ore, tu lo vedi in 3 minuti." : "Ogni link condiviso richiede identificazione con codice fiscale, consenso GDPR e firma NDA. I tuoi conti economici sono accessibili solo a chi autorizzato."}
+              {LEAD_MODE ? "Verdetto automatico sull'operazione, KPI a colpo d'occhio, scenari a confronto e dettaglio costi completo. Quello che un professionista costruisce in ore, tu lo vedi subito." : "Ogni link condiviso richiede identificazione con codice fiscale, consenso GDPR e firma NDA. I tuoi conti economici sono accessibili solo a chi autorizzato."}
             </p>
             <div
               onMouseEnter={() => !isMobile && setDashMockupHover(true)} onMouseLeave={() => setDashMockupHover(false)}
@@ -2620,7 +2620,7 @@ export default function App() {
             <h2 style={{ ...sectionTitle("#FFF"), fontSize: isMobile ? 26 : 38, opacity: ctaVisible ? 1 : 0, animation: ctaVisible ? "lp-fadeUp 0.8s ease-out both" : "none" }}>
               {LEAD_MODE ? "Scopri quanto rende la tua operazione" : "Pronto a condividere le tue analisi in sicurezza?"}
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato in 3 minuti" : "Gratuito · NDA integrato · Tutela legale"}</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato immediato" : "Gratuito · NDA integrato · Tutela legale"}</p>
             <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: "linear-gradient(90deg, transparent 0%, rgba(196,132,29,0.4) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
               <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "16px 36px" : "18px 56px", fontWeight: 700, fontSize: isMobile ? 16 : 18, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "block" }}>
                 Inizia ora →
