@@ -1926,6 +1926,7 @@ export default function App() {
   const [leadError, setLeadError] = useState("");
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const [leadPrivacy, setLeadPrivacy] = useState(false);
+  const [showVideoPopup, setShowVideoPopup] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -2045,6 +2046,17 @@ export default function App() {
     if (!LEAD_MODE) return;
     try { localStorage.setItem("ll_calc_state", JSON.stringify({ data, scenari, comparabili, ristItems })); } catch {}
   }, [data, scenari, comparabili, ristItems]);
+  // LEAD MODE — popup video strategico 15s dopo l'arrivo sulla dashboard (una volta per sessione)
+  useEffect(() => {
+    if (!LEAD_MODE || !showDash) return;
+    try { if (sessionStorage.getItem("ll_video_popup_shown") === "1") return; } catch {}
+    const t = setTimeout(() => {
+      try { sessionStorage.setItem("ll_video_popup_shown", "1"); } catch {}
+      setShowVideoPopup(true);
+      DB.trackEvent("video_popup_view", {});
+    }, 15000);
+    return () => clearTimeout(t);
+  }, [showDash]);
   const openLeadGate = () => {
     setShowLeadGate(true);
     if (typeof window.fbq !== "undefined") window.fbq("track", "InitiateCheckout");
@@ -3181,6 +3193,10 @@ export default function App() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+      {LEAD_MODE && <style>{`
+        @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px rgba(196,132,29,0.35); } 50% { box-shadow: 0 0 26px 7px rgba(196,132,29,0.6); } }
+        @keyframes ll-popIn { 0% { opacity: 0; transform: translateY(18px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+      `}</style>}
       {/* HEADER */}
       <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -3225,9 +3241,28 @@ export default function App() {
                 {calc.margine > 0 ? `Margine potenziale di ${fmtEur(calc.margine)}. Lorenzo ti mostra come blindarlo prima del rogito.` : "Margine a rischio? Lorenzo ti mostra come trovare e validare operazioni migliori."}
               </div>
             </div>
-            <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore" style={{ background: C.accent, color: "#FFF", borderRadius: 8, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxShadow: "0 4px 16px rgba(196,132,29,0.35)", maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
-              Guarda il video gratuito (11 min) →
+            <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore" onClick={() => DB.trackEvent("video_cta_click", { source: "banner" })} style={{ background: C.accent, color: "#FFF", borderRadius: 8, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif", textDecoration: "none", maxWidth: "100%", boxSizing: "border-box", textAlign: "center", animation: "ll-ctaPulse 2.4s ease-in-out infinite" }}>
+              Guarda il video strategico gratuito →
             </a>
+          </div>
+        )}
+        {LEAD_MODE && showVideoPopup && (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.85)", backdropFilter: "blur(4px)", zIndex: 6000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+            <div style={{ background: "#FFF", borderRadius: 12, maxWidth: 460, width: "100%", boxSizing: "border-box", padding: "30px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", textAlign: "center", animation: "ll-popIn 0.35s ease-out both" }}>
+              <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 12 }}>Prima di continuare</div>
+              <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", fontFamily: "'Georgia', serif" }}>
+                {calc.margine > 0 ? <>Hai {fmtEur(calc.margine)} di margine sulla carta. In cantiere è un'altra storia.</> : <>I numeri ti stanno dicendo qualcosa. Ascoltali prima del rogito.</>}
+              </h2>
+              <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.55, margin: "0 0 22px", fontFamily: "-apple-system, sans-serif" }}>
+                Nel video strategico gratuito Lorenzo ti mostra dove il margine sparisce prima del rogito e come blindarlo, con i numeri di operazioni reali.
+              </p>
+              <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore-popup" onClick={() => DB.trackEvent("video_cta_click", { source: "popup" })} style={{ display: "block", background: C.accent, color: "#FFF", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+                Guarda il video strategico gratuito →
+              </a>
+              <button onClick={() => { setShowVideoPopup(false); DB.trackEvent("video_popup_dismiss", {}); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline", marginTop: 14 }}>
+                No grazie, preferisco rischiare da solo
+              </button>
+            </div>
           </div>
         )}
         {/* VERDICT BANNER */}
