@@ -21,6 +21,24 @@ const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-frazionamento";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
 
+// ============================================================
+// LEAD MODE — attivo solo su lorenzoloseto.com/calcolatore-frazionamento
+// Il calcolatore funziona da lead magnet: wizard anonimo, gate email
+// collegato a Kajabi prima dei risultati, CTA verso il funnel MFIB.
+// Su calcolatore-frazionamento.vercel.app e su iOS resta l'app completa.
+// ============================================================
+const LEAD_MODE = !isNative && typeof window !== "undefined" && /(^|\.)lorenzoloseto\.com$/.test(window.location.hostname);
+const LEAD_UTM = (() => {
+  if (typeof window === "undefined") return {};
+  try {
+    const p = new URLSearchParams(window.location.search);
+    const utm = {};
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"].forEach((k) => { const v = p.get(k); if (v) utm[k] = v; });
+    if (Object.keys(utm).length) { localStorage.setItem("ll_calc_utm", JSON.stringify(utm)); return utm; }
+    return JSON.parse(localStorage.getItem("ll_calc_utm") || "{}");
+  } catch { return {}; }
+})();
+
 const DB = {
   _user: null,
   async _getUser() {
@@ -726,6 +744,40 @@ function AuthInput({ label, type = "text", value, onChange, placeholder, autoFoc
             </svg>
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// LEAD GATE MODAL — capture email → Kajabi prima dei risultati
+// ============================================================
+function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, onSubmit, onClose, onShowPrivacy }) {
+  return (
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.85)", backdropFilter: "blur(4px)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+      <div onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter" && !submitting) onSubmit(); }} style={{ background: "#FFF", borderRadius: 12, maxWidth: 440, width: "100%", boxSizing: "border-box", padding: "28px 24px", position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
+        <button onClick={onClose} aria-label="Chiudi" style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: "#9AA7B8", fontSize: 22, cursor: "pointer", lineHeight: 1, padding: 4 }}>×</button>
+        <div style={{ height: 6, background: "#EEE", borderRadius: 3, marginBottom: 6 }}>
+          <div style={{ height: 6, width: "90%", background: C.accent, borderRadius: 3 }} />
+        </div>
+        <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 16 }}>Analisi completata al 90%</div>
+        <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 8px", fontFamily: "'Georgia', serif" }}>I tuoi risultati sono pronti</h2>
+        <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "0 0 20px", fontFamily: "-apple-system, sans-serif" }}>Inserisci nome e email: ti mostriamo subito <strong>margine, ROI e analisi scenari</strong> della tua operazione.</p>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <input type="text" value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} placeholder="Il tuo nome" autoFocus
+            style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
+          <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="La tua email" inputMode="email" autoCapitalize="none"
+            style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+            <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+            <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); onShowPrivacy(); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span> e acconsento a ricevere contenuti su frazionamento e investimenti immobiliari.</span>
+          </label>
+          {error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px", fontFamily: "-apple-system, sans-serif" }}>{error}</div>}
+          <button onClick={onSubmit} disabled={submitting} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, cursor: submitting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: submitting ? 0.7 : 1, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+            {submitting ? "Un attimo..." : "Mostrami i risultati →"}
+          </button>
+          <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: 0, fontFamily: "-apple-system, sans-serif" }}>Riceverai anche il video gratuito di Lorenzo sul frazionamento immobiliare.</p>
+        </div>
       </div>
     </div>
   );
@@ -1823,10 +1875,12 @@ export default function App() {
   const [dashTab, setDashTab] = useState("risultati");
   const [fadeIn, setFadeIn] = useState(true);
   const [viewOnly, setViewOnly] = useState(false);
-  const [data, setData] = useState({ ...DEFAULT_DATA });
-  const [scenari, setScenari] = useState({ ...DEFAULT_SCENARI });
-  const [comparabili, setComparabili] = useState([{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
-  const [ristItems, setRistItems] = useState([...RIST_INIT]);
+  // In LEAD_MODE i dati del wizard sopravvivono al refresh via localStorage
+  const leadSaved = useMemo(() => { if (!LEAD_MODE) return null; try { return JSON.parse(localStorage.getItem("ll_calc_state") || "null"); } catch { return null; } }, []);
+  const [data, setData] = useState(() => leadSaved?.data ? { ...DEFAULT_DATA, ...leadSaved.data } : { ...DEFAULT_DATA });
+  const [scenari, setScenari] = useState(() => leadSaved?.scenari ? { ...DEFAULT_SCENARI, ...leadSaved.scenari } : { ...DEFAULT_SCENARI });
+  const [comparabili, setComparabili] = useState(() => leadSaved?.comparabili?.length ? leadSaved.comparabili : [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
+  const [ristItems, setRistItems] = useState(() => leadSaved?.ristItems?.length ? leadSaved.ristItems : [...RIST_INIT]);
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
@@ -1854,6 +1908,13 @@ export default function App() {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [dashMockupHover, setDashMockupHover] = useState(false);
+  // LEAD MODE STATE
+  const [leadCaptured, setLeadCaptured] = useState(() => LEAD_MODE && localStorage.getItem("ll_lead_captured") === "1");
+  const [showLeadGate, setShowLeadGate] = useState(false);
+  const [leadForm, setLeadForm] = useState({ nome: "", email: "" });
+  const [leadError, setLeadError] = useState("");
+  const [leadSubmitting, setLeadSubmitting] = useState(false);
+  const [leadPrivacy, setLeadPrivacy] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -1881,6 +1942,7 @@ export default function App() {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
     DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep });
     if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
+    else if (LEAD_MODE && !leadCaptured) { setShowLeadGate(true); }
     else animTo(() => {
       setShowDash(true);
       window._stepEnteredAt = Date.now();
@@ -1967,6 +2029,58 @@ export default function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(null); };
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
+  // LEAD MODE — persistenza dati wizard + submit gate verso Kajabi/Zapier/Web3Forms
+  useEffect(() => {
+    if (!LEAD_MODE) return;
+    try { localStorage.setItem("ll_calc_state", JSON.stringify({ data, scenari, comparabili, ristItems })); } catch {}
+  }, [data, scenari, comparabili, ristItems]);
+  const handleLeadSubmit = async () => {
+    setLeadError("");
+    const nome = leadForm.nome.trim(), email = leadForm.email.trim();
+    if (!nome) { setLeadError("Inserisci il tuo nome"); return; }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeadError("Inserisci un'email valida"); return; }
+    if (!leadPrivacy) { setLeadError("Devi accettare l'informativa privacy per proseguire"); return; }
+    setLeadSubmitting(true);
+    try {
+      const payload = {
+        nome, email, landing: "calcolatore-frazionamento", timestamp: new Date().toISOString(),
+        citta: data.citta || "", indirizzo: [data.via, data.civico].filter(Boolean).join(" "),
+        metratura_mq: data.metratura, unita: data.numUnita, durata_mesi: data.durataOp,
+        investimento_eur: Math.round(calc.inv), margine_eur: Math.round(calc.margine),
+        roi_pct: (calc.roi * 100).toFixed(1), roi_annuo_pct: (calc.roiAnn * 100).toFixed(1),
+        ...LEAD_UTM,
+      };
+      // 1. Kajabi form "Video Gratuito MFIB" (URLSearchParams = simple request, no preflight CORS)
+      const kajabiParams = new URLSearchParams();
+      kajabiParams.append("form_submission[name]", nome);
+      kajabiParams.append("form_submission[email]", email);
+      fetch("https://lorenzo-loseto.mykajabi.com/forms/2149582625/form_submissions", {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: kajabiParams.toString(), keepalive: true,
+      });
+      // 2. Zapier webhook (Google Sheets + dati calcolo per pre-qualifica)
+      const zapParams = new URLSearchParams();
+      Object.entries(payload).forEach(([k, v]) => zapParams.append(k, String(v ?? "")));
+      fetch("https://hooks.zapier.com/hooks/catch/22684503/4o0o06b/", {
+        method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: zapParams.toString(), keepalive: true,
+      });
+      // 3. Web3Forms (backup email)
+      fetch("https://api.web3forms.com/submit", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ access_key: "8d4a8f3b-2c1d-4e5f-a1b2-c3d4e5f6a7b8", subject: "[Calcolatore Frazionamento] Nuovo lead — " + nome, from_name: "Calcolatore Frazionamento", ...payload }),
+        keepalive: true,
+      });
+      DB.trackEvent("lead_capture", { email, margine: Math.round(calc.margine), roi: (calc.roi * 100).toFixed(1) });
+      localStorage.setItem("ll_lead_captured", "1");
+      setLeadCaptured(true);
+      setShowLeadGate(false);
+      animTo(() => { setShowDash(true); window._stepEnteredAt = Date.now(); });
+    } catch (err) {
+      setLeadError("Errore nell'invio. Riprova o scrivi a info@lorenzoloseto.com");
+    }
+    setLeadSubmitting(false);
+  };
   // Landing: responsive
   useEffect(() => { const h = () => setIsMobile(window.innerWidth < 768); window.addEventListener("resize", h); return () => window.removeEventListener("resize", h); }, []);
   const handleDeleteAccount = async () => {
@@ -2303,8 +2417,8 @@ export default function App() {
               }}>LORENZO LOSETO</div>
             </div>
             <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
-              <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>
-              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 700, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Inizia gratis</button>
+              {!LEAD_MODE && <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>}
+              <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 700, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>{LEAD_MODE ? "Calcola ora" : "Inizia gratis"}</button>
             </div>
           </div>
         </div>
@@ -2313,23 +2427,23 @@ export default function App() {
         <div style={{ background: `linear-gradient(135deg, #0D2240 0%, #162D50 40%, #1A3558 70%, #0D2240 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
-              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>La piattaforma per condividere conti economici in sicurezza</div>
+              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>{LEAD_MODE ? "Il tool gratuito per investitori immobiliari" : "La piattaforma per condividere conti economici in sicurezza"}</div>
               <h1 style={{ color: "#FFF", fontSize: isMobile ? 34 : 50, fontWeight: 700, lineHeight: 1.15, margin: "0 0 20px", fontFamily: "'Playfair Display', Georgia, serif", animation: "lp-fadeUp 0.8s ease-out 0.1s both" }}>
-                Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span>
+                {LEAD_MODE ? <>Quanto rende davvero il tuo <span style={{ color: C.accent }}>frazionamento</span>?</> : <>Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span></>}
               </h1>
               <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
-                Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza.
+                {LEAD_MODE ? "Inserisci i dati della tua operazione: in 3 minuti ottieni margine, ROI e analisi scenari (pessimistico, realistico, ottimistico) come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
                 <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
-                  Crea il tuo primo progetto →
+                  {LEAD_MODE ? "Calcola il tuo frazionamento →" : "Crea il tuo primo progetto →"}
                 </button>
                 <button onClick={() => document.getElementById("lp-how")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "transparent", color: "#FFF", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: isMobile ? "14px 24px" : "16px 28px", fontWeight: 600, fontSize: isMobile ? 14 : 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   Scopri come funziona
                 </button>
               </div>
               <p style={{ color: "rgba(255,255,255,0.35)", fontSize: 13, marginTop: 20, fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.5s both" }}>
-                Gratuito · NDA integrato · Identificazione con codice fiscale
+                {LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato in 3 minuti" : "Gratuito · NDA integrato · Identificazione con codice fiscale"}
               </p>
             </div>
             {!isMobile && (
@@ -2457,19 +2571,19 @@ export default function App() {
         <div ref={ctaRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center", padding: isMobile ? "56px 20px 32px" : "80px 24px 40px" }}>
             <h2 style={{ ...sectionTitle("#FFF"), fontSize: isMobile ? 26 : 38, opacity: ctaVisible ? 1 : 0, animation: ctaVisible ? "lp-fadeUp 0.8s ease-out both" : "none" }}>
-              Pronto a condividere le tue analisi in sicurezza?
+              {LEAD_MODE ? "Scopri quanto rende la tua operazione" : "Pronto a condividere le tue analisi in sicurezza?"}
             </h2>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>Gratuito · NDA integrato · Tutela legale</p>
+            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato in 3 minuti" : "Gratuito · NDA integrato · Tutela legale"}</p>
             <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: "linear-gradient(90deg, transparent 0%, rgba(196,132,29,0.4) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
               <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "16px 36px" : "18px 56px", fontWeight: 700, fontSize: isMobile ? 16 : 18, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "block" }}>
                 Inizia ora →
               </button>
             </div>
-            <div style={{ marginTop: 20 }}>
+            {!LEAD_MODE && <div style={{ marginTop: 20 }}>
               <button onClick={() => handleLandingCTA(true)} style={{ background: "none", border: "none", color: "rgba(255,255,255,0.45)", fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>
                 Hai già un account? Accedi
               </button>
-            </div>
+            </div>}
             <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
               <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento — lorenzoloseto.com/calcolatore-frazionamento</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
@@ -2968,16 +3082,16 @@ export default function App() {
                   {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
-              ) : (
+              ) : !LEAD_MODE ? (
                 <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
-              )}
+              ) : null}
             </div>
           </div>
         </div>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 20px 30px", textAlign: "center", opacity: fadeIn ? 1 : 0, transform: fadeIn ? "translateY(0)" : "translateY(16px)", transition: "all 0.2s ease" }}>
           {s.isWelcome && <div style={{ width: 64, height: 4, background: C.accent, margin: "0 auto 24px", borderRadius: 2 }} />}
-          <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{s.title}</h1>
-          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{s.subtitle}</p>
+          <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{LEAD_MODE && s.isWelcome ? "Calcola il tuo\nfrazionamento" : s.title}</h1>
+          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi a 6 domande sulla tua operazione. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
           {s.type === "address" && (
             <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", gap: 10 }}>
@@ -3010,7 +3124,8 @@ export default function App() {
             {s.isWelcome ? "Inizia l'analisi" : step === STEPS.length - 1 ? "Vedi i risultati" : "Avanti"}
           </button>
         </div>
-        {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => setShowDash(true)} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
+        {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => { if (LEAD_MODE && !leadCaptured) setShowLeadGate(true); else setShowDash(true); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
+        {showLeadGate && <LeadGateModal form={leadForm} setForm={setLeadForm} error={leadError} submitting={leadSubmitting} privacy={leadPrivacy} setPrivacy={setLeadPrivacy} onSubmit={handleLeadSubmit} onClose={() => setShowLeadGate(false)} onShowPrivacy={() => setShowPrivacy(true)} />}
         {/* GDPR: Privacy Modal + Cookie Banner */}
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
         {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
@@ -3056,7 +3171,7 @@ export default function App() {
                 {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
               </>
             )}
-            {!user && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
+            {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
             {user && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
@@ -3066,6 +3181,20 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px" }}>
+        {/* LEAD MODE — CTA verso il funnel MFIB */}
+        {LEAD_MODE && (
+          <div style={{ background: C.navy, borderRadius: 8, padding: "16px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 4 }}>Il prossimo passo</div>
+              <div style={{ color: "#FFF", fontWeight: 700, fontSize: 15, fontFamily: "-apple-system, sans-serif", lineHeight: 1.4 }}>
+                {calc.margine > 0 ? `Margine potenziale di ${fmtEur(calc.margine)}. Lorenzo ti mostra come blindarlo prima del rogito.` : "Margine a rischio? Lorenzo ti mostra come trovare e validare operazioni migliori."}
+              </div>
+            </div>
+            <a href="/video-mfib/?from=calcolatore" style={{ background: C.accent, color: "#FFF", borderRadius: 8, padding: "13px 20px", fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxShadow: "0 4px 16px rgba(196,132,29,0.35)", maxWidth: "100%", boxSizing: "border-box", textAlign: "center" }}>
+              Guarda il video gratuito (11 min) →
+            </a>
+          </div>
+        )}
         {/* VERDICT BANNER */}
         <div style={{ background: verdict ? C.greenBg : C.redBg, border: `1px solid ${verdict ? "#B8DFC9" : "#F5C6C6"}`, borderLeft: `4px solid ${verdict ? C.green : C.red}`, borderRadius: 4, padding: "12px 16px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
