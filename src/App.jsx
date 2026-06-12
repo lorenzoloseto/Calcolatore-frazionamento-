@@ -1927,6 +1927,7 @@ export default function App() {
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const [leadPrivacy, setLeadPrivacy] = useState(false);
   const [showVideoPopup, setShowVideoPopup] = useState(false);
+  const [justCaptured, setJustCaptured] = useState(false);
 
   // DERIVED
   const ristTotale = useMemo(() => ristItems.reduce((s, it) => s + it.qty * it.prezzo, 0), [ristItems]);
@@ -2098,11 +2099,19 @@ export default function App() {
         body: JSON.stringify({ access_key: "8d4a8f3b-2c1d-4e5f-a1b2-c3d4e5f6a7b8", subject: "[Calcolatore Frazionamento] Nuovo lead — " + nome, from_name: "Calcolatore Frazionamento", ...payload }),
         keepalive: true,
       });
+      // Thank-you page: cambia l'URL in /calcolatore-frazionamento/grazie così
+      // Francesco può creare una custom conversion Meta basata su URL.
+      try {
+        const grazie = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/grazie";
+        window.history.replaceState({}, "", grazie + window.location.search);
+      } catch {}
       DB.trackEvent("lead_capture", { email, margine: Math.round(calc.margine), roi: (calc.roi * 100).toFixed(1) });
-      if (typeof window.fbq !== "undefined") window.fbq("track", "Lead");
-      if (typeof window.ttq !== "undefined") window.ttq.track("CompleteRegistration");
+      // PageView sul nuovo URL /grazie (per la conversione URL-based) + evento Lead
+      if (typeof window.fbq !== "undefined") { window.fbq("track", "PageView"); window.fbq("track", "Lead"); }
+      if (typeof window.ttq !== "undefined") { window.ttq.page(); window.ttq.track("CompleteRegistration"); }
       localStorage.setItem("ll_lead_captured", "1");
       setLeadCaptured(true);
+      setJustCaptured(true);
       setShowLeadGate(false);
       animTo(() => { setShowDash(true); window._stepEnteredAt = Date.now(); });
     } catch (err) {
@@ -3232,6 +3241,15 @@ export default function App() {
       </div>
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px" }}>
+        {/* LEAD MODE — conferma post-iscrizione (solo subito dopo il gate) */}
+        {LEAD_MODE && justCaptured && (
+          <div style={{ background: C.greenBg, border: "1px solid #B8DFC9", borderLeft: `4px solid ${C.green}`, borderRadius: 6, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
+            <span style={{ color: C.green, fontSize: 20, fontWeight: 700, lineHeight: 1 }}>✓</span>
+            <div style={{ color: C.dark, fontSize: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.4 }}>
+              <strong>Sei dentro.</strong> Ti abbiamo inviato il video strategico gratuito via email — controlla anche lo spam. Intanto ecco la tua analisi.
+            </div>
+          </div>
+        )}
         {/* LEAD MODE — CTA verso il funnel MFIB */}
         {LEAD_MODE && (
           <div style={{ background: C.navy, borderRadius: 8, padding: "16px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
