@@ -773,11 +773,13 @@ function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, 
         </div>
         <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 16 }}>Analisi completata al 90%</div>
         <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 8px", fontFamily: "'Georgia', serif" }}>I tuoi risultati sono pronti</h2>
-        <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "0 0 20px", fontFamily: "-apple-system, sans-serif" }}>Inserisci nome e email: ti mostriamo subito <strong>margine, ROI e analisi scenari</strong> della tua operazione.</p>
+        <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.5, margin: "0 0 20px", fontFamily: "-apple-system, sans-serif" }}>Inserisci i tuoi dati: ti mostriamo subito <strong>margine, ROI e analisi scenari</strong> della tua operazione.</p>
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <input type="text" value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} placeholder="Il tuo nome" autoFocus
+          <input type="text" value={form.nome} onChange={(e) => setForm((f) => ({ ...f, nome: e.target.value }))} placeholder="Nome e cognome" autoComplete="name" autoFocus
             style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
-          <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="La tua email" inputMode="email" autoCapitalize="none"
+          <input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} placeholder="La tua email" inputMode="email" autoCapitalize="none" autoComplete="email"
+            style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
+          <input type="tel" value={form.telefono} onChange={(e) => setForm((f) => ({ ...f, telefono: e.target.value }))} placeholder="Numero di telefono" inputMode="tel" autoComplete="tel"
             style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
             <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
@@ -1922,7 +1924,7 @@ export default function App() {
   // LEAD MODE STATE
   const [leadCaptured, setLeadCaptured] = useState(() => LEAD_MODE && localStorage.getItem("ll_lead_captured") === "1");
   const [showLeadGate, setShowLeadGate] = useState(false);
-  const [leadForm, setLeadForm] = useState({ nome: "", email: "" });
+  const [leadForm, setLeadForm] = useState({ nome: "", email: "", telefono: "" });
   const [leadError, setLeadError] = useState("");
   const [leadSubmitting, setLeadSubmitting] = useState(false);
   const [leadPrivacy, setLeadPrivacy] = useState(false);
@@ -2096,14 +2098,15 @@ export default function App() {
   };
   const handleLeadSubmit = async () => {
     setLeadError("");
-    const nome = leadForm.nome.trim(), email = leadForm.email.trim();
-    if (!nome) { setLeadError("Inserisci il tuo nome"); return; }
+    const nome = leadForm.nome.trim(), email = leadForm.email.trim(), telefono = (leadForm.telefono || "").trim();
+    if (!nome) { setLeadError("Inserisci nome e cognome"); return; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setLeadError("Inserisci un'email valida"); return; }
+    if (!telefono || telefono.replace(/\D/g, "").length < 8) { setLeadError("Inserisci un numero di telefono valido"); return; }
     if (!leadPrivacy) { setLeadError("Devi accettare l'informativa privacy per proseguire"); return; }
     setLeadSubmitting(true);
     try {
       const payload = {
-        nome, email, landing: "calcolatore-frazionamento", timestamp: new Date().toISOString(),
+        nome, email, telefono, landing: "calcolatore-frazionamento", timestamp: new Date().toISOString(),
         citta: data.citta || "", indirizzo: [data.via, data.civico].filter(Boolean).join(" "),
         metratura_mq: data.metratura, unita: data.numUnita, durata_mesi: data.durataOp,
         investimento_eur: Math.round(calc.inv), margine_eur: Math.round(calc.margine),
@@ -2114,6 +2117,7 @@ export default function App() {
       const kajabiParams = new URLSearchParams();
       kajabiParams.append("form_submission[name]", nome);
       kajabiParams.append("form_submission[email]", email);
+      if (telefono) kajabiParams.append("form_submission[phone]", telefono);
       fetch("https://lorenzo-loseto.mykajabi.com/forms/2149582625/form_submissions", {
         method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: kajabiParams.toString(), keepalive: true,
