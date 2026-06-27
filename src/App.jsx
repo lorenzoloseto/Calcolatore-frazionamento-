@@ -2460,14 +2460,15 @@ export default function App() {
         {/* === NAVBAR === */}
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", alignItems: "center", cursor: "pointer" }}>
+            <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", flexDirection: "column", cursor: "pointer", lineHeight: 1.1 }}>
               <div style={{
-                fontSize: isMobile ? 10 : 14, fontWeight: 800, letterSpacing: isMobile ? 1 : 2.5, textTransform: "uppercase",
+                fontSize: isMobile ? 12 : 16, fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
                 background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
-              }}>LORENZO LOSETO</div>
+              }}>Calcolatore Frazionamento</div>
+              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 8 : 10, fontWeight: 600, letterSpacing: isMobile ? 0.5 : 1.2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginTop: 1 }}>Professionale · by Lorenzo Loseto</div>
             </div>
             <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
               {!LEAD_MODE && <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>}
