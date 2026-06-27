@@ -2505,7 +2505,7 @@ export default function App() {
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>Calcolatore Frazionamento</div>
-              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 8 : 10, fontWeight: 600, letterSpacing: isMobile ? 0.5 : 1.2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginTop: 1 }}>Professionale · by Lorenzo Loseto</div>
+              <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 8 : 10, fontWeight: 600, letterSpacing: isMobile ? 0.5 : 1.2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginTop: 1 }}>Professional tool by Lorenzo Loseto</div>
             </div>
             <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
               {!LEAD_MODE && <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>}
