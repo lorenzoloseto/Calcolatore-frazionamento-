@@ -2042,6 +2042,38 @@ export default function App() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(null); };
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
+
+  // ── Barra "anteprima flusso" INTERNA al calcolatore (solo ?flow=1, solo Lorenzo) ──
+  // Salta a ogni schermata del wizard (Welcome → 6 domande → Dati → Risultato)
+  // per ispezionarla senza compilare. I lead (senza ?flow=1) non la vedono.
+  const FLOW_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("flow") === "1";
+  const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Indirizzo", 1], ["Superficie", 2], ["Prezzo acq.", 3], ["Prezzo vend.", 4], ["Ristrutt.", 5], ["Durata", 6], ["Dati", "gate"], ["Risultato", "result"]];
+  const goScreen = (key) => {
+    setShowLeadGate(false);
+    if (key === "landing") { setShowLanding(true); return; }
+    setShowLanding(false);
+    if (key === "gate") { setShowDash(false); setShowLeadGate(true); return; }
+    if (key === "result") { setShowDash(true); return; }
+    setShowDash(false); setStep(key);
+    window.scrollTo(0, 0);
+  };
+  const renderFlowBar = () => {
+    if (!FLOW_ON) return null;
+    const curKey = showLanding ? "landing" : showLeadGate ? "gate" : showDash ? "result" : step;
+    return (
+      <div style={{ position: "sticky", top: 0, zIndex: 2147483647, display: "flex", alignItems: "center", gap: 10, background: "#0B1220", borderBottom: "1px solid #233148", padding: "7px 10px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" }}>
+        <span style={{ flex: "0 0 auto", color: "#C4841D", fontWeight: 800, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase" }}>🔧 STEP · solo tu</span>
+        <nav style={{ flex: "1 1 auto", display: "flex", gap: 6, overflowX: "auto", whiteSpace: "nowrap" }}>
+          {FLOW_STEPS.map(([label, key]) => {
+            const cur = String(key) === String(curKey);
+            return (
+              <button key={String(key)} onClick={() => goScreen(key)} style={{ flex: "0 0 auto", cursor: "pointer", borderRadius: 7, padding: "5px 9px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: cur ? "#C4841D" : "#131c2e", color: cur ? "#0B1220" : "#9fb0c6", border: `1px solid ${cur ? "#C4841D" : "#233148"}` }}>{label}</button>
+            );
+          })}
+        </nav>
+      </div>
+    );
+  };
   // LEAD MODE — persistenza dati wizard + submit gate verso Kajabi/Zapier/Web3Forms
   useEffect(() => {
     if (!LEAD_MODE) return;
@@ -2446,6 +2478,7 @@ export default function App() {
     const sectionTitle = (color = C.dark) => ({ color, fontSize: isMobile ? 28 : 40, fontWeight: 700, lineHeight: 1.2, margin: "0 0 16px", fontFamily: "'Playfair Display', Georgia, serif" });
     return (
       <div style={{ background: C.bg, fontFamily: "'Georgia', serif", overflowX: "hidden" }}>
+        {renderFlowBar()}
         <style>{`
           @keyframes lp-fadeUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
           @keyframes lp-gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
@@ -3122,6 +3155,7 @@ export default function App() {
     const progress = (step / STEPS.length) * 100;
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }} onKeyDown={(e) => e.key === "Enter" && goNext()}>
+        {renderFlowBar()}
         <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ height: 3, background: "#0a1a33" }}>
             <div style={{ height: 3, background: C.accent, width: `${progress}%`, transition: "width 0.4s ease" }} />
@@ -3203,6 +3237,7 @@ export default function App() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+      {renderFlowBar()}
       {LEAD_MODE && <style>{`
         @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px rgba(196,132,29,0.35); } 50% { box-shadow: 0 0 26px 7px rgba(196,132,29,0.6); } }
         @keyframes ll-popIn { 0% { opacity: 0; transform: translateY(18px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
