@@ -1899,7 +1899,14 @@ export default function App() {
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
   const [sharedLoading, setSharedLoading] = useState(!!__sharedId);
-  const [shareGateCompleted, setShareGateCompleted] = useState(false);
+  // Link ?s= già aperti su questo dispositivo: NDA firmata una sola volta, poi accesso diretto
+  const [visitedLinks, setVisitedLinks] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("frazio_visited_links") || "[]"); } catch { return []; }
+  });
+  const [shareGateCompleted, setShareGateCompleted] = useState(() => {
+    if (!__sharedId) return false;
+    try { return (JSON.parse(localStorage.getItem("frazio_visited_links") || "[]")).some((v) => v.id === __sharedId); } catch { return false; }
+  });
   const [gateForm, setGateForm] = useState({ nome: '', cognome: '', email: '', giorno: '', mese: '', anno: '', sesso: '', luogoNascita: '', cf: '' });
   const [gateError, setGateError] = useState('');
   const [gateNda, setGateNda] = useState(false);
@@ -2277,6 +2284,12 @@ export default function App() {
       privacy_consent: true, nda_accepted: true, cf_consent: true
     }).then(() => {});
     setShareGateCompleted(true);
+    // Ricorda il link su questo dispositivo (sezione "Aperti via link" nella pagina progetti)
+    setVisitedLinks((prev) => {
+      const next = [{ id: __sharedId, name: projectName || "Progetto condiviso", at: Date.now() }, ...prev.filter((v) => v.id !== __sharedId)];
+      try { localStorage.setItem("frazio_visited_links", JSON.stringify(next)); } catch {}
+      return next;
+    });
     DB.trackEvent("snapshot_view", { visitor_email: gateForm.email?.trim() || "" });
   };
   // Load projects and their visitors when opening projects screen
@@ -3039,6 +3052,33 @@ export default function App() {
                   </div>
                 </div>
               ))}
+            </div>
+          )}
+          {visitedLinks.length > 0 && (
+            <div style={{ marginTop: 32 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Aperti via link</div>
+                <span style={{ color: C.textLight, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>({visitedLinks.length})</span>
+                <div style={{ flex: 1, height: 1, background: C.border }} />
+              </div>
+              <div style={{ color: C.textLight, fontSize: 11, fontFamily: "-apple-system, sans-serif", marginBottom: 12 }}>Conti economici condivisi con te tramite link, in sola lettura. Disponibili solo su questo dispositivo.</div>
+              <div style={{ display: "grid", gap: 12 }}>
+                {visitedLinks.map((v) => (
+                  <div key={v.id} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 8, padding: "16px 20px", boxShadow: "0 1px 4px rgba(0,0,0,0.04)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+                    <div style={{ flex: 1, minWidth: 200 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700 }}>{v.name}</div>
+                        <span style={{ background: "#E8E5FF", color: "#6B5CE7", fontSize: 10, fontWeight: 700, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>
+                      </div>
+                      <div style={{ color: C.textMid, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Aperto: {new Date(v.at).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
+                    </div>
+                    <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+                      <button onClick={() => { window.location.href = `${window.location.pathname}?s=${v.id}`; }} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
+                      <button onClick={() => { const next = visitedLinks.filter((x) => x.id !== v.id); setVisitedLinks(next); try { localStorage.setItem("frazio_visited_links", JSON.stringify(next)); } catch {} }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rimuovi dall'elenco">✕</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
           <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 32, paddingTop: 20, textAlign: "center" }}>
