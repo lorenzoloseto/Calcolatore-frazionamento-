@@ -1757,7 +1757,8 @@ export default function App() {
         // Se è un recovery, NON mandare a projects — mostra il form nuova password
         if (authScreenRef.current === "reset-password") {
           setAuthScreen("reset-password");
-        } else {
+        } else if (!__sharedId) {
+          // Con un link condiviso (?s=) la vista resta sul progetto condiviso, non sui propri progetti
           setAuthScreen("projects");
           historyRef.current = ["projects"];
         }
@@ -1794,7 +1795,7 @@ export default function App() {
         setUser(u);
         setShowLanding(false);
         // Vai a projects solo se l'utente non era già autenticato (evita reset vista al cambio tab)
-        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password") { setAuthScreen("projects"); historyRef.current = ["projects"]; }
+        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password" && !__sharedId) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
         DB._wasAuthenticated = true;
         setAuthLoading(false);
         if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
@@ -2932,6 +2933,8 @@ export default function App() {
   // ============================================================
   if (authScreen === "projects" && user) {
     const projects = projectsList;
+    const ownProjects = projects.filter((p) => !p._shared);
+    const sharedProjects = projects.filter((p) => p._shared);
     return (
       <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', serif" }}>
         <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
@@ -2960,8 +2963,16 @@ export default function App() {
               <button onClick={handleNewProject} style={{ ...btnPrimary, width: "auto", padding: "11px 32px" }}>Crea nuova analisi</button>
             </div>
           ) : (
-            <div style={{ display: "grid", gap: 12 }}>
-              {projects.map((p) => {
+            <div>
+              {[["I tuoi conti economici", ownProjects], ["Condivisi con te", sharedProjects]].filter(([, list]) => list.length > 0).map(([label, list], si) => (
+                <div key={label} style={{ marginTop: si > 0 ? 32 : 0 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+                    <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{label}</div>
+                    <span style={{ color: C.textLight, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>({list.length})</span>
+                    <div style={{ flex: 1, height: 1, background: C.border }} />
+                  </div>
+                  <div style={{ display: "grid", gap: 12 }}>
+              {list.map((p) => {
                 const isShared = p._shared;
                 const perm = p._permission;
                 return (
@@ -3025,6 +3036,9 @@ export default function App() {
                   </div>
                 );
               })}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           <div style={{ borderTop: `1px solid ${C.border}`, marginTop: 32, paddingTop: 20, textAlign: "center" }}>
