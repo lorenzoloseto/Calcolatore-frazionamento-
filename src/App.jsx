@@ -512,7 +512,7 @@ const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
   prezzoVenditaMq: 3200, costoRistMq: 500, costoRistCorpo: 0, durataOp: 8,
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
-  allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0,
+  allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
@@ -2334,7 +2334,7 @@ export default function App() {
     const speseBancarie = d.speseBancarieSomma * d.speseBancariePct;
     const interessi = d.interessiSomma * d.interessiPct;
     const provvigioniIn = d.prezzoAcquisto * (d.provvigioniInPct || 0);
-    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + (d.notaio || 0) + provvigioniIn + speseBancarie + interessi;
+    const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + (d.speseCondominio || 0) + (d.notaio || 0) + provvigioniIn + speseBancarie + interessi;
     const costiFraz = costoRistTot + d.oneriComunali + d.costiProfessionisti + buffer + tasseAcquisto + altriCosti;
     const inv = d.prezzoAcquisto + costiFraz;
     const mqU = d.numUnita > 0 ? d.metratura / d.numUnita : 0;
@@ -2414,6 +2414,7 @@ export default function App() {
     sh1 += dataRow("Consulenze Tecniche", r(data.consulenzeTecniche), "€", { eur: true });
     sh1 += dataRow("Rendering", r(data.rendering), "€", { eur: true });
     sh1 += dataRow("IMU", r(data.imu || 0), "€", { eur: true });
+    sh1 += dataRow("Spese condominio", r(data.speseCondominio || 0), "€", { eur: true });
     sh1 += dataRow("Interessi Banca", r(calc.speseBancarie), "€", { eur: true });
     sh1 += dataRow("Interessi Investitori", r(calc.interessi), "€", { eur: true });
     sh1 += dataRow("Buffer imprevisti", r(calc.buffer), "€", { eur: true });
@@ -3449,6 +3450,7 @@ export default function App() {
               <DashInput label="Consulenze Tecniche" value={data.consulenzeTecniche} onChange={(v) => upd("consulenzeTecniche", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Rendering" value={data.rendering} onChange={(v) => upd("rendering", v)} suffix="€" step={100} disabled={viewOnly} />
               <DashInput label="IMU" value={data.imu} onChange={(v) => upd("imu", v)} suffix="€" step={100} disabled={viewOnly} />
+              <DashInput label="Spese condominio" value={data.speseCondominio || 0} onChange={(v) => upd("speseCondominio", v)} suffix="€" step={100} disabled={viewOnly} />
               <div style={{ marginBottom: 10 }}>
                 <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Banca</label>
                 <div style={{ display: "flex", gap: 8 }}>
@@ -3478,6 +3480,7 @@ export default function App() {
                 <DataRow label="Consulenze Tecniche" value={fmtEur(data.consulenzeTecniche)} />
                 <DataRow label="Rendering" value={fmtEur(data.rendering)} />
                 <DataRow label="IMU" value={fmtEur(data.imu || 0)} />
+                <DataRow label="Spese condominio" value={fmtEur(data.speseCondominio || 0)} />
                 <DataRow label="Interessi Banca" value={fmtEur(Math.round(calc.speseBancarie))} />
                 <DataRow label="Interessi Investitori" value={fmtEur(Math.round(calc.interessi))} />
                 <DataRow label="Buffer imprevisti" value={fmtEur(Math.round(calc.buffer))} />
