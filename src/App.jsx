@@ -2407,7 +2407,7 @@ export default function App() {
     sh1 += dataRow("Oneri comunali", r(data.oneriComunali), "€", { eur: true });
     sh1 += dataRow("Professionisti", r(data.costiProfessionisti), "€", { eur: true });
     sh1 += dataRow("Provvigioni IN", r(calc.provvigioniIn), "€", { eur: true });
-    sh1 += dataRow("Notaio", r(data.notaio || 0), "€", { eur: true });
+    sh1 += dataRow("Notaio competenze", r(data.notaio || 0), "€", { eur: true });
     sh1 += dataRow("Tasse acquisto", r(calc.tasseAcquisto), "€", { eur: true });
     sh1 += dataRow("Allacciamenti utenze", r(data.allacciamentiUtenze), "€", { eur: true });
     sh1 += dataRow("Bollette Gas, Luce ecc", r(data.bolletteGasLuce), "€", { eur: true });
@@ -3443,7 +3443,7 @@ export default function App() {
               <DashInput label="Professionisti" value={data.costiProfessionisti} onChange={(v) => upd("costiProfessionisti", v)} suffix="€" step={1000} disabled={viewOnly} />
               <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} />
               <DashPctInput label="Provvigioni agenzia (OUT)" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} note="Sulla vendita" disabled={viewOnly} />
-              <DashInput label="Notaio" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} />
+              <DashInput label="Notaio competenze" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashPctInput label="Tasse acquisto (società)" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Imposta di registro: 9%" disabled={viewOnly} />
               <DashInput label="Allacciamenti utenze" value={data.allacciamentiUtenze} onChange={(v) => upd("allacciamentiUtenze", v)} suffix="€" step={500} disabled={viewOnly} />
               <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} />
@@ -3473,7 +3473,7 @@ export default function App() {
                 <DataRow label="Oneri comunali" value={fmtEur(data.oneriComunali)} />
                 <DataRow label="Professionisti" value={fmtEur(data.costiProfessionisti)} />
                 <DataRow label="Provvigioni IN" value={fmtEur(Math.round(calc.provvigioniIn))} />
-                <DataRow label="Notaio" value={fmtEur(data.notaio || 0)} />
+                <DataRow label="Notaio competenze" value={fmtEur(data.notaio || 0)} />
                 <DataRow label="Tasse acquisto" value={fmtEur(Math.round(calc.tasseAcquisto))} />
                 <DataRow label="Allacciamenti utenze" value={fmtEur(data.allacciamentiUtenze)} />
                 <DataRow label="Bollette Gas, Luce ecc" value={fmtEur(data.bolletteGasLuce)} />
