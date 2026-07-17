@@ -671,14 +671,30 @@ function WizardSlider({ value, onChange, min, max, step = 1, labels, unit }) {
     </div>
   );
 }
-function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, note, disabled }) {
+function InfoTip({ text }) {
+  const [open, setOpen] = useState(false);
+  if (!text) return null;
+  return (
+    <span style={{ position: "relative", display: "inline-flex", marginLeft: 5, verticalAlign: "middle" }} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+      <button type="button" aria-label="Spiegazione" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen((o) => !o); }}
+        style={{ width: 14, height: 14, borderRadius: "50%", border: `1px solid ${C.inputBorder}`, background: "transparent", color: C.textLight, fontSize: 9, fontWeight: 700, lineHeight: 1, padding: 0, cursor: "help", fontFamily: "Georgia, serif", fontStyle: "italic", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>i</button>
+      {open && (
+        <span style={{ position: "absolute", bottom: "calc(100% + 7px)", left: "50%", transform: "translateX(-50%)", width: 210, maxWidth: "70vw", background: C.navy, color: "#FDFDFB", fontSize: 11, fontWeight: 400, lineHeight: 1.5, padding: "8px 10px", borderRadius: 6, zIndex: 200, boxShadow: "0 4px 14px rgba(0,0,0,0.25)", textTransform: "none", letterSpacing: 0, whiteSpace: "normal", textAlign: "left", pointerEvents: "none" }}>
+          {text}
+          <span style={{ position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)", border: "5px solid transparent", borderTopColor: C.navy }} />
+        </span>
+      )}
+    </span>
+  );
+}
+function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, note, disabled, info }) {
   const [focused, setFocused] = useState(false);
   const [localVal, setLocalVal] = useState(String(value));
   const valRef = useRef(value);
   if (!focused && value !== valRef.current) { setLocalVal(String(value)); valRef.current = value; }
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>{label}</label>
+      <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>{label}<InfoTip text={info} /></label>
       <div style={{ display: "flex", alignItems: "center", background: disabled ? "#f0f0f0" : C.inputBg, borderRadius: 4, border: `1px solid ${focused ? C.inputFocus : C.inputBorder}`, transition: "border-color 0.15s" }}>
         <input type="number" value={focused ? localVal : value} onChange={(e) => { if (disabled) return; setLocalVal(e.target.value); onChange(Number(e.target.value) || 0); }}
           onFocus={(e) => { setFocused(true); setLocalVal(String(value)); e.target.select(); }} onBlur={() => { setFocused(false); if (localVal === "" || isNaN(Number(localVal))) { setLocalVal(String(value)); } }} step={step} min={min} max={max} disabled={disabled}
@@ -689,8 +705,8 @@ function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, not
     </div>
   );
 }
-function DashPctInput({ label, value, onChange, note, disabled }) {
-  return <DashInput label={label} value={Math.round((value || 0) * 1000) / 10} onChange={(v) => onChange(v / 100)} suffix="%" step={0.5} min={-100} max={100} note={note} disabled={disabled} />;
+function DashPctInput({ label, value, onChange, note, disabled, info }) {
+  return <DashInput label={label} value={Math.round((value || 0) * 1000) / 10} onChange={(v) => onChange(v / 100)} suffix="%" step={0.5} min={-100} max={100} note={note} disabled={disabled} info={info} />;
 }
 function DataRow({ label, value, highlight, bold, border = true }) {
   return (
@@ -3423,11 +3439,11 @@ export default function App() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
-              <DashInput label="Prezzo acquisto" value={data.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} suffix="€" step={5000} disabled={viewOnly} />
-              <DashInput label="Superficie" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} />
-              <DashInput label="N. unità" value={data.numUnita} onChange={(v) => upd("numUnita", v)} min={2} max={10} disabled={viewOnly} />
-              <DashInput label="Prezzo vendita/mq" value={data.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} suffix="€/mq" step={100} disabled={viewOnly} />
-              <DashInput label="Durata operazione" value={data.durataOp} onChange={(v) => upd("durataOp", v)} suffix="mesi" min={1} disabled={viewOnly} />
+              <DashInput label="Prezzo acquisto" value={data.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} suffix="€" step={5000} disabled={viewOnly} info="Prezzo di acquisto dell'immobile come da rogito, escluse imposte e costi accessori (che inserisci nelle voci sotto)." />
+              <DashInput label="Superficie" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} info="Superficie commerciale totale dell'immobile in mq. È la base per calcolare ristrutturazione e ricavi di vendita al mq." />
+              <DashInput label="N. unità" value={data.numUnita} onChange={(v) => upd("numUnita", v)} min={2} max={10} disabled={viewOnly} info="Numero di unità immobiliari che otterrai dal frazionamento." />
+              <DashInput label="Prezzo vendita/mq" value={data.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} suffix="€/mq" step={100} disabled={viewOnly} info="Prezzo di vendita stimato al mq delle unità finite. Verificalo con i comparabili di mercato nella sezione dedicata." />
+              <DashInput label="Durata operazione" value={data.durataOp} onChange={(v) => upd("durataOp", v)} suffix="mesi" min={1} disabled={viewOnly} info="Durata stimata dell'operazione in mesi, dall'acquisto alla vendita dell'ultima unità. Serve per calcolare il ROI annualizzato." />
               <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
                 <DataRow label="Prezzo/mq acquisto" value={fmtEur(Math.round(calc.pMqAcq)) + "/mq"} />
                 <DataRow label="Superficie per unità" value={fmtMq(Math.round(calc.mqU))} />
@@ -3437,22 +3453,22 @@ export default function App() {
             </div>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Struttura costi</div>
-              <DashInput label="Ristrutturazione/mq" value={data.costoRistMq} onChange={(v) => { upd("costoRistMq", v); upd("costoRistCorpo", data.metratura > 0 ? Math.round(v * data.metratura) : 0); }} suffix="€/mq" step={50} note="Comprensivo di impiantistica" disabled={viewOnly} />
-              <DashInput label="Ristrutturazione a corpo" value={data.costoRistCorpo} onChange={(v) => { upd("costoRistCorpo", v); upd("costoRistMq", data.metratura > 0 ? Math.round(v / data.metratura) : 0); }} suffix="€" step={1000} note="Il costo/mq si allinea automaticamente" disabled={viewOnly} />
-              <DashInput label="Oneri comunali" value={data.oneriComunali} onChange={(v) => upd("oneriComunali", v)} suffix="€" step={500} disabled={viewOnly} />
-              <DashInput label="Professionisti" value={data.costiProfessionisti} onChange={(v) => upd("costiProfessionisti", v)} suffix="€" step={1000} disabled={viewOnly} />
-              <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} />
-              <DashPctInput label="Provvigioni agenzia (OUT)" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} note="Sulla vendita" disabled={viewOnly} />
-              <DashInput label="Notaio competenze" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} />
-              <DashPctInput label="Tasse acquisto (società)" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Imposta di registro: 9%" disabled={viewOnly} />
-              <DashInput label="Allacciamenti utenze" value={data.allacciamentiUtenze} onChange={(v) => upd("allacciamentiUtenze", v)} suffix="€" step={500} disabled={viewOnly} />
-              <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} />
-              <DashInput label="Consulenze Tecniche" value={data.consulenzeTecniche} onChange={(v) => upd("consulenzeTecniche", v)} suffix="€" step={500} disabled={viewOnly} />
-              <DashInput label="Rendering" value={data.rendering} onChange={(v) => upd("rendering", v)} suffix="€" step={100} disabled={viewOnly} />
-              <DashInput label="IMU" value={data.imu} onChange={(v) => upd("imu", v)} suffix="€" step={100} disabled={viewOnly} />
-              <DashInput label="Spese condominio" value={data.speseCondominio || 0} onChange={(v) => upd("speseCondominio", v)} suffix="€" step={100} disabled={viewOnly} />
+              <DashInput label="Ristrutturazione/mq" value={data.costoRistMq} onChange={(v) => { upd("costoRistMq", v); upd("costoRistCorpo", data.metratura > 0 ? Math.round(v * data.metratura) : 0); }} suffix="€/mq" step={50} note="Comprensivo di impiantistica" disabled={viewOnly} info="Costo di ristrutturazione al metro quadro, impianti compresi. Modificandolo si aggiorna anche il costo a corpo." />
+              <DashInput label="Ristrutturazione a corpo" value={data.costoRistCorpo} onChange={(v) => { upd("costoRistCorpo", v); upd("costoRistMq", data.metratura > 0 ? Math.round(v / data.metratura) : 0); }} suffix="€" step={1000} note="Il costo/mq si allinea automaticamente" disabled={viewOnly} info="Costo totale della ristrutturazione a corpo (cifra unica pattuita con l'impresa). Il costo/mq si ricalcola in automatico." />
+              <DashInput label="Oneri comunali" value={data.oneriComunali} onChange={(v) => upd("oneriComunali", v)} suffix="€" step={500} disabled={viewOnly} info="Oneri di urbanizzazione e contributi dovuti al Comune per le pratiche edilizie (CILA/SCIA), il frazionamento e eventuali cambi di destinazione d'uso." />
+              <DashInput label="Professionisti" value={data.costiProfessionisti} onChange={(v) => upd("costiProfessionisti", v)} suffix="€" step={1000} disabled={viewOnly} info="Compensi di architetto, geometra e ingegnere: progetto, direzione lavori, pratiche edilizie e catastali, APE." />
+              <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} info="Provvigione dell'agenzia immobiliare sull'acquisto, in % sul prezzo di acquisto. Lascia 0 se compri senza agenzia." />
+              <DashPctInput label="Provvigioni agenzia (OUT)" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} note="Sulla vendita" disabled={viewOnly} info="Provvigione dell'agenzia sulla vendita delle unità, in % sul ricavo totale. Viene sottratta dal ricavo lordo." />
+              <DashInput label="Notaio competenze" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} info="Onorario del notaio per l'atto di acquisto (ed eventuali atti successivi come mutuo o deposito prezzo). Le imposte sono nella voce Tasse acquisto." />
+              <DashPctInput label="Tasse acquisto (società)" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Imposta di registro: 9%" disabled={viewOnly} info="Imposte sull'acquisto in % sul prezzo (registro, ipotecaria e catastale). Per una società che compra da privato un residenziale: registro 9%." />
+              <DashInput label="Allacciamenti utenze" value={data.allacciamentiUtenze} onChange={(v) => upd("allacciamentiUtenze", v)} suffix="€" step={500} disabled={viewOnly} info="Costi per i nuovi contatori e gli allacci di luce, gas e acqua delle unità create con il frazionamento." />
+              <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} info="Utenze consumate durante il cantiere e fino alla vendita delle unità (energia per i lavori, riscaldamento, acqua)." />
+              <DashInput label="Consulenze Tecniche" value={data.consulenzeTecniche} onChange={(v) => upd("consulenzeTecniche", v)} suffix="€" step={500} disabled={viewOnly} info="Perizie e consulenze specialistiche: verifiche strutturali, relazioni acustiche o termotecniche, consulenze legali o fiscali." />
+              <DashInput label="Rendering" value={data.rendering} onChange={(v) => upd("rendering", v)} suffix="€" step={100} disabled={viewOnly} info="Render fotorealistici e materiale marketing per vendere le unità già durante i lavori." />
+              <DashInput label="IMU" value={data.imu} onChange={(v) => upd("imu", v)} suffix="€" step={100} disabled={viewOnly} info="IMU dovuta sull'immobile per i mesi in cui resta di tua proprietà durante l'operazione." />
+              <DashInput label="Spese condominio" value={data.speseCondominio || 0} onChange={(v) => upd("speseCondominio", v)} suffix="€" step={100} disabled={viewOnly} info="Spese condominiali ordinarie (ed eventuali straordinarie deliberate) a tuo carico finché le unità non sono vendute." />
               <div style={{ marginBottom: 10 }}>
-                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Banca</label>
+                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Banca<InfoTip text="Costo del finanziamento bancario: inserisci la somma finanziata e il tasso di interesse per la durata dell'operazione. Il costo è calcolato come somma × %." /></label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}><DashInput label="Somma" value={data.speseBancarieSomma} onChange={(v) => upd("speseBancarieSomma", v)} suffix="€" step={1000} disabled={viewOnly} /></div>
                   <div style={{ flex: 1 }}><DashPctInput label="%" value={data.speseBancariePct} onChange={(v) => upd("speseBancariePct", v)} disabled={viewOnly} /></div>
@@ -3460,14 +3476,14 @@ export default function App() {
                 <p style={{ color: C.textLight, fontSize: 10, margin: "0" }}>Costo: {fmtEur(Math.round(data.speseBancarieSomma * data.speseBancariePct))}</p>
               </div>
               <div style={{ marginBottom: 10 }}>
-                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Investitori</label>
+                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Interessi Investitori<InfoTip text="Remunerazione riconosciuta a eventuali investitori privati che finanziano l'operazione: somma raccolta × % pattuita." /></label>
                 <div style={{ display: "flex", gap: 8 }}>
                   <div style={{ flex: 1 }}><DashInput label="Somma" value={data.interessiSomma} onChange={(v) => upd("interessiSomma", v)} suffix="€" step={1000} disabled={viewOnly} /></div>
                   <div style={{ flex: 1 }}><DashPctInput label="%" value={data.interessiPct} onChange={(v) => upd("interessiPct", v)} disabled={viewOnly} /></div>
                 </div>
                 <p style={{ color: C.textLight, fontSize: 10, margin: "0" }}>Costo: {fmtEur(Math.round(data.interessiSomma * data.interessiPct))}</p>
               </div>
-              <DashPctInput label="Buffer imprevisti" value={data.bufferPct} onChange={(v) => upd("bufferPct", v)} note="Consigliato: 15-20%" disabled={viewOnly} />
+              <DashPctInput label="Buffer imprevisti" value={data.bufferPct} onChange={(v) => upd("bufferPct", v)} note="Consigliato: 15-20%" disabled={viewOnly} info="Riserva di sicurezza per gli imprevisti di cantiere, calcolata in % sul costo di ristrutturazione. Consigliato il 15-20%." />
               <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
                 <DataRow label="Ristrutturazione + impianti" value={fmtEur(calc.costoRistTot)} />
                 <DataRow label="Oneri comunali" value={fmtEur(data.oneriComunali)} />
@@ -3629,15 +3645,15 @@ export default function App() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, borderTop: `3px solid ${C.red}` }}>
                 <div style={{ color: C.red, fontWeight: 700, fontSize: 11, letterSpacing: 0.8, marginBottom: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Scenario pessimistico</div>
-                <DashPctInput label="Var. prezzo vendita" value={scenari.varPrezzoDown} onChange={(v) => setScenari((p) => ({ ...p, varPrezzoDown: v }))} disabled={viewOnly} />
-                <DashPctInput label="Var. costi" value={scenari.varCostiUp} onChange={(v) => setScenari((p) => ({ ...p, varCostiUp: v }))} disabled={viewOnly} />
-                <DashInput label="Mesi aggiuntivi" value={scenari.mesiExtra} onChange={(v) => setScenari((p) => ({ ...p, mesiExtra: v }))} suffix="mesi" min={0} disabled={viewOnly} />
+                <DashPctInput label="Var. prezzo vendita" value={scenari.varPrezzoDown} onChange={(v) => setScenari((p) => ({ ...p, varPrezzoDown: v }))} disabled={viewOnly} info="Di quanto scende in % il prezzo di vendita in questo scenario rispetto al caso base." />
+                <DashPctInput label="Var. costi" value={scenari.varCostiUp} onChange={(v) => setScenari((p) => ({ ...p, varCostiUp: v }))} disabled={viewOnly} info="Di quanto aumentano in % i costi dell'operazione in questo scenario rispetto al caso base." />
+                <DashInput label="Mesi aggiuntivi" value={scenari.mesiExtra} onChange={(v) => setScenari((p) => ({ ...p, mesiExtra: v }))} suffix="mesi" min={0} disabled={viewOnly} info="Mesi in più rispetto alla durata prevista: allunga l'operazione e peggiora il ROI annualizzato." />
               </div>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, borderTop: `3px solid ${C.green}` }}>
                 <div style={{ color: C.green, fontWeight: 700, fontSize: 11, letterSpacing: 0.8, marginBottom: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Scenario ottimistico</div>
-                <DashPctInput label="Var. prezzo vendita" value={scenari.varPrezzoUp} onChange={(v) => setScenari((p) => ({ ...p, varPrezzoUp: v }))} disabled={viewOnly} />
-                <DashPctInput label="Var. costi" value={scenari.varCostiDown} onChange={(v) => setScenari((p) => ({ ...p, varCostiDown: v }))} disabled={viewOnly} />
-                <DashInput label="Mesi in meno" value={scenari.mesiMeno} onChange={(v) => setScenari((p) => ({ ...p, mesiMeno: v }))} suffix="mesi" min={0} disabled={viewOnly} />
+                <DashPctInput label="Var. prezzo vendita" value={scenari.varPrezzoUp} onChange={(v) => setScenari((p) => ({ ...p, varPrezzoUp: v }))} disabled={viewOnly} info="Di quanto sale in % il prezzo di vendita in questo scenario rispetto al caso base." />
+                <DashPctInput label="Var. costi" value={scenari.varCostiDown} onChange={(v) => setScenari((p) => ({ ...p, varCostiDown: v }))} disabled={viewOnly} info="Di quanto si riducono in % i costi dell'operazione in questo scenario rispetto al caso base." />
+                <DashInput label="Mesi in meno" value={scenari.mesiMeno} onChange={(v) => setScenari((p) => ({ ...p, mesiMeno: v }))} suffix="mesi" min={0} disabled={viewOnly} info="Mesi in meno rispetto alla durata prevista: accorcia l'operazione e migliora il ROI annualizzato." />
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginBottom: 20 }}>
