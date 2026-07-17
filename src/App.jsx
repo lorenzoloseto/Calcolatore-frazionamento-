@@ -514,6 +514,7 @@ const DEFAULT_DATA = {
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
+  renditaCatastale: 0, acquistoDaImpresa: false,
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
 };
@@ -2373,6 +2374,34 @@ export default function App() {
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
 
+  // Confronto imposte di acquisto: società vs persona fisica (prima/seconda casa)
+  const confrontoAcquisto = useMemo(() => {
+    const prezzo = data.prezzoAcquisto || 0;
+    const rendita = data.renditaCatastale || 0;
+    const daImpresa = !!data.acquistoDaImpresa;
+    const stimaSuPrezzo = !daImpresa && rendita <= 0;
+    const vcPrima = rendita * 1.05 * 110; // valore catastale prima casa
+    const vcAltri = rendita * 1.05 * 120; // valore catastale altri immobili
+    let opzioni;
+    if (daImpresa) {
+      opzioni = [
+        { nome: "Società", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "Per la società l'IVA è in genere detraibile o compensabile. Nessun vincolo di rivendita, costi deducibili, utile tassato IRES 24% (+ IRAP)." },
+        { nome: "Persona fisica — 2ª casa", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "L'IVA resta un costo pieno. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%). Operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+        { nome: "Persona fisica — 1ª casa", imposte: prezzo * 0.04 + 600, dettaglio: "IVA 4% sul prezzo + 600 € fisse", note: "Vincoli: residenza nel Comune entro 18 mesi e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%), salvo riacquisto entro 1 anno. Poco adatta a un'operazione di rivendita." },
+      ];
+    } else {
+      const basePrima = vcPrima > 0 ? vcPrima : prezzo;
+      const baseAltri = vcAltri > 0 ? vcAltri : prezzo;
+      opzioni = [
+        { nome: "Società", imposte: Math.max(1000, prezzo * 0.09) + 100, dettaglio: "Registro 9% sul prezzo + 100 € ipo-catastali", note: "Niente prezzo-valore: il 9% si paga sul prezzo pieno. In compenso nessun vincolo di rivendita, costi deducibili e utile tassato in società (IRES 24% + IRAP)." },
+        { nome: "Persona fisica — 2ª casa", imposte: Math.max(1000, baseAltri * 0.09) + 100, dettaglio: rendita > 0 ? "Registro 9% sul valore catastale + 100 €" : "Registro 9% (stima sul prezzo) + 100 €", note: "Con il prezzo-valore il 9% si paga sul valore catastale, spesso molto più basso del prezzo. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%); operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+        { nome: "Persona fisica — 1ª casa", imposte: Math.max(1000, basePrima * 0.02) + 100, dettaglio: rendita > 0 ? "Registro 2% sul valore catastale + 100 €" : "Registro 2% (stima sul prezzo) + 100 €", note: "Vincoli: residenza nel Comune entro 18 mesi, nessun'altra prima casa e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%). Poco adatta a un'operazione di rivendita." },
+      ];
+    }
+    const minImposte = Math.min(...opzioni.map((o) => o.imposte));
+    return { daImpresa, stimaSuPrezzo, opzioni: opzioni.map((o) => ({ ...o, pctEff: prezzo > 0 ? o.imposte / prezzo : 0, best: o.imposte === minImposte })) };
+  }, [data.prezzoAcquisto, data.renditaCatastale, data.acquistoDaImpresa]);
+
   // ============================================================
   // EXPORT EXCEL (same as v1)
   // ============================================================
@@ -3436,6 +3465,38 @@ export default function App() {
 
         {/* RISULTATI TAB */}
         {dashTab === "risultati" && (<>
+          {/* CONFRONTO ACQUISTO: SOCIETÀ VS PERSONA FISICA */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginBottom: 16 }}>
+            <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 6, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Come conviene acquistare?</div>
+            <p style={{ color: C.textMid, fontSize: 12, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Confronto delle imposte di acquisto su un prezzo di {fmtEur(data.prezzoAcquisto)}: società vs persona fisica (prima o seconda casa).</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
+              <DashInput label="Rendita catastale" value={data.renditaCatastale || 0} onChange={(v) => upd("renditaCatastale", v)} suffix="€" step={50} disabled={viewOnly} info="La trovi in visura catastale. Serve per il prezzo-valore: se compri da privato come persona fisica, il registro si calcola sul valore catastale (rendita rivalutata) invece che sul prezzo." />
+              <div style={{ marginBottom: 10 }}>
+                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Venditore<InfoTip text="Da chi compri: da un privato si paga l'imposta di registro; da un'impresa con vendita soggetta a IVA (es. costruttore entro 5 anni da fine lavori) si paga l'IVA sul prezzo." /></label>
+                <div style={{ display: "flex", gap: 6 }}>
+                  {[{ v: false, l: "Privato" }, { v: true, l: "Impresa (IVA)" }].map((o) => (
+                    <button key={o.l} disabled={viewOnly} onClick={() => upd("acquistoDaImpresa", o.v)} style={{ flex: 1, padding: "8px 6px", borderRadius: 4, border: `1px solid ${!!data.acquistoDaImpresa === o.v ? C.accent : C.inputBorder}`, background: !!data.acquistoDaImpresa === o.v ? C.highlight : C.inputBg, color: !!data.acquistoDaImpresa === o.v ? C.dark : C.textMid, fontWeight: 600, fontSize: 12, cursor: viewOnly ? "default" : "pointer", fontFamily: "-apple-system, sans-serif" }}>{o.l}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            {confrontoAcquisto.stimaSuPrezzo && (
+              <p style={{ color: C.accent, fontSize: 11, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif" }}>⚠ Senza rendita catastale la stima per persona fisica è calcolata sul prezzo: inserisci la rendita per un confronto realistico (di solito molto più favorevole).</p>
+            )}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+              {confrontoAcquisto.opzioni.map((o) => (
+                <div key={o.nome} style={{ border: `1px solid ${o.best ? C.green : C.border}`, background: o.best ? C.greenBg : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
+                  {o.best && <div style={{ position: "absolute", top: -9, right: 10, background: C.green, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Più conveniente</div>}
+                  <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{o.nome}</div>
+                  <div style={{ color: C.dark, fontSize: 22, fontWeight: 700, margin: "4px 0 2px" }}>{fmtEur(Math.round(o.imposte))}</div>
+                  <div style={{ color: C.textMid, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>{fmtPct(o.pctEff)} del prezzo · {o.dettaglio}</div>
+                  <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "8px 0 0", fontFamily: "-apple-system, sans-serif" }}>{o.note}</p>
+                  {!viewOnly && <button onClick={() => upd("tasseAcquistoPct", Math.round(o.pctEff * 10000) / 10000)} style={{ marginTop: 10, width: "100%", background: "transparent", border: `1px solid ${C.navy}`, color: C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Usa nel calcolo</button>}
+                </div>
+              ))}
+            </div>
+            <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "12px 0 0", fontFamily: "-apple-system, sans-serif" }}>Stima indicativa a fini di confronto (aliquote standard, esclusi casi lusso/agevolazioni particolari): verifica sempre con notaio e commercialista. "Usa nel calcolo" imposta la voce Tasse acquisto alla percentuale effettiva dell'opzione scelta.</p>
+          </div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
@@ -3460,7 +3521,7 @@ export default function App() {
               <DashPctInput label="Provvigioni agenzia (IN)" value={data.provvigioniInPct || 0} onChange={(v) => upd("provvigioniInPct", v)} note="Sull'acquisto" disabled={viewOnly} info="Provvigione dell'agenzia immobiliare sull'acquisto, in % sul prezzo di acquisto. Lascia 0 se compri senza agenzia." />
               <DashPctInput label="Provvigioni agenzia (OUT)" value={data.provvigioniPct} onChange={(v) => upd("provvigioniPct", v)} note="Sulla vendita" disabled={viewOnly} info="Provvigione dell'agenzia sulla vendita delle unità, in % sul ricavo totale. Viene sottratta dal ricavo lordo." />
               <DashInput label="Notaio competenze" value={data.notaio || 0} onChange={(v) => upd("notaio", v)} suffix="€" step={500} disabled={viewOnly} info="Onorario del notaio per l'atto di acquisto (ed eventuali atti successivi come mutuo o deposito prezzo). Le imposte sono nella voce Tasse acquisto." />
-              <DashPctInput label="Tasse acquisto (società)" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Imposta di registro: 9%" disabled={viewOnly} info="Imposte sull'acquisto in % sul prezzo (registro, ipotecaria e catastale). Per una società che compra da privato un residenziale: registro 9%." />
+              <DashPctInput label="Tasse acquisto" value={data.tasseAcquistoPct} onChange={(v) => upd("tasseAcquistoPct", v)} note="Società da privato: registro 9%" disabled={viewOnly} info="Imposte sull'acquisto in % sul prezzo (registro/IVA, ipotecaria e catastale). Usa il confronto 'Come conviene acquistare?' in cima ai risultati per calcolarla in base a società, prima o seconda casa." />
               <DashInput label="Allacciamenti utenze" value={data.allacciamentiUtenze} onChange={(v) => upd("allacciamentiUtenze", v)} suffix="€" step={500} disabled={viewOnly} info="Costi per i nuovi contatori e gli allacci di luce, gas e acqua delle unità create con il frazionamento." />
               <DashInput label="Bollette Gas, Luce ecc" value={data.bolletteGasLuce} onChange={(v) => upd("bolletteGasLuce", v)} suffix="€" step={100} disabled={viewOnly} info="Utenze consumate durante il cantiere e fino alla vendita delle unità (energia per i lavori, riscaldamento, acqua)." />
               <DashInput label="Consulenze Tecniche" value={data.consulenzeTecniche} onChange={(v) => upd("consulenzeTecniche", v)} suffix="€" step={500} disabled={viewOnly} info="Perizie e consulenze specialistiche: verifiche strutturali, relazioni acustiche o termotecniche, consulenze legali o fiscali." />
