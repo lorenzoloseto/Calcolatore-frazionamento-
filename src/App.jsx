@@ -514,7 +514,7 @@ const DEFAULT_DATA = {
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
-  renditaCatastale: 0, acquistoDaImpresa: false,
+  renditaCatastale: 0, acquistoDaImpresa: false, tipoAcquisto: "societa",
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
 };
@@ -818,6 +818,7 @@ function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, 
 // ============================================================
 const STEPS = [
   { id: "welcome", title: "Nuovo\nconto economico", subtitle: "Costruisci l'analisi della tua operazione immobiliare. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
+  { id: "tipoAcquisto", title: "Come acquisti l'immobile?", subtitle: "Cambia le imposte di acquisto (registro o IVA) e quindi il margine dell'operazione.", type: "buyerType" },
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
   { id: "metratura", title: "Superficie totale", subtitle: "La metratura commerciale dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
   { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
@@ -2074,7 +2075,7 @@ export default function App() {
   // Salta a ogni schermata del wizard (Welcome → 6 domande → Dati → Risultato)
   // per ispezionarla senza compilare. I lead (senza ?flow=1) non la vedono.
   const FLOW_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("flow") === "1";
-  const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Indirizzo", 1], ["Superficie", 2], ["Prezzo acq.", 3], ["Prezzo vend.", 4], ["Ristrutt.", 5], ["Durata", 6], ["Dati", "gate"], ["Risultato", "result"]];
+  const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Acquisto", 1], ["Indirizzo", 2], ["Superficie", 3], ["Prezzo acq.", 4], ["Prezzo vend.", 5], ["Ristrutt.", 6], ["Durata", 7], ["Dati", "gate"], ["Risultato", "result"]];
   const goScreen = (key) => {
     setShowLeadGate(false);
     if (key === "landing") { setShowLanding(true); return; }
@@ -2385,17 +2386,17 @@ export default function App() {
     let opzioni;
     if (daImpresa) {
       opzioni = [
-        { nome: "Società", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "Per la società l'IVA è in genere detraibile o compensabile. Nessun vincolo di rivendita, costi deducibili, utile tassato IRES 24% (+ IRAP)." },
-        { nome: "Persona fisica — 2ª casa", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "L'IVA resta un costo pieno. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%). Operazioni ripetute rischiano la riqualifica come attività d'impresa." },
-        { nome: "Persona fisica — 1ª casa", imposte: prezzo * 0.04 + 600, dettaglio: "IVA 4% sul prezzo + 600 € fisse", note: "Vincoli: residenza nel Comune entro 18 mesi e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%), salvo riacquisto entro 1 anno. Poco adatta a un'operazione di rivendita." },
+        { key: "societa", nome: "Società", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "Per la società l'IVA è in genere detraibile o compensabile. Nessun vincolo di rivendita, costi deducibili, utile tassato IRES 24% (+ IRAP)." },
+        { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "L'IVA resta un costo pieno. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%). Operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+        { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: prezzo * 0.04 + 600, dettaglio: "IVA 4% sul prezzo + 600 € fisse", note: "Vincoli: residenza nel Comune entro 18 mesi e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%), salvo riacquisto entro 1 anno. Poco adatta a un'operazione di rivendita." },
       ];
     } else {
       const basePrima = vcPrima > 0 ? vcPrima : prezzo;
       const baseAltri = vcAltri > 0 ? vcAltri : prezzo;
       opzioni = [
-        { nome: "Società", imposte: Math.max(1000, prezzo * 0.09) + 100, dettaglio: "Registro 9% sul prezzo + 100 € ipo-catastali", note: "Niente prezzo-valore: il 9% si paga sul prezzo pieno. In compenso nessun vincolo di rivendita, costi deducibili e utile tassato in società (IRES 24% + IRAP)." },
-        { nome: "Persona fisica — 2ª casa", imposte: Math.max(1000, baseAltri * 0.09) + 100, dettaglio: rendita > 0 ? "Registro 9% sul valore catastale + 100 €" : "Registro 9% (stima sul prezzo) + 100 €", note: "Con il prezzo-valore il 9% si paga sul valore catastale, spesso molto più basso del prezzo. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%); operazioni ripetute rischiano la riqualifica come attività d'impresa." },
-        { nome: "Persona fisica — 1ª casa", imposte: Math.max(1000, basePrima * 0.02) + 100, dettaglio: rendita > 0 ? "Registro 2% sul valore catastale + 100 €" : "Registro 2% (stima sul prezzo) + 100 €", note: "Vincoli: residenza nel Comune entro 18 mesi, nessun'altra prima casa e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%). Poco adatta a un'operazione di rivendita." },
+        { key: "societa", nome: "Società", imposte: Math.max(1000, prezzo * 0.09) + 100, dettaglio: "Registro 9% sul prezzo + 100 € ipo-catastali", note: "Niente prezzo-valore: il 9% si paga sul prezzo pieno. In compenso nessun vincolo di rivendita, costi deducibili e utile tassato in società (IRES 24% + IRAP)." },
+        { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: Math.max(1000, baseAltri * 0.09) + 100, dettaglio: rendita > 0 ? "Registro 9% sul valore catastale + 100 €" : "Registro 9% (stima sul prezzo) + 100 €", note: "Con il prezzo-valore il 9% si paga sul valore catastale, spesso molto più basso del prezzo. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%); operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+        { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: Math.max(1000, basePrima * 0.02) + 100, dettaglio: rendita > 0 ? "Registro 2% sul valore catastale + 100 €" : "Registro 2% (stima sul prezzo) + 100 €", note: "Vincoli: residenza nel Comune entro 18 mesi, nessun'altra prima casa e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%). Poco adatta a un'operazione di rivendita." },
       ];
     }
     const minImposte = Math.min(...opzioni.map((o) => o.imposte));
@@ -2503,7 +2504,7 @@ export default function App() {
   // LANDING PAGE
   // ============================================================
   const LP_FEATURES = LEAD_MODE ? [
-    { Icon: LpIconLightning, title: "Conto Economico Immediato", desc: "Rispondi a 6 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
+    { Icon: LpIconLightning, title: "Conto Economico Immediato", desc: "Rispondi a 7 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
     { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Scopri se l'operazione regge anche quando i prezzi scendono e i costi salgono." },
     { Icon: LpIconGrid, title: "Ristrutturazione Voce per Voce", desc: "30 voci di costo precaricate: impianti, infissi, frazionamento catastale, oneri. Affina la stima come un cantiere vero." },
     { Icon: LpIconServer, title: "Confronto Comparabili", desc: "Inserisci gli immobili in vendita nella zona e confronta il tuo prezzo di uscita con la media reale del mercato." },
@@ -2518,7 +2519,7 @@ export default function App() {
     { Icon: LpIconDownload, title: "Export Professionale", desc: "Scarica il conto economico completo in formato Excel, pronto per finanziatori e istituti di credito." },
   ];
   const LP_STEPS = LEAD_MODE ? [
-    { num: "01", title: "Rispondi a 6 domande", desc: "Indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. Senza registrazione." },
+    { num: "01", title: "Rispondi a 7 domande", desc: "Tipo di acquisto, indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. Senza registrazione." },
     { num: "02", title: "Sblocca il conto economico", desc: "Margine netto, ROI, investimento totale e verdetto automatico: l'operazione regge anche nello scenario pessimistico?" },
     { num: "03", title: "Affina i numeri", desc: "Ristrutturazione voce per voce, comparabili di zona, scenari personalizzati. Poi scarica tutto in Excel." },
   ] : [
@@ -3297,7 +3298,7 @@ export default function App() {
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 20px 30px", textAlign: "center", opacity: fadeIn ? 1 : 0, transform: fadeIn ? "translateY(0)" : "translateY(16px)", transition: "all 0.2s ease" }}>
           {s.isWelcome && <div style={{ width: 64, height: 4, background: C.accent, margin: "0 auto 24px", borderRadius: 2 }} />}
           <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{LEAD_MODE && s.isWelcome ? "Calcola il tuo\nfrazionamento" : s.title}</h1>
-          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi a 6 domande sulla tua operazione. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
+          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi a 7 domande sulla tua operazione. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
           {s.type === "address" && (
             <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", gap: 10 }}>
@@ -3321,6 +3322,30 @@ export default function App() {
           )}
           {s.type === "number" && <WizardNumberInput value={data[s.field]} onChange={(v) => upd(s.field, v)} suffix={s.suffix} step={s.step} />}
           {s.type === "slider" && <WizardSlider value={data[s.field]} onChange={(v) => upd(s.field, v)} min={s.min} max={s.max} labels={s.labels} unit={s.unit} />}
+          {s.type === "buyerType" && (
+            <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }}>
+              {[
+                { key: "societa", label: "Società", desc: "Acquisto tramite SRL o altra società" },
+                { key: "privato_prima", label: "Privato — prima casa", desc: "Sarà la tua residenza principale" },
+                { key: "privato_seconda", label: "Privato — seconda casa", desc: "Non è la tua prima casa" },
+              ].map((o) => (
+                <button key={o.key} onClick={() => {
+                  upd("tipoAcquisto", o.key);
+                  const opt = confrontoAcquisto.opzioni.find((x) => x.key === o.key);
+                  if (opt) upd("tasseAcquistoPct", Math.round(opt.pctEff * 10000) / 10000);
+                }} style={{
+                  textAlign: "left", padding: "14px 16px", borderRadius: 8, cursor: "pointer",
+                  border: `2px solid ${data.tipoAcquisto === o.key ? C.accent : C.borderDark}`,
+                  background: data.tipoAcquisto === o.key ? C.highlight : C.card,
+                  fontFamily: "-apple-system, sans-serif",
+                }}>
+                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 15 }}>{o.label}</div>
+                  <div style={{ color: C.textMid, fontSize: 12.5, marginTop: 2 }}>{o.desc}</div>
+                </button>
+              ))}
+              <p style={{ color: C.textLight, fontSize: 12, margin: "4px 0 0", lineHeight: 1.5 }}>Determina le imposte di acquisto (registro o IVA). Potrai confrontare le opzioni in dettaglio e cambiare scelta più avanti.</p>
+            </div>
+          )}
           {s.field === "prezzoAcquisto" && data.metratura > 0 && <div style={{ marginTop: 14, color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Equivale a {fmtEur(Math.round(data.prezzoAcquisto / data.metratura))}/mq</div>}
           {s.field === "prezzoVenditaMq" && <div style={{ marginTop: 14, color: C.textLight, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Ricavo totale stimato: <strong style={{ color: C.dark }}>{fmtEur(data.prezzoVenditaMq * data.metratura)}</strong></div>}
         </div>
@@ -3484,16 +3509,19 @@ export default function App() {
               <p style={{ color: C.accent, fontSize: 11, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif" }}>⚠ Senza rendita catastale la stima per persona fisica è calcolata sul prezzo: inserisci la rendita per un confronto realistico (di solito molto più favorevole).</p>
             )}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
-              {confrontoAcquisto.opzioni.map((o) => (
-                <div key={o.nome} style={{ border: `1px solid ${o.best ? C.green : C.border}`, background: o.best ? C.greenBg : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
+              {confrontoAcquisto.opzioni.map((o) => {
+                const selected = data.tipoAcquisto === o.key;
+                return (
+                <div key={o.nome} style={{ border: `1px solid ${o.best ? C.green : selected ? C.navy : C.border}`, background: o.best ? C.greenBg : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
                   {o.best && <div style={{ position: "absolute", top: -9, right: 10, background: C.green, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Più conveniente</div>}
+                  {selected && !o.best && <div style={{ position: "absolute", top: -9, left: 10, background: C.navy, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>La tua scelta</div>}
                   <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{o.nome}</div>
                   <div style={{ color: C.dark, fontSize: 22, fontWeight: 700, margin: "4px 0 2px" }}>{fmtEur(Math.round(o.imposte))}</div>
                   <div style={{ color: C.textMid, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>{fmtPct(o.pctEff)} del prezzo · {o.dettaglio}</div>
                   <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "8px 0 0", fontFamily: "-apple-system, sans-serif" }}>{o.note}</p>
-                  {!viewOnly && <button onClick={() => upd("tasseAcquistoPct", Math.round(o.pctEff * 10000) / 10000)} style={{ marginTop: 10, width: "100%", background: "transparent", border: `1px solid ${C.navy}`, color: C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Usa nel calcolo</button>}
+                  {!viewOnly && <button onClick={() => { upd("tasseAcquistoPct", Math.round(o.pctEff * 10000) / 10000); upd("tipoAcquisto", o.key); }} style={{ marginTop: 10, width: "100%", background: "transparent", border: `1px solid ${C.navy}`, color: C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Usa nel calcolo</button>}
                 </div>
-              ))}
+              );})}
             </div>
             <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "12px 0 0", fontFamily: "-apple-system, sans-serif" }}>Stima indicativa a fini di confronto (aliquote standard, esclusi casi lusso/agevolazioni particolari): verifica sempre con notaio e commercialista. "Usa nel calcolo" imposta la voce Tasse acquisto alla percentuale effettiva dell'opzione scelta.</p>
           </div>
