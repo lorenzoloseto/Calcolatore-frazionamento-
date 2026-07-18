@@ -3355,7 +3355,7 @@ export default function App() {
             {s.isWelcome ? "Inizia l'analisi" : step === STEPS.length - 1 ? "Vedi i risultati" : "Avanti"}
           </button>
         </div>
-        {step > 0 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={() => { if (LEAD_MODE && !leadCaptured) openLeadGate(); else setShowDash(true); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta al risultato</button></div>}
+        {step > 0 && step < STEPS.length - 1 && <div style={{ textAlign: "center", paddingBottom: 20 }}><button onClick={goNext} style={{ background: "none", border: "none", color: C.textLight, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Salta questa domanda</button></div>}
         {showLeadGate && <LeadGateModal form={leadForm} setForm={setLeadForm} error={leadError} submitting={leadSubmitting} privacy={leadPrivacy} setPrivacy={setLeadPrivacy} onSubmit={handleLeadSubmit} onClose={() => setShowLeadGate(false)} onShowPrivacy={() => setShowPrivacy(true)} />}
         {/* GDPR: Privacy Modal + Cookie Banner */}
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
