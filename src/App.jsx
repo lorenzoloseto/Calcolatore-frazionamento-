@@ -516,7 +516,7 @@ const DEFAULT_DATA = {
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
   renditaCatastale: 0, acquistoDaImpresa: false, tipoAcquisto: "societa",
   appalto: {
-    committenti: "",
+    committentiList: [{ nome: "", sede: "", cf: "", rea: "", pec: "" }],
     appaltatoreNome: "Gruppo Loseto Srl", appaltatoreSede: "Via Abate Gimma, Bari (BA)",
     appaltatoreCf: "08558400720", appaltatoreRea: "634855", appaltatorePec: "gruppoloseto@pec.it",
     appaltatoreRappresentante: "Lorenzo Loseto",
@@ -2534,6 +2534,16 @@ export default function App() {
     const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
     const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     const blank = (v) => (v && String(v).trim() ? esc(v) : "___________________");
+    const committentiValidi = (ap.committentiList || []).filter((c) => c.nome || c.sede || c.cf || c.rea || c.pec);
+    const committentiDesc = committentiValidi.length ? committentiValidi.map((cm) => {
+      let s = cm.nome ? esc(cm.nome) : "___________________";
+      const dettagli = [];
+      if (cm.sede) dettagli.push(`con sede/residenza in ${esc(cm.sede)}`);
+      if (cm.cf) dettagli.push(`Codice Fiscale/P.IVA ${esc(cm.cf)}`);
+      if (cm.rea) dettagli.push(`R.E.A. ${esc(cm.rea)}`);
+      if (cm.pec) dettagli.push(`PEC/Email ${esc(cm.pec)}`);
+      return dettagli.length ? `${s}, ${dettagli.join(", ")}` : s;
+    }).join("; ") : "___________________";
     const indirizzoImmobile = (() => { const s = [data.via, data.civico].filter(Boolean).join(" "); return [s, data.citta].filter(Boolean).join(", "); })();
     const costoAppalto = ap.costoAppalto > 0 ? ap.costoAppalto : Math.round(calc.costoRistTot);
     const durataLavori = ap.durataLavoriMesi > 0 ? ap.durataLavoriMesi : data.durataOp;
@@ -2543,7 +2553,7 @@ export default function App() {
     let c = "";
     c += `<h1>C O N T R A T T O&nbsp;&nbsp;S P E C I A L E&nbsp;&nbsp;D’ A P P A L T O</h1>`;
     c += `<p class="center">TRA</p>`;
-    c += p(`I sigg. ${blank(ap.committenti)} con sede ubicata alla Via Fratelli Prayer n°14 cap Bari (BA) in qualità di “Committente”,`);
+    c += p(`I sigg. ${committentiDesc} in qualità di “Committente”,`);
     c += `<p class="center">E</p>`;
     c += p(`la società “${esc(ap.appaltatoreNome)}” (di seguito denominata “Società Appaltatrice”) con sede in ${esc(ap.appaltatoreSede)}, Codice Fiscale Partita Iva e numero iscrizione registro delle imprese ${esc(ap.appaltatoreCf)}, iscritta presso la Camera Di Commercio con il numero R.E.A. ${esc(ap.appaltatoreRea)}, con indirizzo di posta elettronica (Pec) ${esc(ap.appaltatorePec)} rappresentata nel presente contratto dall’amministratore unico sig. ${esc(ap.appaltatoreRappresentante)} e domiciliato presso la sede della società che rappresenta,`);
     c += `<p class="center">* * * * * * * * * * * *</p>`;
@@ -2559,7 +2569,7 @@ export default function App() {
       + p(`I lavori da realizzarsi, di cui al seguente articolo 2, saranno eseguiti conformemente per tipologia e consistenza, come da computi metrici allegati per la ristrutturazione edilizia sulle singole unità immobiliari, per le facciate e per la ristrutturazione delle parti comuni così come opportunamente dettagliato negli allegati richiamati nelle premesse tutte parti integranti del presente contratto.`)
       + p(`I lavori vengono commessi e appaltati alle condizioni contrattuali di cui ai seguenti articoli.`));
     c += art(2, "Capitolato speciale d’appalto", p(`I lavori oggetto del presente contratto consisteranno nella realizzazione di tutte le opere di ristrutturazione edilizia sulle singole unità immobiliari.`));
-    c += art(3, "Oneri a carico della committente", p(`I committenti ${blank(ap.committenti)} si obbligano ad intervenire in prima persona o tramite loro procuratori, in ogni atto pubblico e/o privato e richiesta, per i quali necessiti la sottoscrizione, anche presso pubblici uffici, ovvero attraverso l’attestazione del proprio consenso, il tutto finalizzato all’acquisizione documentale, alle attività di ricerca presso pubblici archivi, al rilascio di concessioni, autorizzazioni, pareri e quant’altro necessario per il conseguimento del presente contratto.`));
+    c += art(3, "Oneri a carico della committente", p(`I committenti ${committentiDesc} si obbligano ad intervenire in prima persona o tramite loro procuratori, in ogni atto pubblico e/o privato e richiesta, per i quali necessiti la sottoscrizione, anche presso pubblici uffici, ovvero attraverso l’attestazione del proprio consenso, il tutto finalizzato all’acquisizione documentale, alle attività di ricerca presso pubblici archivi, al rilascio di concessioni, autorizzazioni, pareri e quant’altro necessario per il conseguimento del presente contratto.`));
     c += art(4, "Oneri a carico della società appaltatrice", p(`Saranno a carico della società appaltatrice: le spese per la fornitura dell'energia elettrica e dell’acqua, oltre tutto quanto riportato nei successivi articoli.`));
     c += art(5, "Osservanze legislative e responsabilità", p(`L’esecuzione dei lavori dovrà essere fatta a completo rischio e pericolo della società appaltatrice, la quale adotterà ogni accorgimento atto a salvaguardare la vita degli operai e quella di estranei al cantiere, assumendosi ogni responsabilità civile e penale per danni a persone e cose, dalla quale responsabilità si intendono sollevati sia la committente che il Direttore dei lavori.`)
       + p(`La società appaltatrice si impegna alla scrupolosa osservanza di tutte le norme di legge e regolamenti vigenti e/o emanati, rimane l'unico responsabile della loro scrupolosa applicazione ed osservanza con particolare riferimento a quelle relative alla prevenzione degli infortuni sul lavoro.`)
@@ -2580,7 +2590,7 @@ export default function App() {
     c += art(12, "Subappalto", p(`La ditta appaltatrice, in caso di oggettiva impossibilità e/o in mancanza dei necessari profili autorizzati per le certificazioni impiantistiche, quest’ultima provvederà a ricercare imprese e maestranze.`)
       + p(`Il riferimento unico della committente rimarrà sempre la società appaltatrice che risponderà per eventuali vizi e difetti di natura costruttiva. In nessun caso, quindi, il subappalto potrà essere opposto alla committente come motivo di giustificazione, causa e/o esimente di responsabilità per inadempienze, ritardi o non perfette realizzazioni delle opere subappaltate.`));
     c += art(13, "Assicurazione maestranze subappaltatrici", p(`Le eventuali altre società subappaltatrici, le quali, sotto la supervisione della società appaltatrice si impegneranno a dichiarare che gli operai addetti ai lavori saranno regolarmente assicurati a norma delle vigenti leggi in materia al momento dell’inizio dei lavori.`));
-    c += art(14, "Assicurazione di asseverazione", p(`La società ${esc(ap.appaltatoreNome)} si obbliga a verificare, ai sensi e per gli effetti del decreto legge 34/20, che i tecnici incaricati quali ingegneri, architetti, geometri e periti in particolare, abbiano sottoscritto polizza assicurativa con idoneo massimale che dovrà adeguarsi alla quantità delle attestazioni o delle asseverazioni rilasciate, oltre che agli importi degli interventi oggetto delle attestazioni o asseverazioni. Altresì, la suddetta società dovrà verificare che allegati al documento di asseverazione, ci siano copie delle polizze assicurative RC professionali dei tecnici incaricati, che costituiscono parte integrante del documento, unitamente alla copia del documento di riconoscimento. A tal riguardo, i committenti ${blank(ap.committenti)}, sono esonerati da qualsiasi responsabilità in capo alla mancata o regolare sottoscrizione della polizza de quo, e potranno esercitare il diritto di rivalsa nei confronti della società ${esc(ap.appaltatoreNome)}.`));
+    c += art(14, "Assicurazione di asseverazione", p(`La società ${esc(ap.appaltatoreNome)} si obbliga a verificare, ai sensi e per gli effetti del decreto legge 34/20, che i tecnici incaricati quali ingegneri, architetti, geometri e periti in particolare, abbiano sottoscritto polizza assicurativa con idoneo massimale che dovrà adeguarsi alla quantità delle attestazioni o delle asseverazioni rilasciate, oltre che agli importi degli interventi oggetto delle attestazioni o asseverazioni. Altresì, la suddetta società dovrà verificare che allegati al documento di asseverazione, ci siano copie delle polizze assicurative RC professionali dei tecnici incaricati, che costituiscono parte integrante del documento, unitamente alla copia del documento di riconoscimento. A tal riguardo, i committenti ${committentiDesc}, sono esonerati da qualsiasi responsabilità in capo alla mancata o regolare sottoscrizione della polizza de quo, e potranno esercitare il diritto di rivalsa nei confronti della società ${esc(ap.appaltatoreNome)}.`));
     c += art(15, "Inadempienza alle norme contrattuali", p(`Sono a carico della parte inadempiente i danni derivanti dalla inosservanza delle norme contrattuali.`));
     c += art(16, "Norme finali", p(`La società appaltatrice dichiara di essersi resa conto perfettamente dell’entità dell’opera da realizzare, dei lavori in contratto, delle modalità costruttive e dei materiali da impiegare, delle condizioni e dei tempi di attuazione e di pagamento, di aver visionato attentamente la conformazione dei luoghi, il progetto architettonico, i disegni esecutivi delle opere e rifiniture. Per tutto quanto non previsto dal presente contratto e dal capitolato speciale d’appalto si rinvia alle norme del codice civile in materia di appalti.`));
     c += art(17, "Tutela e riservatezza dei dati personali", p(`Le Parti si danno reciprocamente atto che il trattamento dei dati personali dovrà avvenire nel rispetto della normativa vigente in materia, ivi incluso il Regolamento (UE) 2016/679 relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali (GDPR) e sarà effettuato esclusivamente per le finalità previste nel presente Contratto. Con la sottoscrizione del Contratto ciascuna Parte presta il consenso al trattamento dei dati personali e a trasmetterli esclusivamente ai soggetti ai quali la comunicazione è consentita per legge ovvero ai soggetti per i quali la comunicazione è necessaria ai fini dell’esecuzione degli obblighi di cui al Contratto.`)
@@ -3952,13 +3962,28 @@ export default function App() {
         {dashTab === "appalto" && (() => {
           const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
           const uA = (f, v) => updAppalto(f, v);
+          const committenti = ap.committentiList?.length ? ap.committentiList : [{ nome: "", sede: "", cf: "", rea: "", pec: "" }];
+          const updCommittente = (idx, f, v) => uA("committentiList", committenti.map((c, i) => (i === idx ? { ...c, [f]: v } : c)));
+          const addCommittente = () => uA("committentiList", [...committenti, { nome: "", sede: "", cf: "", rea: "", pec: "" }]);
+          const removeCommittente = (idx) => uA("committentiList", committenti.filter((_, i) => i !== idx));
           return (
           <>
             <p style={{ color: C.textMid, fontSize: 12.5, margin: "0 0 16px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>Compila i dati mancanti e genera una bozza di contratto d'appalto Word, basata sul modello standard tra committente e società appaltatrice per la ristrutturazione. Alcuni dati (indirizzo, superficie, costo ristrutturazione) sono già ripresi dal progetto.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                 <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Le parti</div>
-                <DashTextArea label="Committente/i" value={ap.committenti} onChange={(v) => uA("committenti", v)} placeholder="Es. Mario Rossi, nato a Bari il ..., C.F. ..., residente in ..." disabled={viewOnly} rows={4} info="Nome/i e dati anagrafici di chi acquista/commissiona i lavori (i 'promissari acquirenti'). Se sono più d'uno, elencali tutti qui: compariranno così nel contratto generato." />
+                <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 6 }}>Committente/i<InfoTip text="Chi acquista/commissiona i lavori (i 'promissari acquirenti'): persona fisica o società, uno o più d'uno. Aggiungi una scheda per ciascuno: compariranno tutti nel contratto generato con i rispettivi dati." /></div>
+                {committenti.map((c, idx) => (
+                  <div key={idx} style={{ border: `1px solid ${C.border}`, borderRadius: 4, padding: "12px 12px 2px", marginBottom: 10, position: "relative", background: C.inputBg }}>
+                    {committenti.length > 1 && !viewOnly && <button onClick={() => removeCommittente(idx)} style={{ position: "absolute", top: 6, right: 6, background: "none", border: "none", color: C.red, cursor: "pointer", fontSize: 14, fontWeight: 700, padding: "2px 6px" }}>×</button>}
+                    <DashTextInput label="Nome / Ragione sociale" value={c.nome} onChange={(v) => updCommittente(idx, "nome", v)} placeholder="Es. Mario Rossi, o Rossi Immobiliare Srl" disabled={viewOnly} />
+                    <DashTextInput label="Residenza / Sede" value={c.sede} onChange={(v) => updCommittente(idx, "sede", v)} placeholder="Es. Bari, Via Roma 10" disabled={viewOnly} />
+                    <DashTextInput label="Codice fiscale / P.IVA" value={c.cf} onChange={(v) => updCommittente(idx, "cf", v)} disabled={viewOnly} />
+                    <DashTextInput label="N. R.E.A. (se società)" value={c.rea} onChange={(v) => updCommittente(idx, "rea", v)} placeholder="Solo se il committente è una società" disabled={viewOnly} />
+                    <DashTextInput label="PEC / Email" value={c.pec} onChange={(v) => updCommittente(idx, "pec", v)} disabled={viewOnly} />
+                  </div>
+                ))}
+                {!viewOnly && <button onClick={addCommittente} style={{ background: "transparent", border: `1px solid ${C.accent}`, color: C.accent, borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", marginBottom: 14 }}>+ Aggiungi committente</button>}
                 <div style={{ marginTop: 14, marginBottom: 6, color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Società appaltatrice</div>
                 <DashTextInput label="Ragione sociale" value={ap.appaltatoreNome} onChange={(v) => uA("appaltatoreNome", v)} disabled={viewOnly} info="Chi esegue i lavori. Precompilato con Gruppo Loseto Srl, modificabile se l'appalto è affidato a un'altra impresa." />
                 <DashTextInput label="Sede" value={ap.appaltatoreSede} onChange={(v) => uA("appaltatoreSede", v)} disabled={viewOnly} />
