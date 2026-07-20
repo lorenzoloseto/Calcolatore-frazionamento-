@@ -515,6 +515,14 @@ const DEFAULT_DATA = {
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
   renditaCatastale: 0, acquistoDaImpresa: false, tipoAcquisto: "societa",
+  appalto: {
+    committenti: "",
+    appaltatoreNome: "Gruppo Loseto Srl", appaltatoreSede: "Via Abate Gimma, Bari (BA)",
+    appaltatoreCf: "08558400720", appaltatoreRea: "634855", appaltatorePec: "gruppoloseto@pec.it",
+    appaltatoreRappresentante: "Lorenzo Loseto",
+    foglio: "", particella: "", subalterni: "", categoria: "A3/A5",
+    costoAppalto: 0, durataLavoriMesi: 0, dataContratto: "", linkDocumento: "",
+  },
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
 };
@@ -703,6 +711,24 @@ function DashInput({ label, value, onChange, suffix, step = 1, min = 0, max, not
         {suffix && <span style={{ padding: "0 8px 0 0", color: C.textLight, fontSize: 12, fontWeight: 600, whiteSpace: "nowrap" }}>{suffix}</span>}
       </div>
       {note && <p style={{ color: C.textLight, fontSize: 10, margin: "2px 0 0" }}>{note}</p>}
+    </div>
+  );
+}
+function DashTextInput({ label, value, onChange, placeholder, disabled, info }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>{label}<InfoTip text={info} /></label>
+      <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled}
+        style={{ width: "100%", boxSizing: "border-box", background: disabled ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 4, color: disabled ? C.textLight : C.dark, fontSize: 14, fontWeight: 600, padding: "7px 8px", outline: "none", fontFamily: "inherit" }} />
+    </div>
+  );
+}
+function DashTextArea({ label, value, onChange, placeholder, disabled, info, rows = 3 }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>{label}<InfoTip text={info} /></label>
+      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} disabled={disabled} rows={rows}
+        style={{ width: "100%", boxSizing: "border-box", background: disabled ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 4, color: disabled ? C.textLight : C.dark, fontSize: 14, fontWeight: 600, padding: "7px 8px", outline: "none", fontFamily: "inherit", resize: "vertical" }} />
     </div>
   );
 }
@@ -1849,7 +1875,7 @@ export default function App() {
     loadProjectSnapshot(__sharedId).then((proj) => {
       if (proj) {
         setProjectName(proj.name);
-        setData(proj.data);
+        setData({ ...DEFAULT_DATA, ...proj.data });
         setScenari(proj.scenari);
         setComparabili(proj.comparabili);
         setRistItems(proj.ristItems);
@@ -1978,6 +2004,7 @@ export default function App() {
     setRistItems((prev) => prev.map((it, i) => i === idx ? { ...it, [field]: val } : it));
   }, []);
   const upd = useCallback((f, v) => setData((p) => ({ ...p, [f]: v })), []);
+  const updAppalto = useCallback((f, v) => setData((p) => ({ ...p, appalto: { ...DEFAULT_DATA.appalto, ...p.appalto, [f]: v } })), []);
   const animTo = useCallback((fn) => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 180); }, []);
   const goNext = () => {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
@@ -2493,6 +2520,79 @@ export default function App() {
     a.href = url; a.download = `FRAZIO_${nome}.xls`; a.click();
     URL.revokeObjectURL(url);
   }, [data, calc, ristItems, ristTotale]);
+
+  // ============================================================
+  // GENERA CONTRATTO D'APPALTO (Word)
+  // ============================================================
+  const exportContrattoAppalto = useCallback(() => {
+    DB.trackEvent("contratto_appalto_export", { project_id: editingProjectId });
+    const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
+    const esc = (v) => String(v ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const blank = (v) => (v && String(v).trim() ? esc(v) : "___________________");
+    const indirizzoImmobile = (() => { const s = [data.via, data.civico].filter(Boolean).join(" "); return [s, data.citta].filter(Boolean).join(", "); })();
+    const costoAppalto = ap.costoAppalto > 0 ? ap.costoAppalto : Math.round(calc.costoRistTot);
+    const durataLavori = ap.durataLavoriMesi > 0 ? ap.durataLavoriMesi : data.durataOp;
+    const dataContrattoFmt = (() => { if (!ap.dataContratto) return "__________________"; const d = new Date(ap.dataContratto + "T00:00:00"); return isNaN(d) ? "__________________" : d.toLocaleDateString("it-IT", { day: "2-digit", month: "long", year: "numeric" }); })();
+    const p = (t) => `<p>${t}</p>`;
+    const art = (n, title, body) => `<h2>Art. ${n}<br/>(${esc(title)})</h2>` + body;
+    let c = "";
+    c += `<h1>C O N T R A T T O&nbsp;&nbsp;S P E C I A L E&nbsp;&nbsp;D’ A P P A L T O</h1>`;
+    c += `<p class="center">TRA</p>`;
+    c += p(`I sigg. ${blank(ap.committenti)} con sede ubicata alla Via Fratelli Prayer n°14 cap Bari (BA) in qualità di “Committente”,`);
+    c += `<p class="center">E</p>`;
+    c += p(`la società “${esc(ap.appaltatoreNome)}” (di seguito denominata “Società Appaltatrice”) con sede in ${esc(ap.appaltatoreSede)}, Codice Fiscale Partita Iva e numero iscrizione registro delle imprese ${esc(ap.appaltatoreCf)}, iscritta presso la Camera Di Commercio con il numero R.E.A. ${esc(ap.appaltatoreRea)}, con indirizzo di posta elettronica (Pec) ${esc(ap.appaltatorePec)} rappresentata nel presente contratto dall’amministratore unico sig. ${esc(ap.appaltatoreRappresentante)} e domiciliato presso la sede della società che rappresenta,`);
+    c += `<p class="center">* * * * * * * * * * * *</p>`;
+    c += `<p><strong>Premesso che</strong></p>`;
+    c += `<ul>`;
+    c += `<li>i sigg. promissari acquirenti su specificati con la presente scrittura privata, si impegnano nei rispettivi ruoli ad acquistare un appartamento residenziale in ${blank(indirizzoImmobile)}, attualmente iscritto al Catasto Fabbricati del Comune di ${blank(data.citta)} al Foglio ${blank(ap.foglio)}, Particella ${blank(ap.particella)}, Subalterno ${blank(ap.subalterni)}, tutti di categoria ${blank(ap.categoria)};</li>`;
+    c += `<li>i sigg. promissari acquirenti su specificati a sostenere i costi di una completa ristrutturazione edilizia della su identificata palazzina per un importo stimato ${esc(fmtEur(Math.round(calc.costiFraz)))}, comprensivo delle spese tecniche e ingegneristiche (indagini geologiche, ipocatastali, titoli edilizi, autorizzativi, ecc.) relativi allo sviluppo di tutta l’operazione immobiliare;</li>`;
+    c += `<li>i sigg. promissari acquirenti su specificati a ad attribuire specifico incarico di appalto in favore della ${esc(ap.appaltatoreNome)};</li>`;
+    c += `<li>i sigg. promissari acquirenti su specificati a si impegnano ad affidare l’esecuzione dei lavori unicamente alla ${esc(ap.appaltatoreNome)};</li>`;
+    c += `</ul>`;
+    c += p(`Tutto quanto premesso che forma parte integrante e sostanziale del presente contratto le parti convengono e stipulano quanto segue:`);
+    c += art(1, "Oggetto del contratto", p(`i sigg. promissari acquirenti su specificati a su spiegate qualità, affidano all’impresa “${esc(ap.appaltatoreNome)}” come rappresentata, che accetta, i lavori relativi alla ristrutturazione edilizia del fabbricato esistente ovvero al ripristino e rifacimento di tutte le facciate oltre alla ristrutturazione delle relative parti comuni.`)
+      + p(`I lavori da realizzarsi, di cui al seguente articolo 2, saranno eseguiti conformemente per tipologia e consistenza, come da computi metrici allegati per la ristrutturazione edilizia sulle singole unità immobiliari, per le facciate e per la ristrutturazione delle parti comuni così come opportunamente dettagliato negli allegati richiamati nelle premesse tutte parti integranti del presente contratto.`)
+      + p(`I lavori vengono commessi e appaltati alle condizioni contrattuali di cui ai seguenti articoli.`));
+    c += art(2, "Capitolato speciale d’appalto", p(`I lavori oggetto del presente contratto consisteranno nella realizzazione di tutte le opere di ristrutturazione edilizia sulle singole unità immobiliari.`));
+    c += art(3, "Oneri a carico della committente", p(`I committenti ${blank(ap.committenti)} si obbligano ad intervenire in prima persona o tramite loro procuratori, in ogni atto pubblico e/o privato e richiesta, per i quali necessiti la sottoscrizione, anche presso pubblici uffici, ovvero attraverso l’attestazione del proprio consenso, il tutto finalizzato all’acquisizione documentale, alle attività di ricerca presso pubblici archivi, al rilascio di concessioni, autorizzazioni, pareri e quant’altro necessario per il conseguimento del presente contratto.`));
+    c += art(4, "Oneri a carico della società appaltatrice", p(`Saranno a carico della società appaltatrice: le spese per la fornitura dell'energia elettrica e dell’acqua, oltre tutto quanto riportato nei successivi articoli.`));
+    c += art(5, "Osservanze legislative e responsabilità", p(`L’esecuzione dei lavori dovrà essere fatta a completo rischio e pericolo della società appaltatrice, la quale adotterà ogni accorgimento atto a salvaguardare la vita degli operai e quella di estranei al cantiere, assumendosi ogni responsabilità civile e penale per danni a persone e cose, dalla quale responsabilità si intendono sollevati sia la committente che il Direttore dei lavori.`)
+      + p(`La società appaltatrice si impegna alla scrupolosa osservanza di tutte le norme di legge e regolamenti vigenti e/o emanati, rimane l'unico responsabile della loro scrupolosa applicazione ed osservanza con particolare riferimento a quelle relative alla prevenzione degli infortuni sul lavoro.`)
+      + p(`La società appaltatrice nell'esecuzione dei lavori dovrà attenersi alla normativa vigente, nonché alle relative direttive impartite dal Direttore dei lavori e dal Coordinatore e Responsabile per la Sicurezza dei lavori.`)
+      + p(`La società appaltatrice assume al riguardo ogni responsabilità per i vizi o difetti dell'opera e per eventuali violazioni alle predette disposizioni, nonché per ogni eventuale danno o conseguenza negativa che dovesse derivare alla società committente, ai suoi aventi causa o a terzi in genere.`)
+      + p(`La società appaltatrice si impegna ad osservare tutte le disposizioni dettate dal D.lgs. 81/2008 in materia di prevenzione infortuni sul lavoro, igiene e sicurezza ed ogni altra disposizione in vigore che potrà intervenire in corso di esecuzione per la tutela materiale dei lavoratori, sollevando i committenti da qualsiasi responsabilità in merito.`));
+    c += art(6, "Perfezione delle opere", p(`I lavori saranno eseguiti a regola d’arte. La società appaltatrice dovrà comunque uniformarsi alle prescrizioni che saranno impartite dalla Direzione dei lavori senza che per tale motivo la stessa impresa possa considerare diminuita la sua responsabilità.`)
+      + p(`La società appaltatrice è responsabile di imperfezioni di natura costruttiva ed esecutiva che possano verificarsi dopo il completamento dei lavori e fino al compimento di un decennio dalla data di ultimazione degli stessi, oltre che dei relativi ulteriori danni che dalle stesse imperfezioni dovessero derivare.`));
+    c += art(7, "Lavori imprevisti", p(`I lavori imprevisti ovvero le opere non previste nel disciplinare tecnico di costruzioni allegato, o che venissero impartite dalla committenza o dalla direzione lavori, saranno comunque discusse dalle parti prima della loro realizzazione e confermate per iscritto, in maniera tale da stabilirne il compenso.`)
+      + p(`Tali opere saranno pagate all’appaltatrice prima della loro realizzazione.`));
+    c += art(8, "Prezzi e modalità di pagamento", p(`Il costo dell’appalto è di € ${esc(fmt(costoAppalto))} Iva esclusa.`)
+      + p(`I pagamenti saranno così predisposti:`)
+      + p(`€ ${esc(fmt(costoAppalto))} compreso di spese tecniche, iva esclusa come per legge, riferiti all’esecuzione delle opere di ristrutturazione sulle singole unità immobiliari, versati a mezzo bonifico e cessione del credito da parte dei singoli proprietari delle unità alla società appaltatrice secondo le seguenti modalità:`)
+      + `<ul><li>SAL 1, 25%, ad inizio lavori;</li><li>SAL 2, 50%, ad inizio dei lavori impiantistici idrici, termici ed elettrici;</li><li>SAL 3, 75%, alla conclusione della chiusura degli impianti e relativo inizio di opere di rifinitura quali pitturazione, rivestimenti e montaggio infissi;</li><li>SAL 4, 100%, alla consegna delle certificazioni impiantistiche e alla presentazione delle SCIA presso il comune di riferimento.</li></ul>`);
+    c += art(9, "Durata dei lavori e stipula atto di trasferimento unità immobiliari", p(`I lavori avranno una durata di mesi ${esc(durataLavori)} dall’inizio dei lavori che verrà dichiarata ufficialmente con comunicazione da parte del Direttore Lavori a seguito di presentazione dell’idonea documentazione all’Ufficio Tecnico Comunale. Qualsiasi variazione aggiuntiva ai lavori del presente contratto, regolata come specificato al precedente art. 7, comporterà sempre la concessione di un termine suppletivo per l’ultimazione dei lavori stessi, da convenirsi tra le parti o proporzionalmente all’entità dei lavori aggiunti e al termine inizialmente stabilito per l’esecuzione dei lavori commissionati.`));
+    c += art(10, "Progettazione, Direzione dei Lavori e Coordinamento sicurezza cantiere", p(`Le attività tecniche di progettazione, sicurezza, direzione dei lavori e quant’altro necessario sarà affidata al Geometra Giacinto Lacalendola incaricato dalla ${esc(ap.appaltatoreNome)}, manlevando sin d’ora la committente da qualsivoglia onere e/o spesa e/o responsabilità.`));
+    c += art(11, "Penali", p(`A carico della parte che si renda inadempiente a qualsiasi degli obblighi assunti con il presente atto, o che solo ritardi senza giustificato motivo all'adempimento, si conviene concordemente, ai sensi dell'articolo 1382 del Codice Civile, una penale, di euro 50.000,00 (cinquantamila/00), salvi ulteriori eventuali danni e fatta salva la facoltà della parte adempiente o pronta ad adempiere di chiedere l'esecuzione in forma specifica del presente contratto ai sensi dell'articolo 2932 del Codice Civile.`));
+    c += art(12, "Subappalto", p(`La ditta appaltatrice, in caso di oggettiva impossibilità e/o in mancanza dei necessari profili autorizzati per le certificazioni impiantistiche, quest’ultima provvederà a ricercare imprese e maestranze.`)
+      + p(`Il riferimento unico della committente rimarrà sempre la società appaltatrice che risponderà per eventuali vizi e difetti di natura costruttiva. In nessun caso, quindi, il subappalto potrà essere opposto alla committente come motivo di giustificazione, causa e/o esimente di responsabilità per inadempienze, ritardi o non perfette realizzazioni delle opere subappaltate.`));
+    c += art(13, "Assicurazione maestranze subappaltatrici", p(`Le eventuali altre società subappaltatrici, le quali, sotto la supervisione della società appaltatrice si impegneranno a dichiarare che gli operai addetti ai lavori saranno regolarmente assicurati a norma delle vigenti leggi in materia al momento dell’inizio dei lavori.`));
+    c += art(14, "Assicurazione di asseverazione", p(`La società ${esc(ap.appaltatoreNome)} si obbliga a verificare, ai sensi e per gli effetti del decreto legge 34/20, che i tecnici incaricati quali ingegneri, architetti, geometri e periti in particolare, abbiano sottoscritto polizza assicurativa con idoneo massimale che dovrà adeguarsi alla quantità delle attestazioni o delle asseverazioni rilasciate, oltre che agli importi degli interventi oggetto delle attestazioni o asseverazioni. Altresì, la suddetta società dovrà verificare che allegati al documento di asseverazione, ci siano copie delle polizze assicurative RC professionali dei tecnici incaricati, che costituiscono parte integrante del documento, unitamente alla copia del documento di riconoscimento. A tal riguardo, i committenti ${blank(ap.committenti)}, sono esonerati da qualsiasi responsabilità in capo alla mancata o regolare sottoscrizione della polizza de quo, e potranno esercitare il diritto di rivalsa nei confronti della società ${esc(ap.appaltatoreNome)}.`));
+    c += art(15, "Inadempienza alle norme contrattuali", p(`Sono a carico della parte inadempiente i danni derivanti dalla inosservanza delle norme contrattuali.`));
+    c += art(16, "Norme finali", p(`La società appaltatrice dichiara di essersi resa conto perfettamente dell’entità dell’opera da realizzare, dei lavori in contratto, delle modalità costruttive e dei materiali da impiegare, delle condizioni e dei tempi di attuazione e di pagamento, di aver visionato attentamente la conformazione dei luoghi, il progetto architettonico, i disegni esecutivi delle opere e rifiniture. Per tutto quanto non previsto dal presente contratto e dal capitolato speciale d’appalto si rinvia alle norme del codice civile in materia di appalti.`));
+    c += art(17, "Tutela e riservatezza dei dati personali", p(`Le Parti si danno reciprocamente atto che il trattamento dei dati personali dovrà avvenire nel rispetto della normativa vigente in materia, ivi incluso il Regolamento (UE) 2016/679 relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali (GDPR) e sarà effettuato esclusivamente per le finalità previste nel presente Contratto. Con la sottoscrizione del Contratto ciascuna Parte presta il consenso al trattamento dei dati personali e a trasmetterli esclusivamente ai soggetti ai quali la comunicazione è consentita per legge ovvero ai soggetti per i quali la comunicazione è necessaria ai fini dell’esecuzione degli obblighi di cui al Contratto.`)
+      + p(`I Dati Personali oggetto di trattamento, per le finalità di cui sopra, saranno conservati nel rispetto dei principi di proporzionalità e necessità e, comunque, fino a 180 giorni dalla data di scadenza del Contratto ovvero dalla data di risoluzione o cessazione dello stesso, per qualsivoglia causa, fatto in ogni caso salvo quanto debba essere conservato ai sensi di legge. Decorso tale termine, ciascuna Parte avrà l’obbligo di cancellare tutti i dati acquisiti nell’esecuzione del rapporto contrattuale.`));
+    c += p(`A norma degli articoli 1341 e 1342 del Codice Civile, le parti dichiarano di approvare specificatamente tutte le clausole contenute nel presente contratto di cui agli articoli 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.`);
+    c += p(`Il presente contratto, redatto in duplice originale, si compone di più facciate di fogli formato A4 completamente dattiloscritte e firmate dalle parti, più eventuali allegati.`);
+    c += p(`Letto, confermato e sottoscritto.`);
+    c += p(`Bari, lì ${dataContrattoFmt}`);
+    c += `<br/><table style="width:100%;border:none;margin-top:24pt"><tr><td style="border:none;width:50%">LA SOCIETA’ APPALTATRICE<br/><br/><br/>_______________________</td><td style="border:none;width:50%">I COMMITTENTI<br/><br/><br/>_______________________</td></tr></table>`;
+    const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View></w:WordDocument></xml><![endif]--><style>body{font-family:'Times New Roman',serif;font-size:12pt;line-height:1.5}h1{font-size:14pt;text-align:center;font-weight:bold;letter-spacing:1pt}h2{font-size:12pt;font-weight:bold;margin-top:18pt;margin-bottom:4pt}p{margin:0 0 8pt;text-align:justify}.center{text-align:center;font-weight:bold}ul{margin:4pt 0 8pt}li{margin-bottom:4pt}</style></head><body>${c}</body></html>`;
+    const blob = new Blob([html], { type: "application/msword" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const nome = indirizzo.replace(/[^a-zA-Z0-9À-ú ]/g, "").trim().replace(/\s+/g, "_") || "Analisi";
+    a.href = url; a.download = `Contratto_appalto_${nome}.doc`; a.click();
+    URL.revokeObjectURL(url);
+  }, [data, calc]);
 
   // ============================================================
   // AUTH SCREENS
@@ -3372,6 +3472,7 @@ export default function App() {
     { id: "ristrutturazione", label: "Ristrutturazione" },
     { id: "scenari", label: "Analisi scenari" },
     { id: "comparabili", label: "Confronto comparabili" },
+    { id: "appalto", label: "Contratto appalto" },
   ];
   const indirizzo = (() => { const street = [data.via, data.civico].filter(Boolean).join(" "); return [street, data.citta].filter(Boolean).join(", ") || "Nuova operazione"; })();
 
@@ -3823,6 +3924,61 @@ export default function App() {
             )}
           </>
         )}
+        {dashTab === "appalto" && (() => {
+          const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
+          const uA = (f, v) => updAppalto(f, v);
+          return (
+          <>
+            <p style={{ color: C.textMid, fontSize: 12.5, margin: "0 0 16px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>Compila i dati mancanti e genera una bozza di contratto d'appalto Word, basata sul modello standard tra committente e società appaltatrice per la ristrutturazione. Alcuni dati (indirizzo, superficie, costo ristrutturazione) sono già ripresi dal progetto.</p>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Le parti</div>
+                <DashTextArea label="Committente/i" value={ap.committenti} onChange={(v) => uA("committenti", v)} placeholder="Es. Mario Rossi, nato a Bari il ..., C.F. ..., residente in ..." disabled={viewOnly} rows={4} info="Nome/i e dati anagrafici di chi acquista/commissiona i lavori (i 'promissari acquirenti'). Se sono più d'uno, elencali tutti qui: compariranno così nel contratto generato." />
+                <div style={{ marginTop: 14, marginBottom: 6, color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Società appaltatrice</div>
+                <DashTextInput label="Ragione sociale" value={ap.appaltatoreNome} onChange={(v) => uA("appaltatoreNome", v)} disabled={viewOnly} info="Chi esegue i lavori. Precompilato con Gruppo Loseto Srl, modificabile se l'appalto è affidato a un'altra impresa." />
+                <DashTextInput label="Sede" value={ap.appaltatoreSede} onChange={(v) => uA("appaltatoreSede", v)} disabled={viewOnly} />
+                <DashTextInput label="C.F./P.IVA e n. iscrizione registro imprese" value={ap.appaltatoreCf} onChange={(v) => uA("appaltatoreCf", v)} disabled={viewOnly} />
+                <DashTextInput label="N. R.E.A." value={ap.appaltatoreRea} onChange={(v) => uA("appaltatoreRea", v)} disabled={viewOnly} />
+                <DashTextInput label="PEC" value={ap.appaltatorePec} onChange={(v) => uA("appaltatorePec", v)} disabled={viewOnly} />
+                <DashTextInput label="Amministratore/rappresentante" value={ap.appaltatoreRappresentante} onChange={(v) => uA("appaltatoreRappresentante", v)} disabled={viewOnly} />
+              </div>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Immobile e catasto</div>
+                <DataRow label="Indirizzo" value={indirizzo} />
+                <DataRow label="Superficie" value={fmtMq(data.metratura)} />
+                <DataRow label="Comune catasto" value={data.citta || "—"} />
+                <div style={{ marginTop: 10 }} />
+                <DashTextInput label="Foglio" value={ap.foglio} onChange={(v) => uA("foglio", v)} placeholder="Es. 88" disabled={viewOnly} info="Dati del Catasto Fabbricati: li trovi in visura catastale." />
+                <DashTextInput label="Particella" value={ap.particella} onChange={(v) => uA("particella", v)} placeholder="Es. 65" disabled={viewOnly} />
+                <DashTextInput label="Subalterno/i" value={ap.subalterni} onChange={(v) => uA("subalterni", v)} placeholder="Es. da 1 a 6" disabled={viewOnly} />
+                <DashTextInput label="Categoria catastale" value={ap.categoria} onChange={(v) => uA("categoria", v)} placeholder="Es. A3/A5" disabled={viewOnly} />
+                <div style={{ marginTop: 14, marginBottom: 6, color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase" }}>Importi e tempi</div>
+                <DashInput label="Costo dell'appalto" value={ap.costoAppalto > 0 ? ap.costoAppalto : Math.round(calc.costoRistTot)} onChange={(v) => uA("costoAppalto", v)} suffix="€" step={1000} disabled={viewOnly} info="Prezzo pattuito per l'appalto (IVA esclusa), Art. 8 del contratto. Precompilato con il costo di ristrutturazione del progetto: modificalo se concordi un importo diverso." />
+                <DashInput label="Durata lavori" value={ap.durataLavoriMesi > 0 ? ap.durataLavoriMesi : data.durataOp} onChange={(v) => uA("durataLavoriMesi", v)} suffix="mesi" min={1} disabled={viewOnly} info="Durata prevista dei lavori (Art. 9). Precompilata con la durata operazione del progetto." />
+                <div style={{ marginBottom: 10 }}>
+                  <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 3, textTransform: "uppercase" }}>Data del contratto<InfoTip text="Data di sottoscrizione. Lasciala vuota se non ancora decisa: nel documento generato comparirà uno spazio da compilare a mano." /></label>
+                  <input type="date" value={ap.dataContratto} onChange={(e) => uA("dataContratto", e.target.value)} disabled={viewOnly} style={{ width: "100%", boxSizing: "border-box", background: viewOnly ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 4, padding: "7px 8px", fontSize: 14, fontWeight: 600, fontFamily: "inherit", color: C.dark, outline: "none" }} />
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 16 }}>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Clausole fisse del modello<InfoTip text="Queste clausole restano identiche in ogni contratto generato. Se per questa operazione vanno cambiate, modificale direttamente nel documento Word dopo averlo scaricato." /></div>
+                <DataRow label="Pagamenti (SAL)" value="25% · 50% · 75% · 100%" />
+                <DataRow label="Penale per inadempienza" value={fmtEur(50000)} />
+                <DataRow label="Direttore Lavori" value="Geom. Giacinto Lacalendola" />
+                <DataRow label="Garanzia opere" value="10 anni dall'ultimazione" border={false} />
+              </div>
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Documento</div>
+                <DashTextInput label="Link al contratto (firmato/scansione)" value={ap.linkDocumento} onChange={(v) => uA("linkDocumento", v)} placeholder="Link Google Drive, Dropbox..." disabled={viewOnly} info="Incolla qui il link al file del contratto (es. la scansione firmata su Drive), per ritrovarlo facilmente insieme al resto del progetto." />
+                {!viewOnly && <button onClick={exportContrattoAppalto} style={{ marginTop: 8, width: "100%", background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Genera contratto Word (.doc)</button>}
+                <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "10px 0 0", fontFamily: "-apple-system, sans-serif" }}>Bozza generata automaticamente sul modello standard: rileggila e falla verificare da un legale prima della firma. I campi lasciati vuoti compaiono come spazi da completare a mano.</p>
+              </div>
+            </div>
+          </>
+          );
+        })()}
       </div>
 
       {/* FOOTER */}
