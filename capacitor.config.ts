@@ -2,13 +2,13 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.lorenzoloseto.frazio',
-  appName: 'Frazio',
+  appName: 'Conto economico',
   webDir: 'dist',
   server: {
     iosScheme: 'capacitor',
   },
   ios: {
-    contentInset: 'automatic',
+    contentInset: 'never',
     allowsLinkPreview: false,
   },
   plugins: {
