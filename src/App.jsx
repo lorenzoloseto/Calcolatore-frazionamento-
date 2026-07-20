@@ -522,6 +522,10 @@ const DEFAULT_DATA = {
     appaltatoreRappresentante: "Lorenzo Loseto",
     foglio: "", particella: "", subalterni: "", categoria: "A3/A5",
     costoAppalto: 0, durataLavoriMesi: 0, dataContratto: "", linkDocumento: "",
+    direttoreLavori: "Geom. Giacinto Lacalendola",
+    sal1Pct: 25, sal2Pct: 50, sal3Pct: 75, sal4Pct: 100,
+    penaleGiornaliera: 100,
+    computoMetrico: [],
   },
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
@@ -2569,10 +2573,10 @@ export default function App() {
     c += art(8, "Prezzi e modalità di pagamento", p(`Il costo dell’appalto è di € ${esc(fmt(costoAppalto))} Iva esclusa.`)
       + p(`I pagamenti saranno così predisposti:`)
       + p(`€ ${esc(fmt(costoAppalto))} compreso di spese tecniche, iva esclusa come per legge, riferiti all’esecuzione delle opere di ristrutturazione sulle singole unità immobiliari, versati a mezzo bonifico e cessione del credito da parte dei singoli proprietari delle unità alla società appaltatrice secondo le seguenti modalità:`)
-      + `<ul><li>SAL 1, 25%, ad inizio lavori;</li><li>SAL 2, 50%, ad inizio dei lavori impiantistici idrici, termici ed elettrici;</li><li>SAL 3, 75%, alla conclusione della chiusura degli impianti e relativo inizio di opere di rifinitura quali pitturazione, rivestimenti e montaggio infissi;</li><li>SAL 4, 100%, alla consegna delle certificazioni impiantistiche e alla presentazione delle SCIA presso il comune di riferimento.</li></ul>`);
+      + `<ul><li>SAL 1, ${esc(ap.sal1Pct)}%, ad inizio lavori;</li><li>SAL 2, ${esc(ap.sal2Pct)}%, ad inizio dei lavori impiantistici idrici, termici ed elettrici;</li><li>SAL 3, ${esc(ap.sal3Pct)}%, alla conclusione della chiusura degli impianti e relativo inizio di opere di rifinitura quali pitturazione, rivestimenti e montaggio infissi;</li><li>SAL 4, ${esc(ap.sal4Pct)}%, alla consegna delle certificazioni impiantistiche e alla presentazione delle SCIA presso il comune di riferimento.</li></ul>`);
     c += art(9, "Durata dei lavori e stipula atto di trasferimento unità immobiliari", p(`I lavori avranno una durata di mesi ${esc(durataLavori)} dall’inizio dei lavori che verrà dichiarata ufficialmente con comunicazione da parte del Direttore Lavori a seguito di presentazione dell’idonea documentazione all’Ufficio Tecnico Comunale. Qualsiasi variazione aggiuntiva ai lavori del presente contratto, regolata come specificato al precedente art. 7, comporterà sempre la concessione di un termine suppletivo per l’ultimazione dei lavori stessi, da convenirsi tra le parti o proporzionalmente all’entità dei lavori aggiunti e al termine inizialmente stabilito per l’esecuzione dei lavori commissionati.`));
-    c += art(10, "Progettazione, Direzione dei Lavori e Coordinamento sicurezza cantiere", p(`Le attività tecniche di progettazione, sicurezza, direzione dei lavori e quant’altro necessario sarà affidata al Geometra Giacinto Lacalendola incaricato dalla ${esc(ap.appaltatoreNome)}, manlevando sin d’ora la committente da qualsivoglia onere e/o spesa e/o responsabilità.`));
-    c += art(11, "Penali", p(`A carico della parte che si renda inadempiente a qualsiasi degli obblighi assunti con il presente atto, o che solo ritardi senza giustificato motivo all'adempimento, si conviene concordemente, ai sensi dell'articolo 1382 del Codice Civile, una penale, di euro 50.000,00 (cinquantamila/00), salvi ulteriori eventuali danni e fatta salva la facoltà della parte adempiente o pronta ad adempiere di chiedere l'esecuzione in forma specifica del presente contratto ai sensi dell'articolo 2932 del Codice Civile.`));
+    c += art(10, "Progettazione, Direzione dei Lavori e Coordinamento sicurezza cantiere", p(`Le attività tecniche di progettazione, sicurezza, direzione dei lavori e quant’altro necessario sarà affidata al ${esc(ap.direttoreLavori)} incaricato dalla ${esc(ap.appaltatoreNome)}, manlevando sin d’ora la committente da qualsivoglia onere e/o spesa e/o responsabilità.`));
+    c += art(11, "Penali", p(`A carico della parte che si renda inadempiente a qualsiasi degli obblighi assunti con il presente atto, o che solo ritardi senza giustificato motivo all'adempimento, si conviene concordemente, ai sensi dell'articolo 1382 del Codice Civile, una penale di € ${esc(fmt(ap.penaleGiornaliera))} per ogni giorno di ritardo, salvi ulteriori eventuali danni e fatta salva la facoltà della parte adempiente o pronta ad adempiere di chiedere l'esecuzione in forma specifica del presente contratto ai sensi dell'articolo 2932 del Codice Civile.`));
     c += art(12, "Subappalto", p(`La ditta appaltatrice, in caso di oggettiva impossibilità e/o in mancanza dei necessari profili autorizzati per le certificazioni impiantistiche, quest’ultima provvederà a ricercare imprese e maestranze.`)
       + p(`Il riferimento unico della committente rimarrà sempre la società appaltatrice che risponderà per eventuali vizi e difetti di natura costruttiva. In nessun caso, quindi, il subappalto potrà essere opposto alla committente come motivo di giustificazione, causa e/o esimente di responsabilità per inadempienze, ritardi o non perfette realizzazioni delle opere subappaltate.`));
     c += art(13, "Assicurazione maestranze subappaltatrici", p(`Le eventuali altre società subappaltatrici, le quali, sotto la supervisione della società appaltatrice si impegneranno a dichiarare che gli operai addetti ai lavori saranno regolarmente assicurati a norma delle vigenti leggi in materia al momento dell’inizio dei lavori.`));
@@ -2582,6 +2586,13 @@ export default function App() {
     c += art(17, "Tutela e riservatezza dei dati personali", p(`Le Parti si danno reciprocamente atto che il trattamento dei dati personali dovrà avvenire nel rispetto della normativa vigente in materia, ivi incluso il Regolamento (UE) 2016/679 relativo alla protezione delle persone fisiche con riguardo al trattamento dei dati personali (GDPR) e sarà effettuato esclusivamente per le finalità previste nel presente Contratto. Con la sottoscrizione del Contratto ciascuna Parte presta il consenso al trattamento dei dati personali e a trasmetterli esclusivamente ai soggetti ai quali la comunicazione è consentita per legge ovvero ai soggetti per i quali la comunicazione è necessaria ai fini dell’esecuzione degli obblighi di cui al Contratto.`)
       + p(`I Dati Personali oggetto di trattamento, per le finalità di cui sopra, saranno conservati nel rispetto dei principi di proporzionalità e necessità e, comunque, fino a 180 giorni dalla data di scadenza del Contratto ovvero dalla data di risoluzione o cessazione dello stesso, per qualsivoglia causa, fatto in ogni caso salvo quanto debba essere conservato ai sensi di legge. Decorso tale termine, ciascuna Parte avrà l’obbligo di cancellare tutti i dati acquisiti nell’esecuzione del rapporto contrattuale.`));
     c += p(`A norma degli articoli 1341 e 1342 del Codice Civile, le parti dichiarano di approvare specificatamente tutte le clausole contenute nel presente contratto di cui agli articoli 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17.`);
+    if (ap.computoMetrico?.length) {
+      c += `<h2>Allegato 1<br/>(Computo metrico)</h2>`;
+      c += `<table style="width:100%;border-collapse:collapse;font-size:11pt;margin-bottom:10pt"><tr><td style="border:1px solid #999;padding:4px 8px"><strong>Voce</strong></td><td style="border:1px solid #999;padding:4px 8px;text-align:right"><strong>Q.tà</strong></td><td style="border:1px solid #999;padding:4px 8px"><strong>U.M.</strong></td><td style="border:1px solid #999;padding:4px 8px;text-align:right"><strong>Prezzo</strong></td><td style="border:1px solid #999;padding:4px 8px;text-align:right"><strong>Totale</strong></td></tr>`
+        + ap.computoMetrico.map((v) => `<tr><td style="border:1px solid #999;padding:4px 8px">${esc(v.nome)}</td><td style="border:1px solid #999;padding:4px 8px;text-align:right">${esc(v.qty)}</td><td style="border:1px solid #999;padding:4px 8px">${esc(v.unita)}</td><td style="border:1px solid #999;padding:4px 8px;text-align:right">€ ${esc(fmt(v.prezzo))}</td><td style="border:1px solid #999;padding:4px 8px;text-align:right">€ ${esc(fmt(v.qty * v.prezzo))}</td></tr>`).join("")
+        + `<tr><td style="border:1px solid #999;padding:4px 8px" colspan="4"><strong>Totale</strong></td><td style="border:1px solid #999;padding:4px 8px;text-align:right"><strong>€ ${esc(fmt(ap.computoMetrico.reduce((s, v) => s + v.qty * v.prezzo, 0)))}</strong></td></tr>`
+        + `</table>`;
+    }
     c += p(`Il presente contratto, redatto in duplice originale, si compone di più facciate di fogli formato A4 completamente dattiloscritte e firmate dalle parti, più eventuali allegati.`);
     c += p(`Letto, confermato e sottoscritto.`);
     c += p(`Bari, lì ${dataContrattoFmt}`);
@@ -3785,8 +3796,8 @@ export default function App() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "-apple-system, sans-serif", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: C.navy }}>
-                    {["Voce", "Q.tà", "U.M.", "Prezzo", "Totale", "%"].map((h, i) => (
-                      <th key={h} style={{ color: "#FFF", fontWeight: 600, fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", padding: "8px " + (i === 0 ? "12" : "8") + "px", textAlign: i < 3 ? (i === 0 ? "left" : "center") : "right" }}>{h}</th>
+                    {["Voce", "Q.tà", "U.M.", "Prezzo", "Totale", "%", "Appalto"].map((h, i) => (
+                      <th key={h} style={{ color: "#FFF", fontWeight: 600, fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", padding: "8px " + (i === 0 ? "12" : "8") + "px", textAlign: i === 6 ? "center" : (i < 3 ? (i === 0 ? "left" : "center") : "right") }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -3811,6 +3822,9 @@ export default function App() {
                         </td>
                         <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.dark : C.textLight, fontWeight: hasValue ? 700 : 400, fontFamily: "'Georgia', serif" }}>{fmtEur(tot)}</td>
                         <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.accent : C.textLight, fontWeight: 600, fontSize: 12 }}>{hasValue ? pct.toFixed(1) + "%" : "—"}</td>
+                        <td style={{ padding: "6px 8px", textAlign: "center" }}>
+                          <input type="checkbox" checked={!!it.selApp} disabled={viewOnly} onChange={(e) => updRist(idx, "selApp", e.target.checked)} style={{ width: 16, height: 16, cursor: viewOnly ? "default" : "pointer" }} />
+                        </td>
                       </tr>
                     );
                   })}
@@ -3827,6 +3841,16 @@ export default function App() {
                 <button onClick={() => upd("costoRistMq", Math.round(ristTotale / data.metratura))} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Applica al calcolo</button>
               </div>
             )}
+            {!viewOnly && (() => {
+              const selCount = ristItems.filter((it) => it.selApp).length;
+              return (
+                <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+                  <div style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Spunta le voci nella colonna "Appalto" per inserirle come computo metrico dettagliato nel contratto d'appalto{selCount > 0 && <strong style={{ color: C.dark }}> ({selCount} selezionate)</strong>}.</div>
+                  <button disabled={selCount === 0} onClick={() => updAppalto("computoMetrico", ristItems.filter((it) => it.selApp).map((it) => ({ nome: it.nome, qty: it.qty, unita: it.unita, prezzo: it.prezzo })))}
+                    style={{ background: selCount > 0 ? C.navy : "#ccc", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: selCount > 0 ? "pointer" : "not-allowed", fontFamily: "-apple-system, sans-serif" }}>Applica al contratto d'appalto</button>
+                </div>
+              );
+            })()}
           </div>
         )}
 
@@ -3964,15 +3988,28 @@ export default function App() {
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, marginTop: 16 }}>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
-                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Clausole fisse del modello<InfoTip text="Queste clausole restano identiche in ogni contratto generato. Se per questa operazione vanno cambiate, modificale direttamente nel documento Word dopo averlo scaricato." /></div>
-                <DataRow label="Pagamenti (SAL)" value="25% · 50% · 75% · 100%" />
-                <DataRow label="Penale per inadempienza" value={fmtEur(50000)} />
-                <DataRow label="Direttore Lavori" value="Geom. Giacinto Lacalendola" />
-                <DataRow label="Garanzia opere" value="10 anni dall'ultimazione" border={false} />
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Clausole del contratto</div>
+                <div style={{ marginBottom: 4 }}>
+                  <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 4 }}>Pagamenti (SAL)<InfoTip text="Percentuali di pagamento a stato avanzamento lavori (Art. 8): SAL 1 a inizio lavori, SAL 2 a inizio impianti, SAL 3 a fine impianti/inizio rifiniture, SAL 4 a consegna certificazioni. Dovrebbero sommare a 100%." /></div>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ flex: 1 }}><DashInput label="SAL 1" value={ap.sal1Pct} onChange={(v) => uA("sal1Pct", v)} suffix="%" step={5} disabled={viewOnly} /></div>
+                    <div style={{ flex: 1 }}><DashInput label="SAL 2" value={ap.sal2Pct} onChange={(v) => uA("sal2Pct", v)} suffix="%" step={5} disabled={viewOnly} /></div>
+                    <div style={{ flex: 1 }}><DashInput label="SAL 3" value={ap.sal3Pct} onChange={(v) => uA("sal3Pct", v)} suffix="%" step={5} disabled={viewOnly} /></div>
+                    <div style={{ flex: 1 }}><DashInput label="SAL 4" value={ap.sal4Pct} onChange={(v) => uA("sal4Pct", v)} suffix="%" step={5} disabled={viewOnly} /></div>
+                  </div>
+                </div>
+                <DashInput label="Penale per ritardo" value={ap.penaleGiornaliera} onChange={(v) => uA("penaleGiornaliera", v)} suffix="€/giorno" step={10} disabled={viewOnly} info="Penale dovuta dalla parte inadempiente per ogni giorno di ritardo ingiustificato (Art. 11, ai sensi dell'art. 1382 Codice Civile)." />
+                <DashTextInput label="Direttore Lavori" value={ap.direttoreLavori} onChange={(v) => uA("direttoreLavori", v)} disabled={viewOnly} info="Tecnico incaricato di progettazione, sicurezza e direzione dei lavori (Art. 10)." />
               </div>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                 <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Documento</div>
                 <DashTextInput label="Link al contratto (firmato/scansione)" value={ap.linkDocumento} onChange={(v) => uA("linkDocumento", v)} placeholder="Link Google Drive, Dropbox..." disabled={viewOnly} info="Incolla qui il link al file del contratto (es. la scansione firmata su Drive), per ritrovarlo facilmente insieme al resto del progetto." />
+                {ap.computoMetrico?.length > 0 && (
+                  <div style={{ marginTop: 10, marginBottom: 4, background: C.highlight, border: `1px solid ${C.accentLight}`, borderRadius: 4, padding: "8px 10px" }}>
+                    <div style={{ color: C.textMid, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>Computo metrico allegato: <strong style={{ color: C.dark }}>{ap.computoMetrico.length} voci</strong> ({fmtEur(ap.computoMetrico.reduce((s, v) => s + v.qty * v.prezzo, 0))})</div>
+                    {!viewOnly && <button onClick={() => uA("computoMetrico", [])} style={{ marginTop: 6, background: "none", border: "none", color: C.red, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline", padding: 0 }}>Rimuovi allegato</button>}
+                  </div>
+                )}
                 {!viewOnly && <button onClick={exportContrattoAppalto} style={{ marginTop: 8, width: "100%", background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "10px 14px", fontSize: 13, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Genera contratto Word (.doc)</button>}
                 <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "10px 0 0", fontFamily: "-apple-system, sans-serif" }}>Bozza generata automaticamente sul modello standard: rileggila e falla verificare da un legale prima della firma. I campi lasciati vuoti compaiono come spazi da completare a mano.</p>
               </div>
