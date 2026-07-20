@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { useState, useMemo, useCallback, useEffect, useRef, Fragment } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Capacitor } from "@capacitor/core";
 import { Browser } from "@capacitor/browser";
@@ -532,50 +532,61 @@ const DEFAULT_DATA = {
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
-  { nome: "Assistenza muraria", qty: 0, unita: "Corpo", prezzo: 2000 },
-  { nome: "Battiscopa", qty: 0, unita: "Ml", prezzo: 17 },
-  { nome: "Battiscopa balconi", qty: 0, unita: "Ml", prezzo: 7 },
-  { nome: "Canalizzato", qty: 0, unita: "Corpo", prezzo: 3500 },
-  { nome: "Cappotto", qty: 0, unita: "Mq", prezzo: 50 },
-  { nome: "Controsoffitto", qty: 0, unita: "Mq", prezzo: 30 },
-  { nome: "Controsoffitto umidi (zone bagno)", qty: 0, unita: "Mq", prezzo: 40 },
-  { nome: "Demolizione murature", qty: 0, unita: "Mq", prezzo: 15 },
-  { nome: "Elementi radianti", qty: 0, unita: "Corpo", prezzo: 250 },
-  { nome: "Guaina terrazzo", qty: 0, unita: "Mq", prezzo: 35 },
-  { nome: "Idrico/fognante", qty: 0, unita: "Corpo", prezzo: 150 },
-  { nome: "Impianto elettrico", qty: 0, unita: "Corpo", prezzo: 3250 },
-  { nome: "Impianto termico", qty: 0, unita: "Corpo", prezzo: 2500 },
-  { nome: "Infissi completi con tapparella e motore", qty: 0, unita: "Mq", prezzo: 550 },
-  { nome: "Intonaco", qty: 0, unita: "Mq", prezzo: 10 },
-  { nome: "Lavabo", qty: 0, unita: "Corpo", prezzo: 100 },
-  { nome: "Massetto alleggerito", qty: 0, unita: "Mq", prezzo: 30 },
-  { nome: "Mobile bagno", qty: 0, unita: "Corpo", prezzo: 250 },
-  { nome: "Pavimento balconi e posa", qty: 0, unita: "Mq", prezzo: 35 },
-  { nome: "Pavimento gres e posa", qty: 0, unita: "Mq", prezzo: 35 },
-  { nome: "Pavimento parquet", qty: 0, unita: "Mq", prezzo: 90 },
-  { nome: "Piatto doccia", qty: 0, unita: "Corpo", prezzo: 230 },
-  { nome: "Pitturazioni esterne", qty: 0, unita: "Mq", prezzo: 15 },
-  { nome: "Pompa di calore", qty: 0, unita: "Corpo", prezzo: 800 },
-  { nome: "Porta blindata", qty: 0, unita: "Corpo", prezzo: 1000 },
-  { nome: "Porta filo muro", qty: 0, unita: "Corpo", prezzo: 350 },
-  { nome: "Porta scrigno", qty: 0, unita: "Corpo", prezzo: 380 },
-  { nome: "Porte battente", qty: 0, unita: "Corpo", prezzo: 350 },
-  { nome: "Posa in opera sanitari", qty: 0, unita: "Corpo", prezzo: 30 },
-  { nome: "Posa porta", qty: 0, unita: "Corpo", prezzo: 60 },
-  { nome: "Posa porta blindata", qty: 0, unita: "Corpo", prezzo: 100 },
-  { nome: "Ricostruzione murature", qty: 0, unita: "Mq", prezzo: 70 },
-  { nome: "Rivestimenti bagno e posa", qty: 0, unita: "Corpo", prezzo: 45 },
-  { nome: "Rubinetteria completa per sanitari e doccia", qty: 0, unita: "Corpo", prezzo: 50 },
-  { nome: "Scaldabagno elettrico", qty: 0, unita: "Corpo", prezzo: 350 },
-  { nome: "Sistemazione balconi", qty: 0, unita: "Corpo", prezzo: 400 },
-  { nome: "Smontaggio e smaltimento infissi", qty: 0, unita: "Corpo", prezzo: 50 },
-  { nome: "Soglie balconi", qty: 0, unita: "Mq", prezzo: 10 },
-  { nome: "Split", qty: 0, unita: "Corpo", prezzo: 400 },
-  { nome: "Termo arredo", qty: 0, unita: "Corpo", prezzo: 150 },
-  { nome: "Termoarredo elettrico", qty: 0, unita: "Corpo", prezzo: 180 },
-  { nome: "Tinteggiatura interna", qty: 0, unita: "Mq", prezzo: 10 },
-  { nome: "Wc/Bidet", qty: 0, unita: "Corpo", prezzo: 150 },
+  // --- MURATURE ---
+  { nome: "Assistenza muraria", gruppo: "murature", qty: 0, unita: "Corpo", prezzo: 2000, prezzoIA: 2500 },
+  { nome: "Demolizione murature", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 15, prezzoIA: 35 },
+  { nome: "Smontaggio e smaltimento infissi", gruppo: "murature", qty: 0, unita: "Corpo", prezzo: 50, prezzoIA: 70 },
+  { nome: "Ricostruzione murature", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 70, prezzoIA: 55 },
+  { nome: "Intonaco", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 10, prezzoIA: 15 },
+  { nome: "Massetto alleggerito", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 30, prezzoIA: 20 },
+  { nome: "Cappotto", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 50, prezzoIA: 70 },
+  { nome: "Guaina terrazzo", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 35, prezzoIA: 35 },
+  { nome: "Sistemazione balconi", gruppo: "murature", qty: 0, unita: "Corpo", prezzo: 400, prezzoIA: 450 },
+  // --- IMPIANTI ---
+  { nome: "Idrico/fognante", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 150, prezzoIA: 180 },
+  { nome: "Impianto elettrico", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 3250, prezzoIA: 6500 },
+  { nome: "Impianto termico", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 2500, prezzoIA: 5000 },
+  { nome: "Elementi radianti", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 250, prezzoIA: 350 },
+  { nome: "Pompa di calore", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 800, prezzoIA: 900 },
+  { nome: "Split", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 400, prezzoIA: 1200 },
+  { nome: "Canalizzato", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 3500, prezzoIA: 5500 },
+  { nome: "Scaldabagno elettrico", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 350, prezzoIA: 400 },
+  { nome: "Termo arredo", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 150, prezzoIA: 200 },
+  { nome: "Termoarredo elettrico", gruppo: "impianti", qty: 0, unita: "Corpo", prezzo: 180, prezzoIA: 300 },
+  // --- RIFINITURE ---
+  { nome: "Battiscopa", gruppo: "rifiniture", qty: 0, unita: "Ml", prezzo: 17, prezzoIA: 20 },
+  { nome: "Battiscopa balconi", gruppo: "rifiniture", qty: 0, unita: "Ml", prezzo: 7, prezzoIA: 10 },
+  { nome: "Controsoffitto", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 30, prezzoIA: 40 },
+  { nome: "Controsoffitto umidi (zone bagno)", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 40, prezzoIA: 60 },
+  { nome: "Infissi completi con tapparella e motore", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 550, prezzoIA: 600 },
+  { nome: "Lavabo", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 100, prezzoIA: 150 },
+  { nome: "Mobile bagno", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 250, prezzoIA: 400 },
+  { nome: "Pavimento balconi e posa", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 35, prezzoIA: 40 },
+  { nome: "Pavimento gres e posa", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 35, prezzoIA: 45 },
+  { nome: "Pavimento parquet", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 90, prezzoIA: 80 },
+  { nome: "Piatto doccia", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 230, prezzoIA: 350 },
+  { nome: "Pitturazioni esterne", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 15, prezzoIA: 20 },
+  { nome: "Porta blindata", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 1000, prezzoIA: 1100 },
+  { nome: "Porta filo muro", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 350, prezzoIA: 500 },
+  { nome: "Porta scrigno", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 380, prezzoIA: 450 },
+  { nome: "Porte battente", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 350, prezzoIA: 350 },
+  { nome: "Posa in opera sanitari", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 30, prezzoIA: 50 },
+  { nome: "Posa porta", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 60, prezzoIA: 90 },
+  { nome: "Posa porta blindata", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 100, prezzoIA: 300 },
+  { nome: "Rivestimenti bagno e posa", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 45, prezzoIA: 50 },
+  { nome: "Rubinetteria completa per sanitari e doccia", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 50, prezzoIA: 350 },
+  { nome: "Soglie balconi", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 10, prezzoIA: 40 },
+  { nome: "Tinteggiatura interna", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 10, prezzoIA: 10 },
+  { nome: "Wc/Bidet", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 150, prezzoIA: 200 },
 ];
+const RIST_GRUPPI = { murature: "Murature", impianti: "Impianti", rifiniture: "Rifiniture" };
+function mergeRistItems(saved) {
+  const bySaved = new Map((saved || []).map((it) => [it.nome, it]));
+  return RIST_INIT.map((master) => {
+    const s = bySaved.get(master.nome);
+    return { ...master, qty: s?.qty ?? 0, prezzo: s?.prezzo ?? master.prezzo, selApp: s?.selApp ?? false };
+  });
+}
 
 // ============================================================
 // SHARE LINK — Supabase snapshots (link corti)
@@ -583,10 +594,7 @@ const RIST_INIT = [
 async function saveProjectSnapshot(projectId, name, data, scenari, comparabili, ristItems) {
   const payload = {
     n: name, d: data, s: scenari, c: comparabili,
-    r: (ristItems || []).filter(it => it.qty > 0).map(it => {
-      const idx = RIST_INIT.findIndex(r => r.nome === it.nome);
-      return { i: idx, q: it.qty, p: it.prezzo };
-    }).filter(it => it.i >= 0),
+    r: (ristItems || []).filter(it => it.qty > 0).map(it => ({ n: it.nome, q: it.qty, p: it.prezzo })),
   };
   const { data: row, error } = await supabase.from("shared_snapshots").insert({ project_data: payload, project_id: projectId }).select("id").single();
   if (error) return { ok: false, error: error.message };
@@ -596,12 +604,7 @@ async function loadProjectSnapshot(id) {
   const { data: row, error } = await supabase.from("shared_snapshots").select("project_data").eq("id", id).single();
   if (error || !row) return null;
   const compact = row.project_data;
-  const ristItems = RIST_INIT.map(it => ({ ...it }));
-  (compact.r || []).forEach(({ i, q, p }) => {
-    if (i >= 0 && i < ristItems.length) {
-      ristItems[i] = { ...ristItems[i], qty: q, prezzo: p };
-    }
-  });
+  const ristItems = mergeRistItems((compact.r || []).map(({ n, q, p }) => ({ nome: n, qty: q, prezzo: p })));
   return {
     name: compact.n || "Progetto condiviso",
     data: { ...DEFAULT_DATA, ...compact.d },
@@ -1943,7 +1946,7 @@ export default function App() {
   const [data, setData] = useState(() => leadSaved?.data ? { ...DEFAULT_DATA, ...leadSaved.data } : { ...DEFAULT_DATA });
   const [scenari, setScenari] = useState(() => leadSaved?.scenari ? { ...DEFAULT_SCENARI, ...leadSaved.scenari } : { ...DEFAULT_SCENARI });
   const [comparabili, setComparabili] = useState(() => leadSaved?.comparabili?.length ? leadSaved.comparabili : [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
-  const [ristItems, setRistItems] = useState(() => leadSaved?.ristItems?.length ? leadSaved.ristItems : [...RIST_INIT]);
+  const [ristItems, setRistItems] = useState(() => mergeRistItems(leadSaved?.ristItems));
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
@@ -2279,7 +2282,7 @@ export default function App() {
     setData({ ...DEFAULT_DATA, ...project.data });
     setScenari({ ...DEFAULT_SCENARI, ...project.scenari });
     setComparabili(project.comparabili || [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
-    setRistItems((project.rist_items || [...RIST_INIT]).sort((a, b) => a.nome.localeCompare(b.nome)));
+    setRistItems(mergeRistItems(project.rist_items));
     setViewOnly(project._shared && project._permission === "view");
     setShowDash(true);
     setAuthScreen(null);
@@ -3491,7 +3494,7 @@ export default function App() {
   // ============================================================
   const tabs = [
     { id: "risultati", label: "Riepilogo" },
-    { id: "ristrutturazione", label: "Computo ristrutturazione" },
+    { id: "ristrutturazione", label: "Computo lavori" },
     { id: "scenari", label: "Analisi scenari" },
     { id: "comparabili", label: "Confronto comparabili" },
     { id: "appalto", label: "Contratto appalto" },
@@ -3806,38 +3809,57 @@ export default function App() {
               <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "-apple-system, sans-serif", fontSize: 13 }}>
                 <thead>
                   <tr style={{ background: C.navy }}>
-                    {["Voce", "Q.tà", "U.M.", "Prezzo", "Totale", "%", "Appalto"].map((h, i) => (
-                      <th key={h} style={{ color: "#FFF", fontWeight: 600, fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", padding: "8px " + (i === 0 ? "12" : "8") + "px", textAlign: i === 6 ? "center" : (i < 3 ? (i === 0 ? "left" : "center") : "right") }}>{h}</th>
+                    {["Voce", "Q.tà", "U.M.", "Prezzo", "Prezzo IA", "Totale", "%", "Appalto"].map((h, i) => (
+                      <th key={h} style={{ color: "#FFF", fontWeight: 600, fontSize: 10, letterSpacing: 0.5, textTransform: "uppercase", padding: "8px " + (i === 0 ? "12" : "8") + "px", textAlign: i === 7 ? "center" : (i < 3 ? (i === 0 ? "left" : "center") : "right") }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ristItems.map((it, idx) => {
-                    const tot = it.qty * it.prezzo;
-                    const pct = ristTotale > 0 ? (tot / ristTotale) * 100 : 0;
-                    const hasValue = tot > 0;
-                    return (
-                      <tr key={idx} style={{ background: hasValue ? C.highlight : "transparent", borderBottom: `1px solid ${C.border}` }}>
-                        <td style={{ padding: "6px 12px", color: C.dark, fontWeight: hasValue ? 600 : 400 }}>{it.nome}</td>
-                        <td style={{ padding: "4px 4px", textAlign: "center" }}>
-                          <input type="number" value={it.qty} min={0} disabled={viewOnly}
-                            onChange={(e) => updRist(idx, "qty", Math.max(0, Number(e.target.value) || 0))}
-                            style={{ width: 54, background: viewOnly ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 3, padding: "4px 6px", textAlign: "center", fontSize: 13, fontWeight: 600, color: C.dark, outline: "none", fontFamily: "inherit" }} />
-                        </td>
-                        <td style={{ padding: "6px 8px", textAlign: "center", color: C.textLight, fontSize: 11 }}>{it.unita}</td>
-                        <td style={{ padding: "4px 4px", textAlign: "right" }}>
-                          <input type="number" value={it.prezzo} min={0} step={5} disabled={viewOnly}
-                            onChange={(e) => updRist(idx, "prezzo", Math.max(0, Number(e.target.value) || 0))}
-                            style={{ width: 74, background: viewOnly ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 3, padding: "4px 6px", textAlign: "right", fontSize: 13, fontWeight: 500, color: C.dark, outline: "none", fontFamily: "inherit" }} />
-                        </td>
-                        <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.dark : C.textLight, fontWeight: hasValue ? 700 : 400, fontFamily: "'Georgia', serif" }}>{fmtEur(tot)}</td>
-                        <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.accent : C.textLight, fontWeight: 600, fontSize: 12 }}>{hasValue ? pct.toFixed(1) + "%" : "—"}</td>
-                        <td style={{ padding: "6px 8px", textAlign: "center" }}>
-                          <input type="checkbox" checked={!!it.selApp} disabled={viewOnly} onChange={(e) => updRist(idx, "selApp", e.target.checked)} style={{ width: 16, height: 16, cursor: viewOnly ? "default" : "pointer" }} />
-                        </td>
-                      </tr>
-                    );
-                  })}
+                  {(() => {
+                    let prevGruppo = null;
+                    return ristItems.map((it, idx) => {
+                      const tot = it.qty * it.prezzo;
+                      const pct = ristTotale > 0 ? (tot / ristTotale) * 100 : 0;
+                      const hasValue = tot > 0;
+                      const showHeader = it.gruppo !== prevGruppo;
+                      prevGruppo = it.gruppo;
+                      const groupSubtotale = showHeader ? ristItems.filter((r) => r.gruppo === it.gruppo).reduce((s, r) => s + r.qty * r.prezzo, 0) : 0;
+                      return (
+                        <Fragment key={idx}>
+                          {showHeader && (
+                            <tr>
+                              <td colSpan={8} style={{ background: C.navy, padding: "6px 12px" }}>
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                                  <span style={{ color: "#FFF", fontWeight: 700, fontSize: 11, letterSpacing: 0.6, textTransform: "uppercase" }}>{RIST_GRUPPI[it.gruppo] || it.gruppo}</span>
+                                  <span style={{ color: "rgba(255,255,255,0.75)", fontWeight: 600, fontSize: 11 }}>{fmtEur(groupSubtotale)}</span>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                          <tr style={{ background: hasValue ? C.highlight : "transparent", borderBottom: `1px solid ${C.border}` }}>
+                            <td style={{ padding: "6px 12px", color: C.dark, fontWeight: hasValue ? 600 : 400 }}>{it.nome}</td>
+                            <td style={{ padding: "4px 4px", textAlign: "center" }}>
+                              <input type="number" value={it.qty} min={0} disabled={viewOnly}
+                                onChange={(e) => updRist(idx, "qty", Math.max(0, Number(e.target.value) || 0))}
+                                style={{ width: 54, background: viewOnly ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 3, padding: "4px 6px", textAlign: "center", fontSize: 13, fontWeight: 600, color: C.dark, outline: "none", fontFamily: "inherit" }} />
+                            </td>
+                            <td style={{ padding: "6px 8px", textAlign: "center", color: C.textLight, fontSize: 11 }}>{it.unita}</td>
+                            <td style={{ padding: "4px 4px", textAlign: "right" }}>
+                              <input type="number" value={it.prezzo} min={0} step={5} disabled={viewOnly}
+                                onChange={(e) => updRist(idx, "prezzo", Math.max(0, Number(e.target.value) || 0))}
+                                style={{ width: 74, background: viewOnly ? "#f0f0f0" : C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 3, padding: "4px 6px", textAlign: "right", fontSize: 13, fontWeight: 500, color: C.dark, outline: "none", fontFamily: "inherit" }} />
+                            </td>
+                            <td style={{ padding: "6px 12px", textAlign: "right", color: C.textLight, fontSize: 12, fontStyle: "italic" }}>{fmtEur(it.prezzoIA)}</td>
+                            <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.dark : C.textLight, fontWeight: hasValue ? 700 : 400, fontFamily: "'Georgia', serif" }}>{fmtEur(tot)}</td>
+                            <td style={{ padding: "6px 12px", textAlign: "right", color: hasValue ? C.accent : C.textLight, fontWeight: 600, fontSize: 12 }}>{hasValue ? pct.toFixed(1) + "%" : "—"}</td>
+                            <td style={{ padding: "6px 8px", textAlign: "center" }}>
+                              <input type="checkbox" checked={!!it.selApp} disabled={viewOnly} onChange={(e) => updRist(idx, "selApp", e.target.checked)} style={{ width: 16, height: 16, cursor: viewOnly ? "default" : "pointer" }} />
+                            </td>
+                          </tr>
+                        </Fragment>
+                      );
+                    });
+                  })()}
                 </tbody>
               </table>
             </div>
