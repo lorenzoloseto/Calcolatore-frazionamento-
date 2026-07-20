@@ -532,6 +532,12 @@ const DEFAULT_DATA = {
 };
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
+  // --- COSTI TECNICI ---
+  { nome: "SCIA", gruppo: "costiTecnici", qty: 0, unita: "Corpo", prezzo: 900, prezzoIA: 900 },
+  { nome: "CILA", gruppo: "costiTecnici", qty: 0, unita: "Corpo", prezzo: 800, prezzoIA: 800 },
+  { nome: "Permesso di costruire", gruppo: "costiTecnici", qty: 0, unita: "Corpo", prezzo: 3000, prezzoIA: 3000 },
+  { nome: "Progetto termico", gruppo: "costiTecnici", qty: 0, unita: "Corpo", prezzo: 500, prezzoIA: 500 },
+  { nome: "Agibilità parziale", gruppo: "costiTecnici", qty: 0, unita: "Corpo", prezzo: 800, prezzoIA: 800 },
   // --- MURATURE ---
   { nome: "Assistenza muraria", gruppo: "murature", qty: 0, unita: "Corpo", prezzo: 2000, prezzoIA: 2500 },
   { nome: "Demolizione murature", gruppo: "murature", qty: 0, unita: "Mq", prezzo: 15, prezzoIA: 35 },
@@ -579,7 +585,7 @@ const RIST_INIT = [
   { nome: "Tinteggiatura interna", gruppo: "rifiniture", qty: 0, unita: "Mq", prezzo: 10, prezzoIA: 10 },
   { nome: "Wc/Bidet", gruppo: "rifiniture", qty: 0, unita: "Corpo", prezzo: 150, prezzoIA: 200 },
 ];
-const RIST_GRUPPI = { murature: "Murature", impianti: "Impianti", rifiniture: "Rifiniture" };
+const RIST_GRUPPI = { costiTecnici: "Costi tecnici", murature: "Murature", impianti: "Impianti", rifiniture: "Rifiniture" };
 function mergeRistItems(saved) {
   const bySaved = new Map((saved || []).map((it) => [it.nome, it]));
   return RIST_INIT.map((master) => {
