@@ -1960,7 +1960,10 @@ export default function App() {
 
   // APP STATE
   const [step, setStep] = useState(0);
-  const [showDash, setShowDash] = useState(false);
+  const [showDash, setShowDash] = useState(() => {
+    if (!LEAD_MODE || __sharedId) return false;
+    try { return localStorage.getItem("ll_lead_captured") === "1" && !!localStorage.getItem("ll_calc_state"); } catch { return false; }
+  });
   const [dashTab, setDashTab] = useState("risultati");
   const [fadeIn, setFadeIn] = useState(true);
   const [viewOnly, setViewOnly] = useState(false);
@@ -2015,7 +2018,12 @@ export default function App() {
   const [projectVisitors, setProjectVisitors] = useState({});
   const [expandedVisitors, setExpandedVisitors] = useState({});
   // LANDING STATE
-  const [showLanding, setShowLanding] = useState(() => !DB.getUser() && !__sharedId);
+  const [showLanding, setShowLanding] = useState(() => {
+    if (LEAD_MODE && !__sharedId) {
+      try { if (localStorage.getItem("ll_lead_captured") === "1" && localStorage.getItem("ll_calc_state")) return false; } catch {}
+    }
+    return !DB.getUser() && !__sharedId;
+  });
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   const [hoveredFeature, setHoveredFeature] = useState(null);
   const [dashMockupHover, setDashMockupHover] = useState(false);
