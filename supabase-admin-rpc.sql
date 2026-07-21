@@ -23,7 +23,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -73,7 +73,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -118,7 +118,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -162,7 +162,7 @@ DECLARE
   recent_events json;
   user_email_addr text;
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -237,7 +237,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -270,7 +270,7 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 AS $$
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 
@@ -292,7 +292,7 @@ DECLARE
   user_email_addr text;
   user_project_ids uuid[];
 BEGIN
-  IF admin_email <> 'lorenzoloseto@hotmail.it' THEN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
   END IF;
 

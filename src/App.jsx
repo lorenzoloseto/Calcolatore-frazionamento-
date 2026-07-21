@@ -19,7 +19,8 @@ const supabase = createClient(SB_URL, SB_KEY);
 const isNative = Capacitor.isNativePlatform();
 const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-frazionamento";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
-const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
+const ADMIN_EMAIL = "lorenzoloseto@hotmail.it"; // parametro legacy richiesto dalle RPC admin_*, l'autorizzazione vera è lato server su auth.email()
+const ADMIN_EMAILS = ["lorenzoloseto@hotmail.it", "lorenzoloseto@gmail.com"];
 const TRUSTPILOT_URL = "https://www.trustpilot.com/evaluate/lorenzoloseto.com";
 
 // ============================================================
@@ -1027,7 +1028,7 @@ function AdminDashboard({ user, onClose }) {
   };
 
   const handleAdminDeleteUser = (userItem) => {
-    if (userItem.email === ADMIN_EMAIL) { showStatus("error", "Non puoi eliminare l'account admin"); return; }
+    if (ADMIN_EMAILS.includes(userItem.email)) { showStatus("error", "Non puoi eliminare l'account admin"); return; }
     setConfirmDialog({
       title: "Elimina utente",
       message: `ATTENZIONE: Stai per eliminare DEFINITIVAMENTE ${userItem.name || ""} (${userItem.email}) e TUTTI i suoi dati: profilo, progetti, condivisioni, snapshot, visitatori ed eventi. IRREVERSIBILE.`,
@@ -1185,7 +1186,7 @@ function AdminDashboard({ user, onClose }) {
                   <td style={{ ...tdStyle, display: "flex", gap: 4, flexWrap: "wrap" }}>
                     <button onClick={() => handleViewUserDetails(u.user_id)} style={actionBtn(C.navy)}>Dettagli</button>
                     <button onClick={() => handleResetPassword(u.email)} style={actionBtn(C.accent)}>Reset pwd</button>
-                    {u.email !== ADMIN_EMAIL && (
+                    {!ADMIN_EMAILS.includes(u.email) && (
                       <button onClick={() => handleAdminDeleteUser(u)} style={actionBtn(C.red)}>Elimina</button>
                     )}
                   </td>
@@ -1596,7 +1597,7 @@ function AdminDashboard({ user, onClose }) {
             {/* Action buttons */}
             <div style={{ display: "flex", gap: 8, marginTop: 20, paddingTop: 16, borderTop: `1px solid ${C.border}` }}>
               <button onClick={() => handleResetPassword(p.email)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Reset password</button>
-              {p.email !== ADMIN_EMAIL && (
+              {!ADMIN_EMAILS.includes(p.email) && (
                 <button onClick={() => { setSelectedUser(null); setUserDetails(null); handleAdminDeleteUser({ user_id: selectedUser, name: p.name, email: p.email }); }} style={{ background: C.red, color: "#FFF", border: "none", borderRadius: 6, padding: "10px 20px", fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Elimina utente</button>
               )}
             </div>
@@ -3233,7 +3234,7 @@ export default function App() {
               <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>I miei conti economici</div>
             </div>
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center", gap: 5 }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Admin</button>}
+              {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.8)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center", gap: 5 }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg> Admin</button>}
               <button onClick={handleNewProject} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>+ Nuova analisi</button>
               <button onClick={() => setAuthScreen(null)} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Chiudi</button>
             </div>
@@ -3474,7 +3475,7 @@ export default function App() {
   // ============================================================
   // ADMIN DASHBOARD SCREEN
   // ============================================================
-  if (authScreen === "admin" && user?.email === ADMIN_EMAIL) {
+  if (authScreen === "admin" && ADMIN_EMAILS.includes(user?.email)) {
     return <AdminDashboard user={user} onClose={() => setAuthScreen(null)} />;
   }
 
@@ -3501,7 +3502,7 @@ export default function App() {
               {user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
-                  {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
+                  {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
               ) : !LEAD_MODE ? (
@@ -3620,7 +3621,7 @@ export default function App() {
                 <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   I miei progetti
                 </button>
-                {user?.email === ADMIN_EMAIL && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
+                {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
               </>
             )}
             {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
