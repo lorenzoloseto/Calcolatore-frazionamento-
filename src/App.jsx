@@ -1953,6 +1953,8 @@ export default function App() {
   const [scenari, setScenari] = useState(() => leadSaved?.scenari ? { ...DEFAULT_SCENARI, ...leadSaved.scenari } : { ...DEFAULT_SCENARI });
   const [comparabili, setComparabili] = useState(() => leadSaved?.comparabili?.length ? leadSaved.comparabili : [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
   const [ristItems, setRistItems] = useState(() => mergeRistItems(leadSaved?.ristItems));
+  const [ristCalcApplied, setRistCalcApplied] = useState(false);
+  const [ristAppaltoApplied, setRistAppaltoApplied] = useState(false);
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
@@ -3873,7 +3875,7 @@ export default function App() {
             {ristTotale > 0 && data.metratura > 0 && !viewOnly && (
               <div style={{ padding: "12px 20px", background: C.highlight, borderTop: `1px solid ${C.accentLight}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                 <div style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Costo calcolato: <strong style={{ color: C.dark }}>{fmtEur(Math.round(ristTotale / data.metratura))}/mq</strong></div>
-                <button onClick={() => upd("costoRistMq", Math.round(ristTotale / data.metratura))} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Applica al calcolo</button>
+                <button onClick={() => { upd("costoRistMq", Math.round(ristTotale / data.metratura)); setRistCalcApplied(true); setTimeout(() => setRistCalcApplied(false), 2500); }} style={{ background: ristCalcApplied ? C.green : C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", transition: "background 0.15s" }}>{ristCalcApplied ? "✓ Applicato!" : "Applica al calcolo"}</button>
               </div>
             )}
             {!viewOnly && (() => {
@@ -3881,8 +3883,8 @@ export default function App() {
               return (
                 <div style={{ padding: "12px 20px", borderTop: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
                   <div style={{ color: C.textMid, fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>Spunta le voci nella colonna "Appalto" per inserirle come computo metrico dettagliato nel contratto d'appalto{selCount > 0 && <strong style={{ color: C.dark }}> ({selCount} selezionate)</strong>}.</div>
-                  <button disabled={selCount === 0} onClick={() => updAppalto("computoMetrico", ristItems.filter((it) => it.selApp).map((it) => ({ nome: it.nome, qty: it.qty, unita: it.unita, prezzo: it.prezzo })))}
-                    style={{ background: selCount > 0 ? C.navy : "#ccc", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: selCount > 0 ? "pointer" : "not-allowed", fontFamily: "-apple-system, sans-serif" }}>Applica al contratto d'appalto</button>
+                  <button disabled={selCount === 0} onClick={() => { updAppalto("computoMetrico", ristItems.filter((it) => it.selApp).map((it) => ({ nome: it.nome, qty: it.qty, unita: it.unita, prezzo: it.prezzo }))); setRistAppaltoApplied(true); setTimeout(() => setRistAppaltoApplied(false), 2500); }}
+                    style={{ background: ristAppaltoApplied ? C.green : (selCount > 0 ? C.navy : "#ccc"), color: "#FFF", border: "none", borderRadius: 4, padding: "6px 14px", fontWeight: 600, fontSize: 12, cursor: selCount > 0 ? "pointer" : "not-allowed", fontFamily: "-apple-system, sans-serif", transition: "background 0.15s" }}>{ristAppaltoApplied ? "✓ Applicato!" : "Applica al contratto d'appalto"}</button>
                 </div>
               );
             })()}
