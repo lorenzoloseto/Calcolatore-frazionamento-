@@ -20,6 +20,7 @@ const isNative = Capacitor.isNativePlatform();
 const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-frazionamento";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it";
+const TRUSTPILOT_URL = "https://www.trustpilot.com/evaluate/lorenzoloseto.com";
 
 // ============================================================
 // LEAD MODE — attivo solo su lorenzoloseto.com/calcolatore-frazionamento
@@ -691,6 +692,22 @@ function WizardSlider({ value, onChange, min, max, step = 1, labels, unit }) {
           {labels.map((l, i) => <span key={i} style={{ color: C.textLight, fontSize: 12 }}>{l}</span>)}
         </div>
       )}
+    </div>
+  );
+}
+function TrustpilotGate({ locked, canUnlock, onGoReview, onUnlock, children }) {
+  if (!locked) return children;
+  return (
+    <div style={{ position: "relative" }}>
+      <div style={{ filter: "blur(6px)", pointerEvents: "none", userSelect: "none" }} aria-hidden="true">{children}</div>
+      <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 20, pointerEvents: "none" }}>
+        <div style={{ pointerEvents: "auto", background: "#FFF", border: `1px solid ${C.border}`, borderRadius: 8, padding: "28px 24px", maxWidth: 380, textAlign: "center", boxShadow: "0 8px 30px rgba(0,0,0,0.18)" }}>
+          <div style={{ fontWeight: 700, fontSize: 16, color: C.dark, marginBottom: 8, fontFamily: "-apple-system, sans-serif" }}>Sblocca questa sezione</div>
+          <div style={{ fontSize: 13, color: C.textMid, marginBottom: 18, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Lasciaci una recensione su Trustpilot — bastano 30 secondi — e sblocchi subito questa e le altre sezioni avanzate del calcolatore.</div>
+          <button onClick={onGoReview} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%", marginBottom: 10 }}>Lascia una recensione su Trustpilot →</button>
+          <button onClick={onUnlock} disabled={!canUnlock} style={{ background: "none", border: "none", color: canUnlock ? C.accent : C.textLight, fontSize: 12, fontWeight: 600, cursor: canUnlock ? "pointer" : "not-allowed", textDecoration: canUnlock ? "underline" : "none", fontFamily: "-apple-system, sans-serif" }}>{canUnlock ? "Ho lasciato la recensione, sblocca" : "Ho lasciato la recensione, sblocca (attendi qualche secondo…)"}</button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1955,6 +1972,19 @@ export default function App() {
   const [ristItems, setRistItems] = useState(() => mergeRistItems(leadSaved?.ristItems));
   const [ristCalcApplied, setRistCalcApplied] = useState(false);
   const [ristAppaltoApplied, setRistAppaltoApplied] = useState(false);
+  const [tpUnlocked, setTpUnlocked] = useState(() => { try { return localStorage.getItem("ll_tp_unlocked") === "1"; } catch { return false; } });
+  const [tpCanUnlock, setTpCanUnlock] = useState(false);
+  const tpLocked = LEAD_MODE && !tpUnlocked;
+  const handleTpGoReview = () => {
+    window.open(TRUSTPILOT_URL, "_blank");
+    DB.trackEvent("trustpilot_review_click");
+    setTimeout(() => setTpCanUnlock(true), 8000);
+  };
+  const handleTpUnlock = () => {
+    setTpUnlocked(true);
+    try { localStorage.setItem("ll_tp_unlocked", "1"); } catch {}
+    DB.trackEvent("trustpilot_unlock");
+  };
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
@@ -3798,6 +3828,7 @@ export default function App() {
 
         {/* RISTRUTTURAZIONE TAB */}
         {dashTab === "ristrutturazione" && (
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
@@ -3889,10 +3920,12 @@ export default function App() {
               );
             })()}
           </div>
+          </TrustpilotGate>
         )}
 
         {/* SCENARI TAB */}
         {dashTab === "scenari" && (
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, borderTop: `3px solid ${C.red}` }}>
@@ -3918,10 +3951,12 @@ export default function App() {
               <div style={{ color: C.textMid, fontSize: 13, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>{verdict ? "Il margine resta positivo anche nelle condizioni peggiori." : "Il margine diventa negativo nello scenario pessimistico."}</div>
             </div>
           </>
+          </TrustpilotGate>
         )}
 
         {/* COMPARABILI TAB */}
         {dashTab === "comparabili" && (
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
           <>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -3985,6 +4020,7 @@ export default function App() {
               </>
             )}
           </>
+          </TrustpilotGate>
         )}
         {dashTab === "appalto" && (() => {
           const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
@@ -3994,6 +4030,7 @@ export default function App() {
           const addCommittente = () => uA("committentiList", [...committenti, { nome: "", sede: "", cf: "", rea: "", pec: "" }]);
           const removeCommittente = (idx) => uA("committentiList", committenti.filter((_, i) => i !== idx));
           return (
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
           <>
             <p style={{ color: C.textMid, fontSize: 12.5, margin: "0 0 16px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>Compila i dati mancanti e genera una bozza di contratto d'appalto Word, basata sul modello standard tra committente e società appaltatrice per la ristrutturazione. Alcuni dati (indirizzo, superficie, costo ristrutturazione) sono già ripresi dal progetto.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
@@ -4067,6 +4104,7 @@ export default function App() {
               </div>
             </div>
           </>
+          </TrustpilotGate>
           );
         })()}
       </div>
