@@ -913,6 +913,8 @@ function AdminDashboard({ user, onClose }) {
   const [funnelData, setFunnelData] = useState(null);
   const [dailyActive, setDailyActive] = useState([]);
   const [visitors, setVisitors] = useState([]);
+  const [leadsList, setLeadsList] = useState([]);
+  const [anonBehavior, setAnonBehavior] = useState(null);
 
   // --- NEW STATES for management ---
   const [allProjects, setAllProjects] = useState([]);
@@ -931,7 +933,7 @@ function AdminDashboard({ user, onClose }) {
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [statsRes, usersRes, eventsRes, funnelRes, dauRes, projectsRes, sharesRes, visitorsRes] = await Promise.all([
+      const [statsRes, usersRes, eventsRes, funnelRes, dauRes, projectsRes, sharesRes, visitorsRes, leadsRes, anonRes] = await Promise.all([
         supabase.rpc("admin_get_stats", { admin_email: ADMIN_EMAIL }),
         supabase.rpc("admin_get_users", { admin_email: ADMIN_EMAIL }),
         supabase.rpc("admin_get_recent_events", { admin_email: ADMIN_EMAIL }),
@@ -940,6 +942,8 @@ function AdminDashboard({ user, onClose }) {
         supabase.rpc("admin_get_all_projects", { admin_email: ADMIN_EMAIL }),
         supabase.rpc("admin_get_all_shares", { admin_email: ADMIN_EMAIL }),
         supabase.rpc("admin_get_all_visitors", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_leads", { admin_email: ADMIN_EMAIL }),
+        supabase.rpc("admin_get_anonymous_behavior", { admin_email: ADMIN_EMAIL, days_back: 60 }),
       ]);
       if (statsRes.data) setStats(statsRes.data);
       if (usersRes.data) setUserList(usersRes.data);
@@ -949,6 +953,8 @@ function AdminDashboard({ user, onClose }) {
       if (projectsRes.data) setAllProjects(projectsRes.data);
       if (sharesRes.data) setAllShares(sharesRes.data);
       if (visitorsRes.data) setVisitors(visitorsRes.data);
+      if (leadsRes.data) setLeadsList(leadsRes.data);
+      if (anonRes.data) setAnonBehavior(anonRes.data);
     } catch (e) { console.error("Admin load error:", e); }
     setLoading(false);
   }, []);
@@ -1349,8 +1355,7 @@ function AdminDashboard({ user, onClose }) {
   // TAB: LEAD (calcolatore-frazionamento, lorenzoloseto.com)
   // ============================================================
   const renderLeads = () => {
-    const events = Array.isArray(recentEvents) ? recentEvents : [];
-    const leads = events.filter((e) => e.event_type === "lead_capture").sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    const leads = Array.isArray(leadsList) ? leadsList : [];
     return (
       <div style={cardStyle}>
         <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Lead catturati dal calcolatore ({leads.length})</div>
@@ -1364,18 +1369,17 @@ function AdminDashboard({ user, onClose }) {
               </tr>
             </thead>
             <tbody>
-              {leads.map((ev, i) => {
-                const m = ev.metadata || {};
-                const campagna = m.utm_campaign || m.utm_source || "-";
+              {leads.map((l, i) => {
+                const campagna = l.utm_campaign || l.utm_source || "-";
                 return (
                   <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
-                    <td style={tdStyle}>{fmtDateTime(ev.created_at)}</td>
-                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{m.nome || "-"}</td>
-                    <td style={tdStyle}>{m.email || "-"}</td>
-                    <td style={tdStyle}>{m.telefono || "-"}</td>
-                    <td style={tdStyle}>{m.citta || "-"}</td>
-                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 700 }}>{m.margine_eur != null ? fmtEur(m.margine_eur) : "-"}</td>
-                    <td style={{ ...tdStyle, color: C.accent, fontWeight: 700 }}>{m.roi_pct != null ? m.roi_pct + "%" : "-"}</td>
+                    <td style={tdStyle}>{fmtDateTime(l.created_at)}</td>
+                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{l.nome || "-"}</td>
+                    <td style={tdStyle}>{l.email || "-"}</td>
+                    <td style={tdStyle}>{l.telefono || "-"}</td>
+                    <td style={tdStyle}>{l.citta || "-"}</td>
+                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 700 }}>{l.margine_eur != null ? fmtEur(l.margine_eur) : "-"}</td>
+                    <td style={{ ...tdStyle, color: C.accent, fontWeight: 700 }}>{l.roi_pct != null ? l.roi_pct + "%" : "-"}</td>
                     <td style={tdStyle}>{campagna}</td>
                   </tr>
                 );
@@ -1448,11 +1452,65 @@ function AdminDashboard({ user, onClose }) {
     allEvents.forEach(e => { const label = EVENT_LABELS[e.event_type] || e.event_type; featureCounts[label] = (featureCounts[label] || 0) + 1; });
     const featureKeys = Object.keys(featureCounts).sort((a, b) => featureCounts[b] - featureCounts[a]);
     const maxFeature = featureKeys.length > 0 ? Math.max(...featureKeys.map(k => featureCounts[k]), 1) : 1;
+    const anon = anonBehavior || {};
+    const anonFunnel = Array.isArray(anon.funnel) ? anon.funnel : [];
+    const maxAnonFunnel = anonFunnel.length > 0 ? Math.max(...anonFunnel.map((f) => f.sessions || 0), 1) : 1;
+    const anonDau = Array.isArray(anon.dau) ? anon.dau : [];
+    const maxAnonDau = anonDau.length > 0 ? Math.max(...anonDau.map((d) => d.sessions || 0), 1) : 1;
+    const anonTotals = anon.totals || {};
 
     return (
       <div style={{ display: "grid", gap: 16 }}>
         <div style={cardStyle}>
-          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Funnel wizard (per step)</div>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Comportamento anonimo — lorenzoloseto.com (ultimi 60 giorni)</div>
+          <div style={{ color: C.textLight, fontSize: 11, marginBottom: 16, fontFamily: "-apple-system, sans-serif" }}>Solo visitatori senza account (traffico dal lead magnet/ads), su tutto lo storico del periodo — non limitato agli ultimi 100 eventi.</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 20 }}>
+            <div>
+              <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Sessioni anonime</div>
+              <div style={{ color: C.dark, fontSize: 22, fontWeight: 700 }}>{anonTotals.sessioni_totali ?? "-"}</div>
+            </div>
+            <div>
+              <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Lead catturati</div>
+              <div style={{ color: C.dark, fontSize: 22, fontWeight: 700 }}>{anonTotals.lead_totali ?? "-"}</div>
+            </div>
+            <div>
+              <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.5, textTransform: "uppercase" }}>Click sul video</div>
+              <div style={{ color: C.dark, fontSize: 22, fontWeight: 700 }}>{anonTotals.video_click_totali ?? "-"}</div>
+            </div>
+          </div>
+          {anonFunnel.length > 0 ? (
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 160, padding: "0 8px" }}>
+              {anonFunnel.map((f) => (
+                <div key={f.step} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "flex-end", height: "100%" }}>
+                  <div style={{ color: C.dark, fontSize: 12, fontWeight: 700, marginBottom: 4, fontFamily: "-apple-system, sans-serif" }}>{f.sessions}</div>
+                  <div style={{ width: "100%", maxWidth: 40, height: `${(f.sessions / maxAnonFunnel) * 120}px`, background: C.accent, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                  <div style={{ color: C.textMid, fontSize: 10, marginTop: 4, fontFamily: "-apple-system, sans-serif" }}>Step {f.step}</div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div style={{ color: C.textLight, textAlign: "center", padding: 20 }}>Nessun dato — esegui admin_get_anonymous_behavior su Supabase per attivare questa vista.</div>
+          )}
+        </div>
+        {anonDau.length > 0 && (
+          <div style={cardStyle}>
+            <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Sessioni anonime giornaliere (ultimi 60 giorni)</div>
+            <div style={{ display: "grid", gap: 4 }}>
+              {anonDau.map((d, i) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>
+                  <span style={{ color: C.textMid, minWidth: 70, textAlign: "right" }}>{d.day ? new Date(d.day).toLocaleDateString("it-IT", { day: "2-digit", month: "short" }) : ""}</span>
+                  <div style={{ flex: 1, height: 14, background: C.border, borderRadius: 3, overflow: "hidden" }}>
+                    <div style={{ height: "100%", width: `${((d.sessions || 0) / maxAnonDau) * 100}%`, background: C.accent, borderRadius: 3, minWidth: d.sessions > 0 ? 4 : 0 }} />
+                  </div>
+                  <span style={{ color: C.dark, fontWeight: 700, minWidth: 24 }}>{d.sessions || 0}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <div style={cardStyle}>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Funnel wizard (per step)</div>
+          <div style={{ color: C.textLight, fontSize: 11, marginBottom: 12, fontFamily: "-apple-system, sans-serif" }}>Utenti registrati + anonimi insieme, solo dagli ultimi 100 eventi totali — per il dato solo-anonimo su tutto lo storico usa il grafico sopra.</div>
           {stepKeys.length > 0 ? (
             <div style={{ display: "flex", alignItems: "flex-end", gap: 8, height: 180, padding: "0 8px" }}>
               {stepKeys.map((k) => (
@@ -1468,7 +1526,8 @@ function AdminDashboard({ user, onClose }) {
           )}
         </div>
         <div style={cardStyle}>
-          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Utenti attivi giornalieri (ultimi 30 giorni)</div>
+          <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Utenti attivi giornalieri (ultimi 30 giorni)</div>
+          <div style={{ color: C.textLight, fontSize: 11, marginBottom: 12, fontFamily: "-apple-system, sans-serif" }}>Probabilmente conta solo utenti con account registrato, non i visitatori anonimi — da verificare nella funzione admin_get_dau.</div>
           {dau.length > 0 ? (
             <div style={{ display: "grid", gap: 4 }}>
               {dau.slice(-30).map((d, i) => (
@@ -1917,11 +1976,14 @@ export default function App() {
         DB.ensureProfile(u);
         setUser(u);
         setShowLanding(false);
-        // Vai a projects solo se l'utente non era già autenticato (evita reset vista al cambio tab)
-        if (!DB._wasAuthenticated && authScreenRef.current !== "reset-password" && !__sharedId) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
+        // Vai a projects e logga il login solo se l'utente non era già autenticato
+        // (SIGNED_IN si ripete ad ogni handshake di Supabase: cambio tab, refresh token, ecc.)
+        if (!DB._wasAuthenticated) {
+          if (authScreenRef.current !== "reset-password" && !__sharedId) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
+          if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
+        }
         DB._wasAuthenticated = true;
         setAuthLoading(false);
-        if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
       } else if (event === "SIGNED_OUT") {
         DB._user = null;
         DB._wasAuthenticated = false;

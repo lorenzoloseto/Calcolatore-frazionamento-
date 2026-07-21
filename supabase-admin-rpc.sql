@@ -337,3 +337,115 @@ BEGIN
   RETURN json_build_object('ok', true);
 END;
 $$;
+
+-- 8. admin_get_leads
+-- Lead catturati dal calcolatore (lorenzoloseto.com), non limitati agli "ultimi 100 eventi"
+-- condivisi con admin_get_recent_events: qui si guarda solo lead_capture, su tutto lo storico.
+CREATE OR REPLACE FUNCTION admin_get_leads(admin_email text)
+RETURNS TABLE (
+  created_at timestamptz,
+  nome text,
+  email text,
+  telefono text,
+  citta text,
+  indirizzo text,
+  margine_eur numeric,
+  roi_pct numeric,
+  roi_annuo_pct numeric,
+  investimento_eur numeric,
+  metratura_mq numeric,
+  unita numeric,
+  durata_mesi numeric,
+  utm_source text,
+  utm_medium text,
+  utm_campaign text,
+  utm_content text,
+  utm_term text,
+  session_id text
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  RETURN QUERY
+  SELECT
+    ae.created_at,
+    ae.metadata->>'nome',
+    ae.metadata->>'email',
+    ae.metadata->>'telefono',
+    ae.metadata->>'citta',
+    ae.metadata->>'indirizzo',
+    NULLIF(ae.metadata->>'margine_eur', '')::numeric,
+    NULLIF(ae.metadata->>'roi_pct', '')::numeric,
+    NULLIF(ae.metadata->>'roi_annuo_pct', '')::numeric,
+    NULLIF(ae.metadata->>'investimento_eur', '')::numeric,
+    NULLIF(ae.metadata->>'metratura_mq', '')::numeric,
+    NULLIF(ae.metadata->>'unita', '')::numeric,
+    NULLIF(ae.metadata->>'durata_mesi', '')::numeric,
+    ae.metadata->>'utm_source',
+    ae.metadata->>'utm_medium',
+    ae.metadata->>'utm_campaign',
+    ae.metadata->>'utm_content',
+    ae.metadata->>'utm_term',
+    ae.session_id
+  FROM analytics_events ae
+  WHERE ae.event_type = 'lead_capture'
+  ORDER BY ae.created_at DESC
+  LIMIT 2000;
+END;
+$$;
+
+-- 9. admin_get_anonymous_behavior
+-- Comportamento dei visitatori anonimi (lorenzoloseto.com / lead magnet), su tutto lo
+-- storico degli ultimi "days_back" giorni — non condiviso col pool degli "ultimi 100 eventi".
+CREATE OR REPLACE FUNCTION admin_get_anonymous_behavior(admin_email text, days_back int DEFAULT 60)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  funnel_json json;
+  dau_json json;
+  totals_json json;
+BEGIN
+  IF auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
+    RAISE EXCEPTION 'Unauthorized';
+  END IF;
+
+  -- Funnel: sessioni anonime distinte che hanno raggiunto ciascuno step del wizard
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO funnel_json
+  FROM (
+    SELECT (ae.metadata->>'from_step') AS step, COUNT(DISTINCT ae.session_id) AS sessions
+    FROM analytics_events ae
+    WHERE ae.event_type = 'wizard_step_change'
+      AND ae.user_id IS NULL
+      AND ae.created_at >= now() - (days_back || ' days')::interval
+    GROUP BY ae.metadata->>'from_step'
+    ORDER BY (ae.metadata->>'from_step')::int
+  ) t;
+
+  -- DAU anonimo: sessioni anonime distinte per giorno
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO dau_json
+  FROM (
+    SELECT date_trunc('day', ae.created_at)::date AS day, COUNT(DISTINCT ae.session_id) AS sessions
+    FROM analytics_events ae
+    WHERE ae.user_id IS NULL
+      AND ae.created_at >= now() - (days_back || ' days')::interval
+    GROUP BY 1
+    ORDER BY 1
+  ) t;
+
+  -- Totali sul periodo
+  SELECT json_build_object(
+    'sessioni_totali', (SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE user_id IS NULL AND created_at >= now() - (days_back || ' days')::interval),
+    'lead_totali', (SELECT COUNT(*) FROM analytics_events WHERE event_type = 'lead_capture' AND created_at >= now() - (days_back || ' days')::interval),
+    'video_click_totali', (SELECT COUNT(*) FROM analytics_events WHERE event_type = 'video_cta_click' AND created_at >= now() - (days_back || ' days')::interval)
+  ) INTO totals_json;
+
+  RETURN json_build_object('funnel', funnel_json, 'dau', dau_json, 'totals', totals_json);
+END;
+$$;
