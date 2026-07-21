@@ -2293,6 +2293,11 @@ export default function App() {
       </div>
     );
   };
+  // LEAD MODE — atterraggio: un evento per sessione (denominatore del funnel).
+  useEffect(() => {
+    if (!LEAD_MODE || __sharedId) return;
+    DB.trackEvent("page_view", { path: window.location.pathname, ...LEAD_UTM });
+  }, []);
   // LEAD MODE — persistenza dati wizard + submit gate verso Kajabi/Zapier/Web3Forms
   useEffect(() => {
     if (!LEAD_MODE) return;
@@ -2593,6 +2598,17 @@ export default function App() {
     const minImposte = Math.min(...opzioni.map((o) => o.imposte));
     return { daImpresa, stimaSuPrezzo, opzioni: opzioni.map((o) => ({ ...o, pctEff: prezzo > 0 ? o.imposte / prezzo : 0, best: o.imposte === minImposte })) };
   }, [data.prezzoAcquisto, data.renditaCatastale, data.acquistoDaImpresa]);
+
+  // Contesto (città + numeri chiave del calcolo) allegato agli eventi di
+  // comportamento, per capire poi quali città guardano e come usano il tool.
+  const behaviorCtx = useCallback(() => ({
+    citta: data.citta || "",
+    metratura_mq: data.metratura,
+    unita: data.numUnita,
+    investimento_eur: Math.round(calc.inv),
+    margine_eur: Math.round(calc.margine),
+    roi_pct: Number((calc.roi * 100).toFixed(1)),
+  }), [data.citta, data.metratura, data.numUnita, calc.inv, calc.margine, calc.roi]);
 
   // ============================================================
   // EXPORT EXCEL (same as v1)
@@ -3759,7 +3775,11 @@ export default function App() {
         {/* TABS */}
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map((t) => (
-            <button key={t.id} onClick={() => setDashTab(t.id)} style={{
+            <button key={t.id} onClick={() => {
+              const locked = LEAD_MODE && tpLocked && t.id !== "risultati";
+              DB.trackEvent("dash_tab_open", { tab: t.id, tab_label: t.label, locked, ...behaviorCtx() });
+              setDashTab(t.id);
+            }} style={{
               background: "transparent", border: "none", borderBottom: dashTab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
               color: dashTab === t.id ? C.dark : C.textLight, padding: "10px 14px", fontWeight: dashTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer",
               fontFamily: "-apple-system, sans-serif", marginBottom: -2, transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0,

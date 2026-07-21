@@ -411,6 +411,9 @@ DECLARE
   funnel_json json;
   dau_json json;
   totals_json json;
+  tabs_json json;
+  gate_json json;
+  cities_json json;
 BEGIN
   IF auth.email() IS NULL OR auth.email() NOT IN ('lorenzoloseto@hotmail.it', 'lorenzoloseto@gmail.com') THEN
     RAISE EXCEPTION 'Unauthorized';
@@ -439,13 +442,68 @@ BEGIN
     ORDER BY 1
   ) t;
 
+  -- Popolarità dei tab del dashboard: quali sezioni aprono gli anonimi (cosa gli interessa)
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO tabs_json
+  FROM (
+    SELECT
+      COALESCE(ae.metadata->>'tab_label', ae.metadata->>'tab') AS tab,
+      COUNT(DISTINCT ae.session_id) AS sessions,
+      COUNT(*) AS aperture
+    FROM analytics_events ae
+    WHERE ae.event_type = 'dash_tab_open'
+      AND ae.user_id IS NULL
+      AND ae.created_at >= now() - (days_back || ' days')::interval
+    GROUP BY 1
+    ORDER BY sessions DESC
+  ) t;
+
+  -- Domanda sulle sezioni bloccate: quante sessioni sbattono contro il gate per ciascuna
+  -- (segnale di cosa vogliono davvero → candidato a versione a pagamento / sblocco)
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO gate_json
+  FROM (
+    SELECT
+      COALESCE(ae.metadata->>'tab_label', ae.metadata->>'tab') AS tab,
+      COUNT(DISTINCT ae.session_id) AS sessions
+    FROM analytics_events ae
+    WHERE ae.event_type = 'dash_tab_open'
+      AND ae.user_id IS NULL
+      AND (ae.metadata->>'locked')::boolean IS TRUE
+      AND ae.created_at >= now() - (days_back || ' days')::interval
+    GROUP BY 1
+    ORDER BY sessions DESC
+  ) t;
+
+  -- Città più analizzate dagli anonimi (dove sono gli immobili che valutano)
+  SELECT COALESCE(json_agg(row_to_json(t)), '[]'::json) INTO cities_json
+  FROM (
+    SELECT
+      lower(trim(ae.metadata->>'citta')) AS citta,
+      COUNT(DISTINCT ae.session_id) AS sessions
+    FROM analytics_events ae
+    WHERE ae.event_type IN ('dash_tab_open', 'lead_capture')
+      AND ae.user_id IS NULL
+      AND COALESCE(trim(ae.metadata->>'citta'), '') <> ''
+      AND ae.created_at >= now() - (days_back || ' days')::interval
+    GROUP BY 1
+    ORDER BY sessions DESC
+    LIMIT 30
+  ) t;
+
   -- Totali sul periodo
   SELECT json_build_object(
     'sessioni_totali', (SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE user_id IS NULL AND created_at >= now() - (days_back || ' days')::interval),
+    'atterraggi_totali', (SELECT COUNT(*) FROM analytics_events WHERE event_type = 'page_view' AND user_id IS NULL AND created_at >= now() - (days_back || ' days')::interval),
     'lead_totali', (SELECT COUNT(*) FROM analytics_events WHERE event_type = 'lead_capture' AND created_at >= now() - (days_back || ' days')::interval),
     'video_click_totali', (SELECT COUNT(*) FROM analytics_events WHERE event_type = 'video_cta_click' AND created_at >= now() - (days_back || ' days')::interval)
   ) INTO totals_json;
 
-  RETURN json_build_object('funnel', funnel_json, 'dau', dau_json, 'totals', totals_json);
+  RETURN json_build_object(
+    'funnel', funnel_json,
+    'dau', dau_json,
+    'tabs', tabs_json,
+    'gate', gate_json,
+    'cities', cities_json,
+    'totals', totals_json
+  );
 END;
 $$;
