@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "ios-development": {
+      "source": "rshankras/claude-code-apple-skills",
+      "sourceType": "github",
+      "computedHash": "d96bf1934ca2c01ca846f0babb6da4018c831a504a697d8d0519c827f4f4c683"
+    }
+  }
+}
