@@ -1081,6 +1081,7 @@ function AdminDashboard({ user, onClose }) {
     { id: "projects", label: "Progetti" },
     { id: "shares", label: "Condivisioni" },
     { id: "visitors", label: "Visitatori" },
+    { id: "leads", label: "Lead" },
     { id: "activity", label: "Attivita" },
     { id: "analytics", label: "Comportamento" },
   ];
@@ -1335,6 +1336,51 @@ function AdminDashboard({ user, onClose }) {
               ))}
               {filtered.length === 0 && (
                 <tr><td colSpan={9} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessun visitatore trovato</td></tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  // ============================================================
+  // TAB: LEAD (calcolatore-frazionamento, lorenzoloseto.com)
+  // ============================================================
+  const renderLeads = () => {
+    const events = Array.isArray(recentEvents) ? recentEvents : [];
+    const leads = events.filter((e) => e.event_type === "lead_capture").sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return (
+      <div style={cardStyle}>
+        <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, marginBottom: 16 }}>Lead catturati dal calcolatore ({leads.length})</div>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, fontFamily: "-apple-system, sans-serif" }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${C.border}` }}>
+                {["Data", "Nome", "Email", "Telefono", "Citta", "Margine", "ROI", "Campagna"].map((h) => (
+                  <th key={h} style={thStyle}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {leads.map((ev, i) => {
+                const m = ev.metadata || {};
+                const campagna = m.utm_campaign || m.utm_source || "-";
+                return (
+                  <tr key={i} style={{ borderBottom: `1px solid ${C.border}` }}>
+                    <td style={tdStyle}>{fmtDateTime(ev.created_at)}</td>
+                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 600 }}>{m.nome || "-"}</td>
+                    <td style={tdStyle}>{m.email || "-"}</td>
+                    <td style={tdStyle}>{m.telefono || "-"}</td>
+                    <td style={tdStyle}>{m.citta || "-"}</td>
+                    <td style={{ ...tdStyle, color: C.dark, fontWeight: 700 }}>{m.margine_eur != null ? fmtEur(m.margine_eur) : "-"}</td>
+                    <td style={{ ...tdStyle, color: C.accent, fontWeight: 700 }}>{m.roi_pct != null ? m.roi_pct + "%" : "-"}</td>
+                    <td style={tdStyle}>{campagna}</td>
+                  </tr>
+                );
+              })}
+              {leads.length === 0 && (
+                <tr><td colSpan={8} style={{ ...tdStyle, textAlign: "center", color: C.textLight, padding: 24 }}>Nessun lead ancora catturato</td></tr>
               )}
             </tbody>
           </table>
@@ -1709,6 +1755,7 @@ function AdminDashboard({ user, onClose }) {
             {activeTab === "projects" && renderProjects()}
             {activeTab === "shares" && renderShares()}
             {activeTab === "visitors" && renderVisitors()}
+            {activeTab === "leads" && renderLeads()}
             {activeTab === "activity" && renderActivity()}
             {activeTab === "analytics" && renderAnalytics()}
           </>
@@ -2248,7 +2295,7 @@ export default function App() {
         const grazie = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/grazie";
         window.history.replaceState({}, "", grazie + window.location.search);
       } catch {}
-      DB.trackEvent("lead_capture", { email, margine: Math.round(calc.margine), roi: (calc.roi * 100).toFixed(1) });
+      DB.trackEvent("lead_capture", payload);
       // PageView sul nuovo URL /grazie (per la conversione URL-based) + evento Lead
       if (typeof window.fbq !== "undefined") { window.fbq("track", "PageView"); window.fbq("track", "Lead"); }
       if (typeof window.ttq !== "undefined") { window.ttq.page(); window.ttq.track("CompleteRegistration"); }
