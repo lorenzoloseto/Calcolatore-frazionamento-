@@ -880,7 +880,7 @@ const STEPS = [
   { id: "welcome", title: "Nuovo\nconto economico", subtitle: "Costruisci l'analisi della tua operazione immobiliare. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
   { id: "tipoAcquisto", title: "Come acquisti l'immobile?", subtitle: "Cambia le imposte di acquisto (registro o IVA) e quindi il margine dell'operazione.", type: "buyerType" },
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
-  { id: "metratura", title: "Superficie totale", subtitle: "La metratura commerciale dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
+  { id: "metratura", title: "Superficie calpestabile", subtitle: "La superficie calpestabile dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
   { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
   { id: "vendita", title: "Prezzo di vendita al mq", subtitle: "Prezzo medio al metro quadro delle unità piccole nella zona.", field: "prezzoVenditaMq", type: "number", suffix: "€/mq", step: 100 },
   { id: "rist", title: "Costo ristrutturazione", subtitle: "Costo al mq comprensivo di ristrutturazione e impiantistica.", field: "costoRistMq", type: "number", suffix: "€/mq", step: 50 },
@@ -3863,7 +3863,7 @@ export default function App() {
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
               <DashInput label="Prezzo acquisto" value={data.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} suffix="€" step={5000} disabled={viewOnly} info="Prezzo di acquisto dell'immobile come da rogito, escluse imposte e costi accessori (che inserisci nelle voci sotto)." />
-              <DashInput label="Superficie" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} info="Superficie commerciale totale dell'immobile in mq. È la base per calcolare ristrutturazione e ricavi di vendita al mq." />
+              <DashInput label="Superficie calpestabile" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} info="Superficie calpestabile dell'immobile in mq. È la base per calcolare ristrutturazione e ricavi di vendita al mq." />
               <DashInput label="N. unità" value={data.numUnita} onChange={(v) => upd("numUnita", v)} min={2} max={10} disabled={viewOnly} info="Numero di unità immobiliari che otterrai dal frazionamento." />
               <DashInput label="Prezzo vendita/mq" value={data.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} suffix="€/mq" step={100} disabled={viewOnly} info="Prezzo di vendita stimato al mq delle unità finite. Verificalo con i comparabili di mercato nella sezione dedicata." />
               <DashInput label="Durata operazione" value={data.durataOp} onChange={(v) => upd("durataOp", v)} suffix="mesi" min={1} disabled={viewOnly} info="Durata stimata dell'operazione in mesi, dall'acquisto alla vendita dell'ultima unità. Serve per calcolare il ROI annualizzato." />
