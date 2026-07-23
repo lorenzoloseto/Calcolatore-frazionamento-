@@ -3791,6 +3791,39 @@ export default function App() {
 
         {/* RISULTATI TAB */}
         {dashTab === "risultati" && (<>
+          {/* BANNER SBLOCCA FUNZIONALITÀ — solo lead magnet, finché non sbloccato.
+              Risolve il problema di scoperta: i tab avanzati scorrono fuori schermo e
+              gli utenti (es. Francesco) non si accorgono che Computo/Scenari/ecc. esistono. */}
+          {LEAD_MODE && tpLocked && (() => {
+            const advanced = [
+              { id: "ristrutturazione", Icon: LpIconGrid, title: "Computo lavori", desc: "Ristrutturazione voce per voce: 30 voci precaricate (impianti, infissi, frazionamento, oneri)." },
+              { id: "scenari", Icon: LpIconChart, title: "Analisi scenari", desc: "3 scenari a confronto: pessimistico, realistico e ottimistico." },
+              { id: "comparabili", Icon: LpIconServer, title: "Confronto comparabili", desc: "Confronta il tuo prezzo di uscita con la media reale del mercato di zona." },
+              { id: "appalto", Icon: LpIconShield, title: "Contratto d'appalto", desc: "Genera il contratto d'appalto della tua operazione, pronto da firmare." },
+            ];
+            return (
+              <div style={{ background: "linear-gradient(135deg, rgba(196,132,29,0.09), rgba(196,132,29,0.02))", border: `1px solid ${C.accent}`, borderRadius: 8, padding: "16px 18px", marginBottom: 18 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                  <LpIconLock />
+                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>Sblocca tutte le funzionalità</div>
+                </div>
+                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione.</div>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
+                  {advanced.map(({ id, Icon, title, desc }) => (
+                    <button key={id} onClick={() => { DB.trackEvent("unlock_banner_click", { section: id, ...behaviorCtx() }); setDashTab(id); }}
+                      style={{ textAlign: "left", background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 14px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 6, fontFamily: "-apple-system, sans-serif" }}>
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                        <Icon />
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Sblocca →</span>
+                      </div>
+                      <div style={{ color: C.dark, fontWeight: 700, fontSize: 13 }}>{title}</div>
+                      <div style={{ color: C.textMid, fontSize: 11.5, lineHeight: 1.4 }}>{desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
           {/* CONFRONTO ACQUISTO: SOCIETÀ VS PERSONA FISICA */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginBottom: 16 }}>
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 6, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Come conviene acquistare?</div>
