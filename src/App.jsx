@@ -777,8 +777,8 @@ function DataRow({ label, value, highlight, bold, border = true }) {
     </div>
   );
 }
-function KpiCard({ label, value, subvalue, positive, negative, accent }) {
-  const color = positive ? C.green : negative ? C.red : accent ? C.accent : C.dark;
+function KpiCard({ label, value, subvalue, positive, negative, accent, colorOverride }) {
+  const color = colorOverride || (positive ? C.green : negative ? C.red : accent ? C.accent : C.dark);
   return (
     <div style={{ background: C.card, borderRadius: 6, padding: "12px 14px", border: `1px solid ${C.border}`, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
       <div style={{ color: C.textMid, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", marginBottom: 4 }}>{label}</div>
@@ -3664,7 +3664,7 @@ export default function App() {
   // DASHBOARD
   // ============================================================
   const tabs = [
-    { id: "risultati", label: "Riepilogo" },
+    { id: "risultati", label: "Riepilogo operazione" },
     { id: "ristrutturazione", label: "Computo lavori" },
     { id: "scenari", label: "Analisi scenari" },
     { id: "comparabili", label: "Confronto comparabili" },
@@ -3756,23 +3756,12 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* VERDICT BANNER */}
-        <div style={{ background: verdict ? C.greenBg : C.redBg, border: `1px solid ${verdict ? "#B8DFC9" : "#F5C6C6"}`, borderLeft: `4px solid ${verdict ? C.green : C.red}`, borderRadius: 4, padding: "12px 16px", marginBottom: 18, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ color: verdict ? C.green : C.red, fontWeight: 700, fontSize: 14, fontFamily: "-apple-system, sans-serif" }}>{verdict ? "Operazione sostenibile" : "Attenzione: margine a rischio"}</div>
-            <div style={{ color: C.textMid, fontSize: 13, marginTop: 2, fontFamily: "-apple-system, sans-serif" }}>{verdict ? `Margine positivo anche nello scenario pessimistico (${fmtEur(calc.pess.margine)})` : `Il margine diventa negativo nello scenario pessimistico (${fmtEur(calc.pess.margine)})`}</div>
-          </div>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ color: C.textLight, fontSize: 9, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>ROI annualizzato</div>
-            <div style={{ color: C.dark, fontSize: 28, fontWeight: 700 }}>{fmtPct(calc.roiAnn)}</div>
-          </div>
-        </div>
         {/* KPI CARDS */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 18 }}>
           <KpiCard label="Investimento totale" value={fmtEur(calc.inv)} subvalue={`${fmtEur(Math.round(calc.pMqAcq))}/mq acquisto`} />
           <KpiCard label="Ricavo netto" value={fmtEur(calc.ricNet)} subvalue={`${data.numUnita} unità x ${fmtEur(Math.round(calc.ricU))}`} />
-          <KpiCard label="Margine lordo" value={fmtEur(calc.margine)} positive={calc.margine >= 0} negative={calc.margine < 0} subvalue={`Margine % ${fmtPct(calc.roi)}`} />
-          <KpiCard label="ROI" value={fmtPct(calc.roi)} accent subvalue={`Annualizzato: ${fmtPct(calc.roiAnn)}`} />
+          <KpiCard label="Margine lordo" value={fmtEur(calc.margine)} negative={calc.margine < 0} subvalue={`Margine % ${fmtPct(calc.roi)}`} />
+          <KpiCard label="ROI" value={fmtPct(calc.roi)} colorOverride={verdict ? "#3AA35C" : C.red} subvalue={`Annualizzato: ${fmtPct(calc.roiAnn)}`} />
         </div>
         {/* TABS */}
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
@@ -3824,8 +3813,10 @@ export default function App() {
               </div>
             );
           })()}
+          {/* Riordino: prima i dati core dell'operazione, poi il confronto fiscale (via CSS order) */}
+          <div style={{ display: "flex", flexDirection: "column" }}>
           {/* CONFRONTO ACQUISTO: SOCIETÀ VS PERSONA FISICA */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginBottom: 16 }}>
+          <div style={{ order: 2, background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginBottom: 16 }}>
             <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 6, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Come conviene acquistare?</div>
             <p style={{ color: C.textMid, fontSize: 12, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Confronto delle imposte di acquisto su un prezzo di {fmtEur(data.prezzoAcquisto)}: società vs persona fisica (prima o seconda casa).</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12 }}>
@@ -3859,12 +3850,11 @@ export default function App() {
             </div>
             <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "12px 0 0", fontFamily: "-apple-system, sans-serif" }}>Stima indicativa a fini di confronto (aliquote standard, esclusi casi lusso/agevolazioni particolari): verifica sempre con notaio e commercialista. "Usa nel calcolo" imposta la voce Tasse acquisto alla percentuale effettiva dell'opzione scelta.</p>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
+          <div style={{ order: 1, display: "grid", gridTemplateColumns: "1fr", gap: 16, marginBottom: 16 }}>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
               <DashInput label="Prezzo acquisto" value={data.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} suffix="€" step={5000} disabled={viewOnly} info="Prezzo di acquisto dell'immobile come da rogito, escluse imposte e costi accessori (che inserisci nelle voci sotto)." />
               <DashInput label="Superficie calpestabile" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} info="Superficie calpestabile dell'immobile in mq. È la base per calcolare ristrutturazione e ricavi di vendita al mq." />
-              <DashInput label="N. unità" value={data.numUnita} onChange={(v) => upd("numUnita", v)} min={2} max={10} disabled={viewOnly} info="Numero di unità immobiliari che otterrai dal frazionamento." />
               <DashInput label="Prezzo vendita/mq" value={data.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} suffix="€/mq" step={100} disabled={viewOnly} info="Prezzo di vendita stimato al mq delle unità finite. Verificalo con i comparabili di mercato nella sezione dedicata." />
               <DashInput label="Durata operazione" value={data.durataOp} onChange={(v) => upd("durataOp", v)} suffix="mesi" min={1} disabled={viewOnly} info="Durata stimata dell'operazione in mesi, dall'acquisto alla vendita dell'ultima unità. Serve per calcolare il ROI annualizzato." />
               <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
@@ -3926,6 +3916,7 @@ export default function App() {
                 <DataRow label="Totale costi" value={fmtEur(Math.round(calc.costiFraz))} bold highlight border={false} />
               </div>
             </div>
+          </div>
           </div>
           {/* PLANIMETRIA STATO DI FATTO */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
