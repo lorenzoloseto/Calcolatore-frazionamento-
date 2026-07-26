@@ -2178,7 +2178,7 @@ export default function App() {
   const animTo = useCallback((fn) => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 180); }, []);
   const goNext = () => {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
-    DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep });
+    DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep, citta: data.citta || "", metratura: data.metratura, prezzo_acquisto: data.prezzoAcquisto, prezzo_vendita_mq: data.prezzoVenditaMq });
     if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
     else if (LEAD_MODE && !leadCaptured) { openLeadGate(); }
     else animTo(() => {
@@ -2193,7 +2193,7 @@ export default function App() {
       }
     });
   };
-  const goBack = () => { if (step > 0) { const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null; DB.trackEvent("wizard_step_change", { from_step: step, to_step: step - 1, direction: "back", seconds_on_step: timeOnStep }); animTo(() => { setStep((s) => s - 1); window._stepEnteredAt = Date.now(); }); } };
+  const goBack = () => { if (step > 0) { const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null; DB.trackEvent("wizard_step_change", { from_step: step, to_step: step - 1, direction: "back", seconds_on_step: timeOnStep, citta: data.citta || "", metratura: data.metratura, prezzo_acquisto: data.prezzoAcquisto, prezzo_vendita_mq: data.prezzoVenditaMq }); animTo(() => { setStep((s) => s - 1); window._stepEnteredAt = Date.now(); }); } };
 
   // ============================================================
   // AUTOSAVE — salva automaticamente ogni volta che i dati cambiano
