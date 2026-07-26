@@ -3570,7 +3570,7 @@ export default function App() {
     const s = STEPS[step];
     const progress = (step / STEPS.length) * 100;
     return (
-      <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }} onKeyDown={(e) => e.key === "Enter" && goNext()}>
+      <div style={{ background: C.bg, minHeight: "100vh", paddingBottom: cookieBannerDismissed ? 0 : 96, fontFamily: "'Georgia', 'Times New Roman', serif" }} onKeyDown={(e) => e.key === "Enter" && goNext()}>
         {renderFlowBar()}
         <div style={{ background: C.navy, paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ height: 3, background: "#0a1a33" }}>
@@ -3645,6 +3645,7 @@ export default function App() {
                   upd("tipoAcquisto", o.key);
                   const opt = confrontoAcquisto.opzioni.find((x) => x.key === o.key);
                   if (opt) upd("tasseAcquistoPct", Math.round(opt.pctEff * 10000) / 10000);
+                  setTimeout(goNext, 200); // auto-avanza: scegliere l'opzione porta subito allo step dopo
                 }} style={{
                   textAlign: "left", padding: "14px 16px", borderRadius: 8, cursor: "pointer",
                   border: `2px solid ${data.tipoAcquisto === o.key ? C.accent : C.borderDark}`,
