@@ -880,10 +880,14 @@ const STEPS = [
   { id: "welcome", title: "Nuovo\nconto economico", subtitle: "Costruisci l'analisi della tua operazione immobiliare. Potrai condividerla con protezione NDA al termine.", isWelcome: true },
   { id: "tipoAcquisto", title: "Come acquisti l'immobile?", subtitle: "Cambia le imposte di acquisto (registro o IVA) e quindi il margine dell'operazione.", type: "buyerType" },
   { id: "indirizzo", title: "Indirizzo dell'immobile", subtitle: "Inserisci l'indirizzo per identificare questa operazione.", type: "address" },
-  { id: "metratura", title: "Superficie calpestabile", subtitle: "La superficie calpestabile dell'immobile.", field: "metratura", type: "number", suffix: "mq", step: 5 },
-  { id: "prezzo", title: "Prezzo di acquisto", subtitle: "Il prezzo richiesto o negoziato per l'immobile.", field: "prezzoAcquisto", type: "number", suffix: "€", step: 5000 },
-  { id: "vendita", title: "Prezzo di vendita al mq", subtitle: "Prezzo medio al metro quadro delle unità piccole nella zona.", field: "prezzoVenditaMq", type: "number", suffix: "€/mq", step: 100 },
-  { id: "rist", title: "Costo ristrutturazione", subtitle: "Costo al mq comprensivo di ristrutturazione e impiantistica.", field: "costoRistMq", type: "number", suffix: "€/mq", step: 50 },
+  { id: "acquisto", title: "Superficie e prezzo di acquisto", subtitle: "Due dati per partire: quanto è grande l'immobile e quanto lo paghi.", type: "number-group", fields: [
+    { field: "metratura", label: "Superficie calpestabile", suffix: "mq", step: 5 },
+    { field: "prezzoAcquisto", label: "Prezzo di acquisto", suffix: "€", step: 5000 },
+  ] },
+  { id: "vendita", title: "Vendita e ristrutturazione", subtitle: "A quanto rivendi al mq e quanto costa ristrutturare al mq.", type: "number-group", fields: [
+    { field: "prezzoVenditaMq", label: "Prezzo di vendita al mq", suffix: "€/mq", step: 100 },
+    { field: "costoRistMq", label: "Costo ristrutturazione al mq", suffix: "€/mq", step: 50 },
+  ] },
   { id: "durata", title: "Durata dell'operazione", subtitle: "Tempistica prevista dalla firma all'ultima vendita.", field: "durataOp", type: "slider", min: 3, max: 24, labels: ["3 mesi", "12", "24 mesi"], unit: "mesi" },
 ];
 
@@ -2268,7 +2272,7 @@ export default function App() {
   // Salta a ogni schermata del wizard (Welcome → 6 domande → Dati → Risultato)
   // per ispezionarla senza compilare. I lead (senza ?flow=1) non la vedono.
   const FLOW_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("flow") === "1";
-  const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Acquisto", 1], ["Indirizzo", 2], ["Superficie", 3], ["Prezzo acq.", 4], ["Prezzo vend.", 5], ["Ristrutt.", 6], ["Durata", 7], ["Dati", "gate"], ["Risultato", "result"]];
+  const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Acquisto", 1], ["Indirizzo", 2], ["Superf.+Prezzo", 3], ["Vendita+Rist.", 4], ["Durata", 5], ["Dati", "gate"], ["Risultato", "result"]];
   const goScreen = (key) => {
     setShowLeadGate(false);
     if (key === "landing") { setShowLanding(true); return; }
@@ -2800,7 +2804,7 @@ export default function App() {
   // LANDING PAGE
   // ============================================================
   const LP_FEATURES = LEAD_MODE ? [
-    { Icon: LpIconLightning, title: "Conto Economico Immediato", desc: "Rispondi a 7 domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
+    { Icon: LpIconLightning, title: "Conto Economico Immediato", desc: "Rispondi a poche domande sulla tua operazione e ottieni subito margine, ROI e ROI annualizzato. Nessuna registrazione." },
     { Icon: LpIconChart, title: "3 Scenari a Confronto", desc: "Pessimistico, realistico e ottimistico. Scopri se l'operazione regge anche quando i prezzi scendono e i costi salgono." },
     { Icon: LpIconGrid, title: "Ristrutturazione Voce per Voce", desc: "30 voci di costo precaricate: impianti, infissi, frazionamento catastale, oneri. Affina la stima come un cantiere vero." },
     { Icon: LpIconServer, title: "Confronto Comparabili", desc: "Inserisci gli immobili in vendita nella zona e confronta il tuo prezzo di uscita con la media reale del mercato." },
@@ -2815,7 +2819,7 @@ export default function App() {
     { Icon: LpIconDownload, title: "Export Professionale", desc: "Scarica il conto economico completo in formato Excel, pronto per finanziatori e istituti di credito." },
   ];
   const LP_STEPS = LEAD_MODE ? [
-    { num: "01", title: "Rispondi a 7 domande", desc: "Tipo di acquisto, indirizzo, metratura, prezzo di acquisto, prezzo di vendita al mq, costo ristrutturazione e durata. Senza registrazione." },
+    { num: "01", title: "Rispondi in pochi passaggi", desc: "Tipo di acquisto, indirizzo, superficie, prezzo di acquisto e di vendita al mq, costo ristrutturazione e durata. Senza registrazione." },
     { num: "02", title: "Sblocca il conto economico", desc: "Margine netto, ROI, investimento totale e verdetto automatico: l'operazione regge anche nello scenario pessimistico?" },
     { num: "03", title: "Affina i numeri", desc: "Ristrutturazione voce per voce, comparabili di zona, scenari personalizzati. Poi scarica tutto in Excel." },
   ] : [
@@ -3594,7 +3598,7 @@ export default function App() {
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 20px 30px", textAlign: "center", opacity: fadeIn ? 1 : 0, transform: fadeIn ? "translateY(0)" : "translateY(16px)", transition: "all 0.2s ease" }}>
           {s.isWelcome && <div style={{ width: 64, height: 4, background: C.accent, margin: "0 auto 24px", borderRadius: 2 }} />}
           <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{LEAD_MODE && s.isWelcome ? "Calcola il tuo\nfrazionamento" : s.title}</h1>
-          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi a 7 domande sulla tua operazione. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
+          <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi in pochi passaggi. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
           {s.type === "address" && (
             <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
               <div style={{ display: "flex", gap: 10 }}>
@@ -3617,6 +3621,18 @@ export default function App() {
             </div>
           )}
           {s.type === "number" && <WizardNumberInput value={data[s.field]} onChange={(v) => upd(s.field, v)} suffix={s.suffix} step={s.step} />}
+          {s.type === "number-group" && (
+            <div style={{ maxWidth: 340, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
+              {s.fields.map((f, i) => (
+                <div key={f.field}>
+                  <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>{f.label}</label>
+                  <WizardNumberInput value={data[f.field]} onChange={(v) => upd(f.field, v)} suffix={f.suffix} step={f.step} autoFocus={i === 0} />
+                  {f.field === "prezzoAcquisto" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Equivale a {fmtEur(Math.round(data.prezzoAcquisto / data.metratura))}/mq</div>}
+                  {f.field === "prezzoVenditaMq" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Ricavo totale stimato: <strong style={{ color: C.dark }}>{fmtEur(data.prezzoVenditaMq * data.metratura)}</strong></div>}
+                </div>
+              ))}
+            </div>
+          )}
           {s.type === "slider" && <WizardSlider value={data[s.field]} onChange={(v) => upd(s.field, v)} min={s.min} max={s.max} labels={s.labels} unit={s.unit} />}
           {s.type === "buyerType" && (
             <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 10 }}>
