@@ -1684,7 +1684,7 @@ function AdminDashboard({ user, onClose }) {
     const rist = typeof p.rist_items === "string" ? JSON.parse(p.rist_items) : (p.rist_items || []);
     const dataFields = [
       { k: "via", l: "Indirizzo" }, { k: "civico", l: "Civico" }, { k: "citta", l: "Citta" },
-      { k: "mqTotali", l: "Metratura totale" }, { k: "numUnita", l: "Unita" },
+      { k: "metratura", l: "Superficie calpestabile" }, { k: "numUnita", l: "Unita" },
       { k: "prezzoAcquisto", l: "Prezzo acquisto" }, { k: "prezzoVenditaMq", l: "Prezzo vendita/mq" },
       { k: "costoRistMq", l: "Costo rist./mq" }, { k: "durataOp", l: "Durata (mesi)" },
     ];
@@ -2269,7 +2269,7 @@ export default function App() {
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
 
   // ── Barra "anteprima flusso" INTERNA al calcolatore (solo ?flow=1, solo Lorenzo) ──
-  // Salta a ogni schermata del wizard (Welcome → 6 domande → Dati → Risultato)
+  // Salta a ogni schermata del wizard (Welcome → 5 passaggi → Dati → Risultato)
   // per ispezionarla senza compilare. I lead (senza ?flow=1) non la vedono.
   const FLOW_ON = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("flow") === "1";
   const FLOW_STEPS = [["Landing", "landing"], ["Welcome", 0], ["Acquisto", 1], ["Indirizzo", 2], ["Superf.+Prezzo", 3], ["Vendita+Rist.", 4], ["Durata", 5], ["Dati", "gate"], ["Risultato", "result"]];
@@ -2652,7 +2652,7 @@ export default function App() {
     sh1 += blank();
     sh1 += section("DATI IMMOBILE");
     sh1 += dataRow("Prezzo acquisto", r(data.prezzoAcquisto), "€", { eur: true });
-    sh1 += dataRow("Superficie totale", r(data.metratura), "mq");
+    sh1 += dataRow("Superficie calpestabile", r(data.metratura), "mq");
     sh1 += dataRow("Prezzo/mq acquisto", r(calc.pMqAcq), "€/mq", { eur: true });
     sh1 += dataRow("Numero unità", data.numUnita, "");
     sh1 += dataRow("Superficie per unità", r(calc.mqU), "mq");
@@ -4240,7 +4240,7 @@ export default function App() {
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
                 <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Immobile e catasto</div>
                 <DataRow label="Indirizzo" value={indirizzo} />
-                <DataRow label="Superficie" value={fmtMq(data.metratura)} />
+                <DataRow label="Superficie calpestabile" value={fmtMq(data.metratura)} />
                 <DataRow label="Comune catasto" value={data.citta || "—"} />
                 <div style={{ marginTop: 10 }} />
                 <DashTextInput label="Foglio" value={ap.foglio} onChange={(v) => uA("foglio", v)} placeholder="Es. 88" disabled={viewOnly} info="Dati del Catasto Fabbricati: li trovi in visura catastale." />
