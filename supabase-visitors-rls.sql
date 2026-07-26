@@ -58,3 +58,25 @@ CREATE POLICY "visitors_delete_owner" ON public.snapshot_visitors
 -- (rowsecurity = true + le 3 policy qui sopra).
 -- SELECT relrowsecurity FROM pg_class WHERE relname = 'snapshot_visitors';
 -- SELECT policyname, cmd FROM pg_policies WHERE tablename = 'snapshot_visitors';
+
+-- ============================================================
+-- TRACKING EVENTI ANONIMI (analytics_events)
+-- ============================================================
+-- PROBLEMA: la policy anon consentiva di inserire SOLO event_type='snapshot_view',
+-- quindi tutti gli eventi del lead magnet generati da visitatori non loggati
+-- (page_view, dash_tab_open, unlock_banner_click, lead_capture, wizard_step_change...)
+-- venivano rifiutati in silenzio da DB.trackEvent → funnel del calcolatore gratuito
+-- completamente cieco su Supabase.
+--
+-- FIX: l'anonimo può inserire QUALSIASI evento, purché user_id sia NULL (così non
+-- può falsificare eventi attribuiti a un utente reale). Nessuna policy di SELECT per
+-- anon → i dati restano non leggibili senza login.
+
+DROP POLICY IF EXISTS "Anon can insert snapshot_view" ON public.analytics_events;
+
+CREATE POLICY "Anon can insert events" ON public.analytics_events
+  FOR INSERT TO anon
+  WITH CHECK (user_id IS NULL);
+
+-- Verifica: un anonimo (publishable key) deve poter inserire un evento con user_id
+-- NULL (201), ma NON con user_id valorizzato (violazione RLS), e NON deve poter leggere.
