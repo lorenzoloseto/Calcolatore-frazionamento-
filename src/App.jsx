@@ -3854,14 +3854,13 @@ export default function App() {
               {confrontoAcquisto.opzioni.map((o) => {
                 const selected = data.tipoAcquisto === o.key;
                 return (
-                <div key={o.nome} style={{ border: `1px solid ${o.best ? C.green : selected ? C.navy : C.border}`, background: o.best ? C.greenBg : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
-                  {o.best && <div style={{ position: "absolute", top: -9, right: 10, background: C.green, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Più conveniente</div>}
-                  {selected && !o.best && <div style={{ position: "absolute", top: -9, left: 10, background: C.navy, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>La tua scelta</div>}
+                <div key={o.nome} style={{ border: `${selected ? 2 : 1}px solid ${selected ? C.accent : C.border}`, background: selected ? C.highlight : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
+                  {selected && <div style={{ position: "absolute", top: -9, left: 10, background: C.accent, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>La tua scelta</div>}
                   <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{o.nome}</div>
                   <div style={{ color: C.dark, fontSize: 22, fontWeight: 700, margin: "4px 0 2px" }}>{fmtEur(Math.round(o.imposte))}</div>
                   <div style={{ color: C.textMid, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>{fmtPct(o.pctEff)} del prezzo · {o.dettaglio}</div>
                   <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "8px 0 0", fontFamily: "-apple-system, sans-serif" }}>{o.note}</p>
-                  {!viewOnly && <button onClick={() => { upd("tasseAcquistoPct", Math.round(o.pctEff * 10000) / 10000); upd("tipoAcquisto", o.key); }} style={{ marginTop: 10, width: "100%", background: "transparent", border: `1px solid ${C.navy}`, color: C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Usa nel calcolo</button>}
+                  {!viewOnly && <button onClick={() => { upd("tasseAcquistoPct", Math.round(o.pctEff * 10000) / 10000); upd("tipoAcquisto", o.key); }} style={{ marginTop: 10, width: "100%", background: selected ? C.accent : "transparent", border: `1px solid ${selected ? C.accent : C.navy}`, color: selected ? "#fff" : C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{selected ? "Selezionata ✓" : "Usa nel calcolo"}</button>}
                 </div>
               );})}
             </div>
