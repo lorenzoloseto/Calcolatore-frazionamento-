@@ -514,7 +514,7 @@ const C = {
 
 const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
-  prezzoVenditaMq: 3200, costoRistMq: 500, costoRistCorpo: 0, durataOp: 8,
+  prezzoVenditaMq: 3200, venditaMode: "mq", alloggi: [], costoRistMq: 500, costoRistCorpo: 0, durataOp: 8,
   oneriComunali: 5000, costiProfessionisti: 15000, provvigioniInPct: 0, provvigioniPct: 0.03, notaio: 0, bufferPct: 0.15, tasseAcquistoPct: 0.09,
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
@@ -2174,6 +2174,9 @@ export default function App() {
     setRistItems((prev) => prev.map((it, i) => i === idx ? { ...it, [field]: val } : it));
   }, []);
   const upd = useCallback((f, v) => setData((p) => ({ ...p, [f]: v })), []);
+  const addAlloggio = useCallback(() => setData((p) => ({ ...p, venditaMode: "alloggi", alloggi: [...(p.alloggi || []), { nome: "", prezzo: 0 }] })), []);
+  const removeAlloggio = useCallback((idx) => setData((p) => ({ ...p, alloggi: (p.alloggi || []).filter((_, i) => i !== idx) })), []);
+  const updAlloggio = useCallback((idx, field, val) => setData((p) => ({ ...p, alloggi: (p.alloggi || []).map((a, i) => i === idx ? { ...a, [field]: val } : a) })), []);
   const updAppalto = useCallback((f, v) => setData((p) => ({ ...p, appalto: { ...DEFAULT_DATA.appalto, ...p.appalto, [f]: v } })), []);
   const animTo = useCallback((fn) => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 180); }, []);
   const goNext = () => {
@@ -2557,23 +2560,29 @@ export default function App() {
     const altriCosti = d.allacciamentiUtenze + d.bolletteGasLuce + d.consulenzeTecniche + d.rendering + (d.imu || 0) + (d.speseCondominio || 0) + (d.notaio || 0) + provvigioniIn + speseBancarie + interessi;
     const costiFraz = costoRistTot + d.oneriComunali + d.costiProfessionisti + buffer + tasseAcquisto + altriCosti;
     const inv = d.prezzoAcquisto + costiFraz;
-    const mqU = d.numUnita > 0 ? d.metratura / d.numUnita : 0;
+    // Ricavo di vendita: due modalità — "al mq" (metratura × prezzo/mq) oppure
+    // "per alloggio" (somma dei prezzi decisi alloggio per alloggio).
+    const alloggiMode = d.venditaMode === "alloggi";
+    const alloggiTot = (d.alloggi || []).reduce((s, a) => s + (Number(a.prezzo) || 0), 0);
+    const numUnitaEff = alloggiMode ? Math.max(1, (d.alloggi || []).length) : d.numUnita;
+    const mqU = numUnitaEff > 0 ? d.metratura / numUnitaEff : 0;
     const pMqAcq = d.metratura > 0 ? d.prezzoAcquisto / d.metratura : 0;
-    const ricU = mqU * d.prezzoVenditaMq;
-    const ricTot = ricU * d.numUnita;
+    const ricTot = alloggiMode ? alloggiTot : d.metratura * d.prezzoVenditaMq;
+    const prezzoVenditaMqEff = d.metratura > 0 ? ricTot / d.metratura : 0;
+    const ricU = numUnitaEff > 0 ? ricTot / numUnitaEff : ricTot;
     const prov = ricTot * d.provvigioniPct;
     const ricNet = ricTot - prov;
     const margine = ricNet - inv;
     const roi = inv > 0 ? margine / inv : 0;
     const roiAnn = inv > 0 && d.durataOp > 0 ? roi * (12 / d.durataOp) : 0;
-    const incMq = pMqAcq > 0 ? (d.prezzoVenditaMq - pMqAcq) / pMqAcq : 0;
+    const incMq = pMqAcq > 0 ? (prezzoVenditaMqEff - pMqAcq) / pMqAcq : 0;
     function sc(vP, vC, mD) {
-      const pV = d.prezzoVenditaMq * (1 + vP), cF = costiFraz * (1 + vC), i = d.prezzoAcquisto + cF;
-      const r = d.metratura * pV, pr = r * d.provvigioniPct, m = r - pr - i;
+      const cF = costiFraz * (1 + vC), i = d.prezzoAcquisto + cF;
+      const r = ricTot * (1 + vP), pr = r * d.provvigioniPct, m = r - pr - i;
       const ms = Math.max(1, d.durataOp + mD), ro = i > 0 ? m / i : 0;
       return { margine: m, roi: ro, roiAnn: i > 0 && ms > 0 ? ro * (12 / ms) : 0, durata: ms, investimento: i };
     }
-    return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
+    return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prezzoVenditaMqEff, numUnitaEff, alloggiTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
 
@@ -3776,7 +3785,7 @@ export default function App() {
         {/* KPI CARDS */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 8, marginBottom: 18 }}>
           <KpiCard label="Investimento totale" value={fmtEur(calc.inv)} subvalue={`${fmtEur(Math.round(calc.pMqAcq))}/mq acquisto`} />
-          <KpiCard label="Ricavo netto" value={fmtEur(calc.ricNet)} subvalue={`${data.numUnita} unità x ${fmtEur(Math.round(calc.ricU))}`} />
+          <KpiCard label="Ricavo netto" value={fmtEur(calc.ricNet)} subvalue={`${calc.numUnitaEff} unità x ${fmtEur(Math.round(calc.ricU))}`} />
           <KpiCard label="Margine lordo" value={fmtEur(calc.margine)} negative={calc.margine < 0} subvalue={`Margine % ${fmtPct(calc.roi)}`} />
           <KpiCard label="ROI" value={fmtPct(calc.roi)} colorOverride={verdict ? "#3AA35C" : C.red} subvalue={`Annualizzato: ${fmtPct(calc.roiAnn)}`} />
         </div>
@@ -3871,7 +3880,44 @@ export default function App() {
               <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 14, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Dati immobile</div>
               <DashInput label="Prezzo acquisto" value={data.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} suffix="€" step={5000} disabled={viewOnly} info="Prezzo di acquisto dell'immobile come da rogito, escluse imposte e costi accessori (che inserisci nelle voci sotto)." />
               <DashInput label="Superficie calpestabile" value={data.metratura} onChange={(v) => upd("metratura", v)} suffix="mq" disabled={viewOnly} info="Superficie calpestabile dell'immobile in mq. È la base per calcolare ristrutturazione e ricavi di vendita al mq." />
-              <DashInput label="Prezzo vendita/mq" value={data.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} suffix="€/mq" step={100} disabled={viewOnly} info="Prezzo di vendita stimato al mq delle unità finite. Verificalo con i comparabili di mercato nella sezione dedicata." />
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 6 }}>
+                  <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Prezzo di vendita<InfoTip text="Definisci il ricavo di vendita in due modi: al metro quadro (metratura × €/mq), oppure alloggio per alloggio con il prezzo che decidi tu." /></label>
+                  {!viewOnly && <div style={{ display: "flex", gap: 3, background: C.bg, borderRadius: 6, padding: 2 }}>
+                    {[{ k: "mq", l: "Al mq" }, { k: "alloggi", l: "Per alloggio" }].map((m) => {
+                      const on = (data.venditaMode || "mq") === m.k;
+                      return <button key={m.k} onClick={() => { if (m.k === "alloggi" && (!data.alloggi || !data.alloggi.length)) { setData((p) => ({ ...p, venditaMode: "alloggi", alloggi: Array.from({ length: Math.max(1, p.numUnita || 1) }, () => ({ nome: "", prezzo: 0 })) })); } else { upd("venditaMode", m.k); } }} style={{ border: "none", background: on ? C.accent : "transparent", color: on ? "#fff" : C.textMid, borderRadius: 5, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{m.l}</button>;
+                    })}
+                  </div>}
+                </div>
+                {(data.venditaMode || "mq") === "mq" ? (
+                  <>
+                    <div style={{ display: "flex", alignItems: "center", background: viewOnly ? C.bg : "#FFF", border: `1px solid ${C.inputBorder}`, borderRadius: 4 }}>
+                      <input type="number" value={data.prezzoVenditaMq} onChange={(e) => upd("prezzoVenditaMq", Number(e.target.value) || 0)} step={100} disabled={viewOnly} style={{ flex: 1, border: "none", outline: "none", background: "transparent", padding: "9px 12px", fontSize: 15, fontWeight: 700, color: C.dark, fontFamily: "-apple-system, sans-serif", minWidth: 0 }} />
+                      <span style={{ padding: "0 12px", color: C.textMid, fontSize: 13, fontWeight: 600 }}>€/mq</span>
+                    </div>
+                    <p style={{ color: C.textLight, fontSize: 11, margin: "4px 0 0", fontFamily: "-apple-system, sans-serif" }}>Ricavo totale: {fmtEur(Math.round(calc.ricTot))}</p>
+                  </>
+                ) : (
+                  <div>
+                    {(data.alloggi || []).map((a, i) => (
+                      <div key={i} style={{ display: "flex", gap: 6, marginBottom: 6, alignItems: "center" }}>
+                        <input type="text" value={a.nome} onChange={(e) => updAlloggio(i, "nome", e.target.value)} placeholder={`Alloggio ${i + 1}`} disabled={viewOnly} style={{ flex: 1, border: `1px solid ${C.inputBorder}`, borderRadius: 4, padding: "8px 10px", fontSize: 13, fontFamily: "-apple-system, sans-serif", color: C.dark, outline: "none", minWidth: 0, background: viewOnly ? C.bg : "#FFF" }} />
+                        <div style={{ display: "flex", alignItems: "center", border: `1px solid ${C.inputBorder}`, borderRadius: 4, background: viewOnly ? C.bg : "#FFF", flex: "0 0 130px" }}>
+                          <input type="number" value={a.prezzo || ""} onChange={(e) => updAlloggio(i, "prezzo", Number(e.target.value) || 0)} placeholder="Prezzo" step={5000} disabled={viewOnly} style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "8px 8px", fontSize: 14, fontWeight: 700, color: C.dark, fontFamily: "-apple-system, sans-serif", minWidth: 0 }} />
+                          <span style={{ padding: "0 8px", color: C.textMid, fontSize: 13 }}>€</span>
+                        </div>
+                        {!viewOnly && <button onClick={() => removeAlloggio(i)} title="Rimuovi alloggio" style={{ flex: "0 0 auto", background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, width: 30, height: 34, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>}
+                      </div>
+                    ))}
+                    {!viewOnly && <button onClick={addAlloggio} style={{ marginTop: 2, background: "transparent", border: `1px dashed ${C.accent}`, color: C.accent, borderRadius: 4, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", fontFamily: "-apple-system, sans-serif" }}>+ Aggiungi alloggio</button>}
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
+                      <span style={{ color: C.textMid, fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif" }}>Ricavo totale ({(data.alloggi || []).length} alloggi)</span>
+                      <span style={{ color: C.dark, fontSize: 14, fontWeight: 700, fontFamily: "'Georgia', serif" }}>{fmtEur(Math.round(calc.ricTot))}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
               <DashInput label="Durata operazione" value={data.durataOp} onChange={(v) => upd("durataOp", v)} suffix="mesi" min={1} disabled={viewOnly} info="Durata stimata dell'operazione in mesi, dall'acquisto alla vendita dell'ultima unità. Serve per calcolare il ROI annualizzato." />
               <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
                 <DataRow label="Prezzo/mq acquisto" value={fmtEur(Math.round(calc.pMqAcq)) + "/mq"} />
