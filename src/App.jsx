@@ -3886,7 +3886,7 @@ export default function App() {
                   {!viewOnly && <div style={{ display: "flex", gap: 3, background: C.bg, borderRadius: 6, padding: 2 }}>
                     {[{ k: "mq", l: "Al mq" }, { k: "alloggi", l: "Per alloggio" }].map((m) => {
                       const on = (data.venditaMode || "mq") === m.k;
-                      return <button key={m.k} onClick={() => { if (m.k === "alloggi" && (!data.alloggi || !data.alloggi.length)) { setData((p) => ({ ...p, venditaMode: "alloggi", alloggi: Array.from({ length: Math.max(1, p.numUnita || 1) }, () => ({ nome: "", prezzo: 0 })) })); } else { upd("venditaMode", m.k); } }} style={{ border: "none", background: on ? C.accent : "transparent", color: on ? "#fff" : C.textMid, borderRadius: 5, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{m.l}</button>;
+                      return <button key={m.k} onClick={() => { if (m.k === "alloggi" && (!data.alloggi || !data.alloggi.length)) { setData((p) => ({ ...p, venditaMode: "alloggi", alloggi: [{ nome: "", prezzo: 0 }] })); } else { upd("venditaMode", m.k); } }} style={{ border: "none", background: on ? C.accent : "transparent", color: on ? "#fff" : C.textMid, borderRadius: 5, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{m.l}</button>;
                     })}
                   </div>}
                 </div>
@@ -3907,12 +3907,12 @@ export default function App() {
                           <input type="number" value={a.prezzo || ""} onChange={(e) => updAlloggio(i, "prezzo", Number(e.target.value) || 0)} placeholder="Prezzo" step={5000} disabled={viewOnly} style={{ width: "100%", border: "none", outline: "none", background: "transparent", padding: "8px 8px", fontSize: 14, fontWeight: 700, color: C.dark, fontFamily: "-apple-system, sans-serif", minWidth: 0 }} />
                           <span style={{ padding: "0 8px", color: C.textMid, fontSize: 13 }}>€</span>
                         </div>
-                        {!viewOnly && <button onClick={() => removeAlloggio(i)} title="Rimuovi alloggio" style={{ flex: "0 0 auto", background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, width: 30, height: 34, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>}
+                        {!viewOnly && (data.alloggi || []).length > 1 && <button onClick={() => removeAlloggio(i)} title="Rimuovi alloggio" style={{ flex: "0 0 auto", background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, width: 30, height: 34, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>}
                       </div>
                     ))}
                     {!viewOnly && <button onClick={addAlloggio} style={{ marginTop: 2, background: "transparent", border: `1px dashed ${C.accent}`, color: C.accent, borderRadius: 4, padding: "8px 12px", fontSize: 12, fontWeight: 700, cursor: "pointer", width: "100%", fontFamily: "-apple-system, sans-serif" }}>+ Aggiungi alloggio</button>}
                     <div style={{ display: "flex", justifyContent: "space-between", marginTop: 8, paddingTop: 8, borderTop: `1px solid ${C.border}` }}>
-                      <span style={{ color: C.textMid, fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif" }}>Ricavo totale ({(data.alloggi || []).length} alloggi)</span>
+                      <span style={{ color: C.textMid, fontSize: 12, fontWeight: 600, fontFamily: "-apple-system, sans-serif" }}>Ricavo totale ({(data.alloggi || []).length} allogg{(data.alloggi || []).length === 1 ? "io" : "i"})</span>
                       <span style={{ color: C.dark, fontSize: 14, fontWeight: 700, fontFamily: "'Georgia', serif" }}>{fmtEur(Math.round(calc.ricTot))}</span>
                     </div>
                   </div>
