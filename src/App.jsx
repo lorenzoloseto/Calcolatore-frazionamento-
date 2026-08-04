@@ -519,6 +519,22 @@ const DEFAULT_DATA = {
   allacciamentiUtenze: 0, bolletteGasLuce: 0, consulenzeTecniche: 0, rendering: 0, imu: 0, speseCondominio: 0,
   speseBancarieSomma: 0, speseBancariePct: 0, interessiSomma: 0, interessiPct: 0,
   renditaCatastale: 0, acquistoDaImpresa: false, tipoAcquisto: "societa",
+  // MESSA A REDDITO — seconda "uscita" dell'operazione: invece di rivendere, si affitta.
+  // Riusa l'investimento iniziale calcolato sopra e ci costruisce sopra rendita e cash flow.
+  reddito: {
+    tipo: "lungo",                 // lungo (4+4) | transitorio/studenti | breve (turistico)
+    canoneMensile: 900,            // lungo e transitorio
+    mesiSfitto: 1,                 // mesi vuoti stimati in un anno
+    prezzoNotte: 90,               // solo affitto breve
+    occupazionePct: 0.6,           // solo affitto breve
+    pulizieANotte: 12,             // solo affitto breve
+    commissionePiattaformaPct: 0.15, // solo affitto breve (Airbnb/Booking)
+    imuAnnua: 0, condominioAnnuo: 0, manutenzioneAnnua: 0, assicurazioneAnnua: 0,
+    gestionePct: 0,                // agenzia/property manager, % sul canone lordo
+    regimeFiscale: "cedolare21",   // cedolare21 | cedolare10 | irpef | societa
+    aliquotaIrpef: 0.35,           // usata solo con regime irpef
+    mutuoImporto: 0, mutuoTassoPct: 0.035, mutuoAnni: 20,
+  },
   appalto: {
     committentiList: [{ nome: "", sede: "", cf: "", rea: "", pec: "" }],
     appaltatoreNome: "", appaltatoreSede: "",
@@ -2178,6 +2194,7 @@ export default function App() {
   const removeAlloggio = useCallback((idx) => setData((p) => ({ ...p, alloggi: (p.alloggi || []).filter((_, i) => i !== idx) })), []);
   const updAlloggio = useCallback((idx, field, val) => setData((p) => ({ ...p, alloggi: (p.alloggi || []).map((a, i) => i === idx ? { ...a, [field]: val } : a) })), []);
   const updAppalto = useCallback((f, v) => setData((p) => ({ ...p, appalto: { ...DEFAULT_DATA.appalto, ...p.appalto, [f]: v } })), []);
+  const updReddito = useCallback((f, v) => setData((p) => ({ ...p, reddito: { ...DEFAULT_DATA.reddito, ...p.reddito, [f]: v } })), []);
   const animTo = useCallback((fn) => { setFadeIn(false); setTimeout(() => { fn(); setFadeIn(true); }, 180); }, []);
   const goNext = () => {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
@@ -2585,6 +2602,62 @@ export default function App() {
     return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prezzoVenditaMqEff, numUnitaEff, alloggiTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
+
+  // ============================================================
+  // MESSA A REDDITO — seconda uscita: si affitta invece di rivendere.
+  // Parte dallo stesso investimento iniziale (calc.inv) e calcola rendita,
+  // cash flow e rientro, confrontando i regimi fiscali sull'affitto.
+  // ============================================================
+  const calcReddito = useMemo(() => {
+    const r = { ...DEFAULT_DATA.reddito, ...(data.reddito || {}) };
+    const inv = calc.inv;
+    const breve = r.tipo === "breve";
+    // Ricavo lordo annuo
+    const nottiOccupate = Math.round(365 * (r.occupazionePct || 0));
+    const lordoAnnuo = breve
+      ? (r.prezzoNotte || 0) * nottiOccupate
+      : (r.canoneMensile || 0) * Math.max(0, 12 - (r.mesiSfitto || 0));
+    // Costi variabili tipici dell'affitto breve
+    const commissioni = breve ? lordoAnnuo * (r.commissionePiattaformaPct || 0) : 0;
+    const pulizie = breve ? (r.pulizieANotte || 0) * nottiOccupate : 0;
+    const gestione = lordoAnnuo * (r.gestionePct || 0);
+    const costiFissi = (r.imuAnnua || 0) + (r.condominioAnnuo || 0) + (r.manutenzioneAnnua || 0) + (r.assicurazioneAnnua || 0);
+    const costiAnnui = costiFissi + gestione + commissioni + pulizie;
+    // Tassazione: la cedolare si applica sul canone lordo, IRPEF sul 95%,
+    // la societa' sull'utile (ricavi - costi). Stima indicativa.
+    const tasseRegime = (regime) => {
+      if (regime === "cedolare21") return lordoAnnuo * 0.21;
+      if (regime === "cedolare10") return lordoAnnuo * 0.10;
+      if (regime === "irpef") return lordoAnnuo * 0.95 * (r.aliquotaIrpef || 0.35);
+      return Math.max(0, lordoAnnuo - costiAnnui) * (0.24 + 0.039); // societa': IRES + IRAP
+    };
+    const opzioniFiscali = [
+      { key: "cedolare21", nome: "Cedolare secca 21%", nota: "Affitto libero: imposta piatta sul canone, niente IRPEF ne' addizionali.", tasse: tasseRegime("cedolare21") },
+      { key: "cedolare10", nome: "Cedolare secca 10%", nota: "Canone concordato in comuni ad alta tensione abitativa: canone piu' basso ma tassazione minima.", tasse: tasseRegime("cedolare10") },
+      { key: "irpef", nome: "IRPEF ordinaria", nota: "Il canone (95%) si somma agli altri redditi: conviene solo con redditi bassi.", tasse: tasseRegime("irpef") },
+      { key: "societa", nome: "Societa' (IRES+IRAP)", nota: "Tassa l'utile al netto dei costi: i costi sono deducibili, l'utile e' tassato ~28%.", tasse: tasseRegime("societa") },
+    ];
+    const tasse = tasseRegime(r.regimeFiscale);
+    const nettoAnnuo = lordoAnnuo - costiAnnui - tasse;
+    // Mutuo: rata con ammortamento francese
+    const i = (r.mutuoTassoPct || 0) / 12, n = (r.mutuoAnni || 0) * 12;
+    const rataMensile = (r.mutuoImporto || 0) > 0 && n > 0
+      ? (i > 0 ? (r.mutuoImporto * i) / (1 - Math.pow(1 + i, -n)) : r.mutuoImporto / n)
+      : 0;
+    const rataAnnua = rataMensile * 12;
+    const cashFlowAnnuo = nettoAnnuo - rataAnnua;
+    const capitaleProprio = Math.max(0, inv - (r.mutuoImporto || 0));
+    return {
+      r, breve, nottiOccupate, lordoAnnuo, commissioni, pulizie, gestione, costiFissi, costiAnnui,
+      tasse, opzioniFiscali, nettoAnnuo, rataMensile, rataAnnua, cashFlowAnnuo, capitaleProprio,
+      cashFlowMensile: cashFlowAnnuo / 12,
+      yieldLordo: inv > 0 ? lordoAnnuo / inv : 0,
+      yieldNetto: inv > 0 ? nettoAnnuo / inv : 0,
+      cashOnCash: capitaleProprio > 0 ? cashFlowAnnuo / capitaleProprio : 0,
+      anniRientro: cashFlowAnnuo > 0 ? capitaleProprio / cashFlowAnnuo : 0,
+      investimento: inv,
+    };
+  }, [data.reddito, calc.inv]);
 
   // Confronto imposte di acquisto: società vs persona fisica (prima/seconda casa)
   const confrontoAcquisto = useMemo(() => {
@@ -3691,6 +3764,7 @@ export default function App() {
   // ============================================================
   const tabs = [
     { id: "risultati", label: "Riepilogo operazione" },
+    { id: "reddito", label: "Messa a reddito" },
     { id: "ristrutturazione", label: "Computo lavori" },
     { id: "scenari", label: "Analisi scenari" },
     { id: "comparabili", label: "Confronto comparabili" },
@@ -4051,6 +4125,101 @@ export default function App() {
             </div>
           </div>
         </>)}
+
+        {/* MESSA A REDDITO TAB — seconda uscita dell'operazione: affittare invece di rivendere */}
+        {dashTab === "reddito" && (() => {
+          const R = calcReddito, red = R.r;
+          const posCF = R.cashFlowMensile >= 0;
+          return (
+          <>
+            {/* KPI reddito */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 8, marginBottom: 16 }}>
+              <KpiCard label="Cash flow mensile" value={fmtEur(Math.round(R.cashFlowMensile))} colorOverride={posCF ? "#3AA35C" : C.red} subvalue={R.rataMensile > 0 ? `Dopo rata mutuo di ${fmtEur(Math.round(R.rataMensile))}` : "Nessun mutuo"} />
+              <KpiCard label="Rendita netta" value={fmtPct(R.yieldNetto)} subvalue={`Lorda: ${fmtPct(R.yieldLordo)}`} />
+              <KpiCard label="Cash-on-cash" value={fmtPct(R.cashOnCash)} subvalue={`Su ${fmtEur(Math.round(R.capitaleProprio))} di capitale tuo`} />
+              <KpiCard label="Rientro capitale" value={R.anniRientro > 0 ? `${R.anniRientro.toFixed(1)} anni` : "—"} subvalue={R.anniRientro > 0 ? "Con il cash flow attuale" : "Cash flow non positivo"} />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+              {/* AFFITTO */}
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 12, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Affitto</div>
+                <label style={{ color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, display: "block", marginBottom: 5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>Tipo di affitto<InfoTip text="Lungo termine (4+4): canone stabile, poco sfitto. Transitorio/studenti: canone piu' alto ma piu' turnover. Breve/turistico: si ragiona a notti e occupazione, con costi di gestione piu' alti." /></label>
+                <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
+                  {[{ k: "lungo", l: "Lungo (4+4)" }, { k: "transitorio", l: "Transitorio" }, { k: "breve", l: "Breve" }].map((t) => (
+                    <button key={t.k} disabled={viewOnly} onClick={() => updReddito("tipo", t.k)} style={{ flex: 1, minWidth: 90, padding: "8px 6px", borderRadius: 4, border: `1px solid ${red.tipo === t.k ? C.accent : C.inputBorder}`, background: red.tipo === t.k ? C.highlight : C.inputBg, color: red.tipo === t.k ? C.dark : C.textMid, fontWeight: 700, fontSize: 12, cursor: viewOnly ? "default" : "pointer", fontFamily: "-apple-system, sans-serif" }}>{t.l}</button>
+                  ))}
+                </div>
+                {R.breve ? (
+                  <>
+                    <DashInput label="Prezzo a notte" value={red.prezzoNotte} onChange={(v) => updReddito("prezzoNotte", v)} suffix="€" step={5} disabled={viewOnly} info="Prezzo medio per notte al netto degli sconti." />
+                    <DashPctInput label="Occupazione" value={red.occupazionePct} onChange={(v) => updReddito("occupazionePct", v)} note={`${R.nottiOccupate} notti/anno`} disabled={viewOnly} info="Percentuale di notti occupate sull'anno. In Italia una media realistica e' 50-70%." />
+                    <DashInput label="Pulizie a notte" value={red.pulizieANotte} onChange={(v) => updReddito("pulizieANotte", v)} suffix="€" step={1} disabled={viewOnly} info="Costo medio di pulizia e biancheria rapportato alla notte." />
+                    <DashPctInput label="Commissioni piattaforma" value={red.commissionePiattaformaPct} onChange={(v) => updReddito("commissionePiattaformaPct", v)} note="Airbnb / Booking" disabled={viewOnly} info="Commissione trattenuta dal portale sul lordo (tipicamente 15-18%)." />
+                  </>
+                ) : (
+                  <>
+                    <DashInput label="Canone mensile" value={red.canoneMensile} onChange={(v) => updReddito("canoneMensile", v)} suffix="€" step={50} disabled={viewOnly} info="Canone di locazione mensile richiesto." />
+                    <DashInput label="Mesi di sfitto" value={red.mesiSfitto} onChange={(v) => updReddito("mesiSfitto", v)} suffix="mesi" step={1} disabled={viewOnly} info="Mesi all'anno in cui l'immobile resta vuoto tra un inquilino e l'altro. Nel lungo termine 0-1, nel transitorio anche 2-3." />
+                  </>
+                )}
+                <DashPctInput label="Gestione / agenzia" value={red.gestionePct} onChange={(v) => updReddito("gestionePct", v)} note="Sul canone lordo" disabled={viewOnly} info="Compenso di agenzia o property manager, in % sul canone. Lascia 0 se gestisci tu." />
+                <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                  <DataRow label="Ricavo lordo annuo" value={fmtEur(Math.round(R.lordoAnnuo))} />
+                  {R.breve && <DataRow label="Commissioni piattaforma" value={"−" + fmtEur(Math.round(R.commissioni))} />}
+                  {R.breve && <DataRow label="Pulizie" value={"−" + fmtEur(Math.round(R.pulizie))} />}
+                  {R.gestione > 0 && <DataRow label="Gestione" value={"−" + fmtEur(Math.round(R.gestione))} border={false} />}
+                </div>
+              </div>
+
+              {/* COSTI + MUTUO */}
+              <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)" }}>
+                <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 12, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Costi annui e mutuo</div>
+                <DashInput label="IMU annua" value={red.imuAnnua} onChange={(v) => updReddito("imuAnnua", v)} suffix="€" step={100} disabled={viewOnly} info="IMU dovuta ogni anno sull'immobile affittato (non dovuta sull'abitazione principale)." />
+                <DashInput label="Condominio a tuo carico" value={red.condominioAnnuo} onChange={(v) => updReddito("condominioAnnuo", v)} suffix="€" step={100} disabled={viewOnly} info="Quota di spese condominiali che resta al proprietario (straordinarie e parte delle ordinarie)." />
+                <DashInput label="Manutenzione annua" value={red.manutenzioneAnnua} onChange={(v) => updReddito("manutenzioneAnnua", v)} suffix="€" step={100} disabled={viewOnly} info="Accantonamento per riparazioni e usura. Una regola prudente e' l'5-10% del canone annuo." />
+                <DashInput label="Assicurazione" value={red.assicurazioneAnnua} onChange={(v) => updReddito("assicurazioneAnnua", v)} suffix="€" step={50} disabled={viewOnly} info="Polizza fabbricato ed eventuale copertura sui mancati pagamenti." />
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px solid ${C.border}` }}>
+                  <DashInput label="Mutuo — importo" value={red.mutuoImporto} onChange={(v) => updReddito("mutuoImporto", v)} suffix="€" step={5000} disabled={viewOnly} info="Somma finanziata dalla banca. Lascia 0 se compri senza mutuo." />
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ flex: 1 }}><DashPctInput label="Tasso" value={red.mutuoTassoPct} onChange={(v) => updReddito("mutuoTassoPct", v)} disabled={viewOnly} info="Tasso annuo del mutuo." /></div>
+                    <div style={{ flex: 1 }}><DashInput label="Durata" value={red.mutuoAnni} onChange={(v) => updReddito("mutuoAnni", v)} suffix="anni" step={1} disabled={viewOnly} info="Durata del mutuo in anni." /></div>
+                  </div>
+                  {R.rataMensile > 0 && <p style={{ color: C.textLight, fontSize: 11, margin: 0, fontFamily: "-apple-system, sans-serif" }}>Rata mensile: <strong style={{ color: C.dark }}>{fmtEur(Math.round(R.rataMensile))}</strong></p>}
+                </div>
+                <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
+                  <DataRow label="Investimento iniziale" value={fmtEur(Math.round(R.investimento))} />
+                  <DataRow label="Costi annui totali" value={"−" + fmtEur(Math.round(R.costiAnnui))} />
+                  <DataRow label="Tasse sull'affitto" value={"−" + fmtEur(Math.round(R.tasse))} />
+                  <DataRow label="Netto annuo" value={fmtEur(Math.round(R.nettoAnnuo))} bold highlight border={false} />
+                </div>
+              </div>
+            </div>
+
+            {/* CONFRONTO REGIMI FISCALI */}
+            <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", marginTop: 16 }}>
+              <div style={{ color: C.dark, fontWeight: 700, fontSize: 14, marginBottom: 6, fontFamily: "-apple-system, sans-serif", borderBottom: `2px solid ${C.accent}`, paddingBottom: 6 }}>Come conviene tassare l'affitto?</div>
+              <p style={{ color: C.textMid, fontSize: 12, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Confronto delle imposte annue su un canone lordo di {fmtEur(Math.round(R.lordoAnnuo))}.</p>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 12 }}>
+                {R.opzioniFiscali.map((o) => {
+                  const sel = red.regimeFiscale === o.key;
+                  return (
+                    <div key={o.key} style={{ border: `${sel ? 2 : 1}px solid ${sel ? C.accent : C.border}`, background: sel ? C.highlight : "transparent", borderRadius: 6, padding: "16px 14px 14px", position: "relative" }}>
+                      {sel && <div style={{ position: "absolute", top: -9, left: 10, background: C.accent, color: "#fff", fontSize: 9, fontWeight: 700, letterSpacing: 0.5, padding: "2px 8px", borderRadius: 10, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>La tua scelta</div>}
+                      <div style={{ color: C.textLight, fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{o.nome}</div>
+                      <div style={{ color: C.dark, fontSize: 22, fontWeight: 700, margin: "4px 0 2px" }}>{fmtEur(Math.round(o.tasse))}</div>
+                      <div style={{ color: C.textMid, fontSize: 11, fontFamily: "-apple-system, sans-serif" }}>imposte annue</div>
+                      <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "8px 0 0", fontFamily: "-apple-system, sans-serif" }}>{o.nota}</p>
+                      {!viewOnly && <button onClick={() => updReddito("regimeFiscale", o.key)} style={{ marginTop: 10, width: "100%", background: sel ? C.accent : "transparent", border: `1px solid ${sel ? C.accent : C.navy}`, color: sel ? "#fff" : C.navy, borderRadius: 4, padding: "6px 8px", fontSize: 11, fontWeight: 700, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{sel ? "Selezionata ✓" : "Usa nel calcolo"}</button>}
+                    </div>
+                  );
+                })}
+              </div>
+              <p style={{ color: C.textLight, fontSize: 10.5, lineHeight: 1.5, margin: "12px 0 0", fontFamily: "-apple-system, sans-serif" }}>Stima indicativa: la cedolare si calcola sul canone lordo, l'IRPEF sul 95% sommato agli altri redditi, la societa' sull'utile al netto dei costi. Verifica sempre con il tuo commercialista.</p>
+            </div>
+          </>
+          );
+        })()}
 
         {/* RISTRUTTURAZIONE TAB */}
         {dashTab === "ristrutturazione" && (
