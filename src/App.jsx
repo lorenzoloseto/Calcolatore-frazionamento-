@@ -3867,7 +3867,10 @@ export default function App() {
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map((t) => (
             <button key={t.id} onClick={() => {
-              const locked = LEAD_MODE && tpLocked && t.id !== "risultati";
+              // Tab sempre liberi anche nel lead magnet: il conto economico (rivendita)
+              // e la messa a reddito. Sono i due motori di calcolo, l'amo del tool.
+              const FREE_TABS = ["risultati", "reddito"];
+              const locked = LEAD_MODE && tpLocked && !FREE_TABS.includes(t.id);
               DB.trackEvent("dash_tab_open", { tab: t.id, tab_label: t.label, locked, ...behaviorCtx() });
               setDashTab(t.id);
             }} style={{
