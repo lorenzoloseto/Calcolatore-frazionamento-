@@ -550,6 +550,38 @@ const DEFAULT_DATA = {
   planimetria: null, planimetriaProgetto: null,
   linkImmobile: "", linkComparabile: "",
 };
+// ============================================================
+// IMPOSTE DI ACQUISTO — motore condiviso (calcolatore completo + conto economico)
+// Società vs persona fisica (prima/seconda casa), da privato (registro,
+// con prezzo-valore se c'è la rendita) o da impresa (IVA).
+// ============================================================
+function calcImposteAcquisto(prezzoIn, renditaIn, daImpresaIn) {
+  const prezzo = prezzoIn || 0;
+  const rendita = renditaIn || 0;
+  const daImpresa = !!daImpresaIn;
+  const stimaSuPrezzo = !daImpresa && rendita <= 0;
+  const vcPrima = rendita * 1.05 * 110; // valore catastale prima casa
+  const vcAltri = rendita * 1.05 * 120; // valore catastale altri immobili
+  let opzioni;
+  if (daImpresa) {
+    opzioni = [
+      { key: "societa", nome: "Società", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "Per la società l'IVA è in genere detraibile o compensabile. Nessun vincolo di rivendita, costi deducibili, utile tassato IRES 24% (+ IRAP)." },
+      { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "L'IVA resta un costo pieno. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%). Operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+      { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: prezzo * 0.04 + 600, dettaglio: "IVA 4% sul prezzo + 600 € fisse", note: "Vincoli: residenza nel Comune entro 18 mesi e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%), salvo riacquisto entro 1 anno. Poco adatta a un'operazione di rivendita." },
+    ];
+  } else {
+    const basePrima = vcPrima > 0 ? vcPrima : prezzo;
+    const baseAltri = vcAltri > 0 ? vcAltri : prezzo;
+    opzioni = [
+      { key: "societa", nome: "Società", imposte: Math.max(1000, prezzo * 0.09) + 100, dettaglio: "Registro 9% sul prezzo + 100 € ipo-catastali", note: "Niente prezzo-valore: il 9% si paga sul prezzo pieno. In compenso nessun vincolo di rivendita, costi deducibili e utile tassato in società (IRES 24% + IRAP)." },
+      { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: Math.max(1000, baseAltri * 0.09) + 100, dettaglio: rendita > 0 ? "Registro 9% sul valore catastale + 100 €" : "Registro 9% (stima sul prezzo) + 100 €", note: "Con il prezzo-valore il 9% si paga sul valore catastale, spesso molto più basso del prezzo. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%); operazioni ripetute rischiano la riqualifica come attività d'impresa." },
+      { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: Math.max(1000, basePrima * 0.02) + 100, dettaglio: rendita > 0 ? "Registro 2% sul valore catastale + 100 €" : "Registro 2% (stima sul prezzo) + 100 €", note: "Vincoli: residenza nel Comune entro 18 mesi, nessun'altra prima casa e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%). Poco adatta a un'operazione di rivendita." },
+    ];
+  }
+  const minImposte = Math.min(...opzioni.map((o) => o.imposte));
+  return { daImpresa, stimaSuPrezzo, opzioni: opzioni.map((o) => ({ ...o, pctEff: prezzo > 0 ? o.imposte / prezzo : 0, best: o.imposte === minImposte })) };
+}
+
 const DEFAULT_SCENARI = { varPrezzoDown: -0.10, varCostiUp: 0.20, mesiExtra: 4, varPrezzoUp: 0.10, varCostiDown: -0.10, mesiMeno: 2 };
 const RIST_INIT = [
   // --- COSTI TECNICI ---
@@ -1922,6 +1954,223 @@ async function uploadPlanimetria(file, fieldName, updFn, setBusy) {
 // ============================================================
 // MAIN APP
 // ============================================================
+// ============================================================
+// CONTO ECONOMICO IMMOBILIARE — pagina libera, senza login e senza salvataggio.
+// Versione leggera del calcolatore: poche voci, risultato immediato,
+// i dati vivono solo in memoria e spariscono chiudendo la pagina.
+// Rotta: /conto-economico-immobiliare (vedi main.jsx)
+// ============================================================
+const CE_FISSI = { provvigionePct: 0.03, notaio: 2000, speseTecniche: 5000 };
+const CE_INIT = { prezzoAcquisto: "", metratura: "", tipoAcquisto: "privato_seconda", daImpresa: false, renditaCatastale: "", costoRistMq: 1000, prezzoVenditaMq: "" };
+const CE_TIPI = [
+  { key: "privato_prima", label: "Prima casa", desc: "Privato, sarà la tua residenza" },
+  { key: "privato_seconda", label: "Seconda casa", desc: "Privato, non è la tua prima casa" },
+  { key: "societa", label: "Società", desc: "Acquisto tramite SRL o altra società" },
+];
+
+const CE_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+const CE_LBL = { display: "block", color: C.textMid, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", fontFamily: CE_SANS, marginBottom: 6 };
+const CE_INP = { width: "100%", boxSizing: "border-box", background: C.inputBg, border: `2px solid ${C.inputBorder}`, borderRadius: 8, color: C.dark, fontSize: 18, fontWeight: 700, padding: "12px 14px", outline: "none", fontFamily: "'Georgia', serif" };
+// Definiti fuori dal componente: se fossero dentro, React li ricreerebbe a ogni
+// render e l'input perderebbe il focus a ogni tasto.
+function CeField({ label, value, onChange, suffix, placeholder, hint, step }) {
+  return (
+    <div>
+      <label style={CE_LBL}>{label}</label>
+      <div style={{ position: "relative" }}>
+        <input type="number" inputMode="decimal" min="0" step={step || 1} value={value} placeholder={placeholder || ""} onChange={(e) => onChange(e.target.value)}
+          onFocus={(e) => (e.target.style.borderColor = C.inputFocus)} onBlur={(e) => (e.target.style.borderColor = C.inputBorder)}
+          style={{ ...CE_INP, paddingRight: suffix ? 64 : 14 }} />
+        {suffix && <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: C.textLight, fontSize: 13, fontWeight: 600, fontFamily: CE_SANS, pointerEvents: "none" }}>{suffix}</span>}
+      </div>
+      {hint && <div style={{ color: C.textLight, fontSize: 12, marginTop: 5, fontFamily: CE_SANS, lineHeight: 1.4 }}>{hint}</div>}
+    </div>
+  );
+}
+function CeRow({ label, sub, value, bold, color, top }) {
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, padding: "9px 0", borderTop: top ? `1px solid ${C.border}` : "none" }}>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ color: bold ? C.dark : C.text, fontSize: bold ? 15 : 14, fontWeight: bold ? 700 : 500, fontFamily: CE_SANS }}>{label}</div>
+        {sub && <div style={{ color: C.textLight, fontSize: 11.5, fontFamily: CE_SANS, marginTop: 1 }}>{sub}</div>}
+      </div>
+      <div style={{ color: color || C.dark, fontSize: bold ? 18 : 15, fontWeight: 700, fontFamily: "'Georgia', serif", whiteSpace: "nowrap" }}>{value}</div>
+    </div>
+  );
+}
+
+export function ContoEconomicoPage() {
+  const [f, setF] = useState(CE_INIT);
+  const [showPrivacy, setShowPrivacy] = useState(false);
+  const [cookieOk, setCookieOk] = useState(() => { try { return localStorage.getItem("cookie_consent") === "1"; } catch { return true; } });
+  const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
+  const resultRef = useRef(null);
+  const upd = (k, v) => setF((x) => ({ ...x, [k]: v }));
+  const num = (v) => { const n = parseFloat(String(v).replace(/\./g, "").replace(",", ".")); return isFinite(n) && n > 0 ? n : 0; };
+
+  useEffect(() => {
+    document.title = "Conto Economico Immobiliare — Lorenzo Loseto";
+    DB.trackEvent("page_view", { path: window.location.pathname, page: "conto-economico", ...LEAD_UTM });
+    const h = () => setIsMobile(window.innerWidth < 640);
+    window.addEventListener("resize", h);
+    return () => window.removeEventListener("resize", h);
+  }, []);
+
+  const prezzo = num(f.prezzoAcquisto), mq = num(f.metratura), rendita = num(f.renditaCatastale);
+  const ristMq = num(f.costoRistMq), vendMq = num(f.prezzoVenditaMq);
+  const imp = useMemo(() => calcImposteAcquisto(prezzo, rendita, f.daImpresa), [prezzo, rendita, f.daImpresa]);
+  const opz = imp.opzioni.find((o) => o.key === f.tipoAcquisto) || imp.opzioni[0];
+  const imposte = prezzo > 0 ? opz.imposte : 0;
+  const provvigione = prezzo * CE_FISSI.provvigionePct;
+  const ristrutturazione = mq * ristMq;
+  const ready = prezzo > 0 && mq > 0;
+  const investimento = ready ? prezzo + imposte + provvigione + CE_FISSI.notaio + CE_FISSI.speseTecniche + ristrutturazione : 0;
+  const costoMq = ready ? investimento / mq : 0;
+  const ricavo = ready && vendMq > 0 ? vendMq * mq : 0;
+  const margine = ricavo - investimento;
+  const roi = investimento > 0 ? margine / investimento : 0;
+  const isPrivato = f.tipoAcquisto !== "societa";
+  const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?utm_source=conto-economico&utm_medium=cta";
+
+  // Tracking leggero: una volta al primo risultato completo, una al click CTA.
+  const trackedRef = useRef(false);
+  useEffect(() => {
+    if (!ready || trackedRef.current) return;
+    trackedRef.current = true;
+    DB.trackEvent("conto_economico_calc", { prezzo_eur: prezzo, metratura_mq: mq, tipo: f.tipoAcquisto, investimento_eur: Math.round(investimento), ...LEAD_UTM });
+  }, [ready]);
+
+  return (
+    <div style={{ minHeight: "100vh", background: C.bg, fontFamily: CE_SANS }}>
+      {/* NAVBAR */}
+      <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        <div style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5 }}>LORENZO LOSETO</div>
+        <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "navbar" })} style={{ color: C.accent, fontSize: 12, fontWeight: 700, textDecoration: "none", letterSpacing: 0.5, whiteSpace: "nowrap" }}>Calcolatore completo →</a>
+      </div>
+
+      <div style={{ maxWidth: 1040, margin: "0 auto", padding: isMobile ? "28px 16px 40px" : "44px 24px 64px" }}>
+        {/* HERO */}
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 26 : 38 }}>
+          <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>Strumento gratuito · nessuna registrazione</div>
+          <h1 style={{ color: C.navy, fontFamily: "'Playfair Display', 'Georgia', serif", fontSize: isMobile ? 30 : 42, lineHeight: 1.15, margin: "0 0 12px" }}>Conto economico immobiliare</h1>
+          <p style={{ color: C.textMid, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, margin: "0 auto", maxWidth: 560 }}>Inserisci prezzo e metri quadrati: ti diciamo subito quanto ti costa davvero l'operazione, imposte comprese, e quanto ti resta in tasca.</p>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28, alignItems: "start" }}>
+          {/* INPUT */}
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 2px 12px rgba(13,34,64,0.05)" }}>
+            <CeField value={f.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} label="Prezzo di acquisto" suffix="€" placeholder="es. 150.000" step={1000} hint={prezzo > 0 && mq > 0 ? `Equivale a ${fmtEur(prezzo / mq)}/mq` : ""} />
+            <CeField value={f.metratura} onChange={(v) => upd("metratura", v)} label="Superficie calpestabile" suffix="mq" placeholder="es. 90" step={5} />
+
+            <div>
+              <label style={CE_LBL}>Come acquisti?</label>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8 }}>
+                {CE_TIPI.map((o) => {
+                  const on = f.tipoAcquisto === o.key;
+                  return (
+                    <button key={o.key} onClick={() => upd("tipoAcquisto", o.key)} style={{ textAlign: "center", padding: "10px 6px", borderRadius: 8, cursor: "pointer", border: `2px solid ${on ? C.accent : C.borderDark}`, background: on ? C.highlight : C.card, fontFamily: CE_SANS }}>
+                      <div style={{ color: C.dark, fontWeight: 700, fontSize: 13.5 }}>{o.label}</div>
+                      <div style={{ color: C.textMid, fontSize: 10.5, marginTop: 2, lineHeight: 1.3 }}>{o.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <label style={CE_LBL}>Da chi compri?</label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                {[{ v: false, label: "Da un privato", desc: "Imposta di registro" }, { v: true, label: "Da un'impresa", desc: "Con IVA" }].map((o) => {
+                  const on = f.daImpresa === o.v;
+                  return (
+                    <button key={String(o.v)} onClick={() => upd("daImpresa", o.v)} style={{ textAlign: "center", padding: "10px 6px", borderRadius: 8, cursor: "pointer", border: `2px solid ${on ? C.accent : C.borderDark}`, background: on ? C.highlight : C.card, fontFamily: CE_SANS }}>
+                      <div style={{ color: C.dark, fontWeight: 700, fontSize: 13.5 }}>{o.label}</div>
+                      <div style={{ color: C.textMid, fontSize: 10.5, marginTop: 2 }}>{o.desc}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {isPrivato && !f.daImpresa && (
+              <CeField value={f.renditaCatastale} onChange={(v) => upd("renditaCatastale", v)} label="Rendita catastale (opzionale)" suffix="€" placeholder="la trovi in visura" step={10}
+                hint={rendita > 0 ? "Imposte calcolate col prezzo-valore sul valore catastale." : "Senza rendita le imposte sono stimate sul prezzo: nella realtà, col prezzo-valore, sono quasi sempre più basse."} />
+            )}
+
+            <CeField value={f.costoRistMq} onChange={(v) => upd("costoRistMq", v)} label="Costo ristrutturazione" suffix="€/mq" step={50} hint={mq > 0 && ristMq > 0 ? `Totale lavori: ${fmtEur(ristrutturazione)}` : "Media indicativa: 1.000 €/mq per una ristrutturazione completa."} />
+            <CeField value={f.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} label="Prezzo di vendita (opzionale)" suffix="€/mq" placeholder="es. 2.500" step={100} hint={vendMq > 0 && mq > 0 ? `Ricavo stimato: ${fmtEur(ricavo)}` : "Se lo inserisci vedi anche margine e ROI."} />
+
+            <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, color: C.textLight, fontSize: 12, lineHeight: 1.5 }}>
+              Voci fisse incluse: provvigione agenzia 3%, notaio 2.000 €, spese tecniche 5.000 €.
+            </div>
+          </div>
+
+          {/* RISULTATO */}
+          <div ref={resultRef} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: "0 2px 12px rgba(13,34,64,0.05)", position: isMobile ? "static" : "sticky", top: 20 }}>
+            {!ready ? (
+              <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
+                <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
+                <div style={{ color: C.textMid, fontSize: 15, lineHeight: 1.5 }}>Inserisci <strong style={{ color: C.dark }}>prezzo</strong> e <strong style={{ color: C.dark }}>metri quadrati</strong> per vedere il conto economico.</div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Costi dell'operazione</div>
+                <CeRow label="Prezzo di acquisto" value={fmtEur(prezzo)} />
+                <CeRow label="Imposte di acquisto" sub={`${opz.nome} · ${opz.dettaglio}`} value={fmtEur(imposte)} top />
+                <CeRow label="Provvigione agenzia" sub="3% del prezzo" value={fmtEur(provvigione)} top />
+                <CeRow label="Notaio" value={fmtEur(CE_FISSI.notaio)} top />
+                <CeRow label="Spese tecniche" sub="Pratiche, progetto, direzione lavori" value={fmtEur(CE_FISSI.speseTecniche)} top />
+                <CeRow label="Ristrutturazione" sub={`${fmtMq(mq)} × ${fmtEur(ristMq)}/mq`} value={fmtEur(ristrutturazione)} top />
+                <div style={{ background: C.navy, borderRadius: 10, padding: "14px 16px", margin: "12px 0 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+                  <div>
+                    <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>Investimento totale</div>
+                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>{fmtEur(costoMq)} al mq</div>
+                  </div>
+                  <div style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(investimento)}</div>
+                </div>
+
+                {vendMq > 0 ? (
+                  <div style={{ marginTop: 18 }}>
+                    <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita</div>
+                    <CeRow label="Ricavo di vendita" sub={`${fmtMq(mq)} × ${fmtEur(vendMq)}/mq`} value={fmtEur(ricavo)} />
+                    <div style={{ background: margine >= 0 ? C.greenBg : C.redBg, borderRadius: 10, padding: "14px 16px", marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+                      <div>
+                        <div style={{ color: margine >= 0 ? C.green : C.red, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>{margine >= 0 ? "Margine lordo" : "Perdita"}</div>
+                        <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>ROI {fmtPct(roi)} sull'investimento</div>
+                      </div>
+                      <div style={{ color: margine >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margine)}</div>
+                    </div>
+                    <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Margine prima di imposte sulla plusvalenza, interessi e imprevisti. Per il quadro completo usa il calcolatore.</div>
+                  </div>
+                ) : (
+                  <div style={{ color: C.textLight, fontSize: 12.5, lineHeight: 1.45, marginTop: 12 }}>Inserisci il prezzo di vendita al mq per vedere anche margine e ROI.</div>
+                )}
+
+                {/* CTA */}
+                <div style={{ marginTop: 22, borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
+                  <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>Vuoi il conto economico completo?</div>
+                  <div style={{ color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>Frazionamento in più unità, computo lavori voce per voce, scenari pessimistico e ottimistico, messa a reddito.</div>
+                  <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "result", investimento_eur: Math.round(investimento) })} style={{ display: "block", textAlign: "center", background: C.accent, color: "#FFF", textDecoration: "none", borderRadius: 8, padding: "14px 18px", fontWeight: 700, fontSize: 15, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>Apri il calcolatore completo →</a>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: 30, color: C.textLight, fontSize: 12, lineHeight: 1.6 }}>
+          I dati inseriti non vengono salvati: chiudendo la pagina spariscono.
+          {ready && <> · <span onClick={() => setF(CE_INIT)} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Ricomincia</span></>}
+          <br />
+          Stime indicative a scopo informativo, non costituiscono consulenza fiscale. <PrivacyLink onClick={() => setShowPrivacy(true)} />
+        </div>
+      </div>
+
+      {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
+      {!cookieOk && <CookieBanner onAccept={() => { try { localStorage.setItem("cookie_consent", "1"); } catch {} setCookieOk(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
+    </div>
+  );
+}
+
 export default function App() {
   // AUTH STATE
   const [user, setUser] = useState(() => DB.getUser());
@@ -2660,32 +2909,10 @@ export default function App() {
   }, [data.reddito, calc.inv]);
 
   // Confronto imposte di acquisto: società vs persona fisica (prima/seconda casa)
-  const confrontoAcquisto = useMemo(() => {
-    const prezzo = data.prezzoAcquisto || 0;
-    const rendita = data.renditaCatastale || 0;
-    const daImpresa = !!data.acquistoDaImpresa;
-    const stimaSuPrezzo = !daImpresa && rendita <= 0;
-    const vcPrima = rendita * 1.05 * 110; // valore catastale prima casa
-    const vcAltri = rendita * 1.05 * 120; // valore catastale altri immobili
-    let opzioni;
-    if (daImpresa) {
-      opzioni = [
-        { key: "societa", nome: "Società", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "Per la società l'IVA è in genere detraibile o compensabile. Nessun vincolo di rivendita, costi deducibili, utile tassato IRES 24% (+ IRAP)." },
-        { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: prezzo * 0.10 + 600, dettaglio: "IVA 10% sul prezzo + 600 € fisse", note: "L'IVA resta un costo pieno. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%). Operazioni ripetute rischiano la riqualifica come attività d'impresa." },
-        { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: prezzo * 0.04 + 600, dettaglio: "IVA 4% sul prezzo + 600 € fisse", note: "Vincoli: residenza nel Comune entro 18 mesi e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%), salvo riacquisto entro 1 anno. Poco adatta a un'operazione di rivendita." },
-      ];
-    } else {
-      const basePrima = vcPrima > 0 ? vcPrima : prezzo;
-      const baseAltri = vcAltri > 0 ? vcAltri : prezzo;
-      opzioni = [
-        { key: "societa", nome: "Società", imposte: Math.max(1000, prezzo * 0.09) + 100, dettaglio: "Registro 9% sul prezzo + 100 € ipo-catastali", note: "Niente prezzo-valore: il 9% si paga sul prezzo pieno. In compenso nessun vincolo di rivendita, costi deducibili e utile tassato in società (IRES 24% + IRAP)." },
-        { key: "privato_seconda", nome: "Persona fisica — 2ª casa", imposte: Math.max(1000, baseAltri * 0.09) + 100, dettaglio: rendita > 0 ? "Registro 9% sul valore catastale + 100 €" : "Registro 9% (stima sul prezzo) + 100 €", note: "Con il prezzo-valore il 9% si paga sul valore catastale, spesso molto più basso del prezzo. Se rivendi entro 5 anni la plusvalenza è tassata (IRPEF o sostitutiva 26%); operazioni ripetute rischiano la riqualifica come attività d'impresa." },
-        { key: "privato_prima", nome: "Persona fisica — 1ª casa", imposte: Math.max(1000, basePrima * 0.02) + 100, dettaglio: rendita > 0 ? "Registro 2% sul valore catastale + 100 €" : "Registro 2% (stima sul prezzo) + 100 €", note: "Vincoli: residenza nel Comune entro 18 mesi, nessun'altra prima casa e niente rivendita entro 5 anni, pena decadenza (differenza d'imposta + sanzione 30%). Poco adatta a un'operazione di rivendita." },
-      ];
-    }
-    const minImposte = Math.min(...opzioni.map((o) => o.imposte));
-    return { daImpresa, stimaSuPrezzo, opzioni: opzioni.map((o) => ({ ...o, pctEff: prezzo > 0 ? o.imposte / prezzo : 0, best: o.imposte === minImposte })) };
-  }, [data.prezzoAcquisto, data.renditaCatastale, data.acquistoDaImpresa]);
+  const confrontoAcquisto = useMemo(
+    () => calcImposteAcquisto(data.prezzoAcquisto, data.renditaCatastale, data.acquistoDaImpresa),
+    [data.prezzoAcquisto, data.renditaCatastale, data.acquistoDaImpresa]
+  );
 
   // Contesto (città + numeri chiave del calcolo) allegato agli eventi di
   // comportamento, per capire poi quali città guardano e come usano il tool.

@@ -124,3 +124,13 @@ Quando LEAD_MODE è true:
 ### TODO aperti
 - Test reale gate da iPhone (l'email entra nella sequenza Kajabi `2148828853`).
 - Eventuale sequenza Kajabi dedicata "calcolatore" (oggi condivide quella VSL).
+
+## CONTO ECONOMICO IMMOBILIARE (pagina light, settembre 2026)
+
+Rotta `/conto-economico-immobiliare` (in produzione `https://lorenzoloseto.com/calcolatore-frazionamento/conto-economico-immobiliare`).
+- Instradata in `src/main.jsx` sul pathname: renderizza `ContoEconomicoPage` (in `App.jsx`, subito prima di `App`) invece dell'app completa.
+- Pagina **libera**: nessun login, nessun gate email, **nessun salvataggio** (stato solo in memoria, sparisce chiudendo la pagina). Nessun `localStorage` tranne il consenso cookie.
+- Voci: prezzo acquisto, superficie, tipo acquisto (1ª casa / 2ª casa / società), venditore privato o impresa, rendita catastale opzionale (prezzo-valore), ristrutturazione €/mq (default 1000), prezzo vendita €/mq opzionale (mostra margine e ROI). Fisse: provvigione 3%, notaio 2.000 €, spese tecniche 5.000 € (`CE_FISSI`).
+- Imposte: funzione pura `calcImposteAcquisto()` condivisa con il calcolatore completo (`confrontoAcquisto` la usa). Non duplicare la logica.
+- CTA → calcolatore completo con `?utm_source=conto-economico`. Eventi: `page_view` (page: conto-economico), `conto_economico_calc`, `conto_economico_cta_click`.
+- I componenti `CeField`/`CeRow` stanno fuori dal componente pagina: se li sposti dentro, l'input perde il focus a ogni tasto.
