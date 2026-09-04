@@ -1961,7 +1961,7 @@ async function uploadPlanimetria(file, fieldName, updFn, setBusy) {
 // Rotta: /conto-economico-immobiliare (vedi main.jsx)
 // ============================================================
 const CE_FISSI = { provvigionePct: 0.03, notaio: 2000, speseTecniche: 5000 };
-const CE_INIT = { prezzoAcquisto: "", metratura: "", tipoAcquisto: "privato_seconda", daImpresa: false, renditaCatastale: "", costoRistMq: 1000, prezzoVenditaMq: "" };
+const CE_INIT = { prezzoAcquisto: "", metratura: "", tipoAcquisto: "privato_seconda", renditaCatastale: "", costoRistMq: 1000, prezzoVenditaMq: "" };
 const CE_TIPI = [
   { key: "privato_prima", label: "Prima casa", desc: "Privato, sarà la tua residenza" },
   { key: "privato_seconda", label: "Seconda casa", desc: "Privato, non è la tua prima casa" },
@@ -2020,15 +2020,15 @@ export function ContoEconomicoPage() {
 
   const prezzo = num(f.prezzoAcquisto), mq = num(f.metratura), rendita = num(f.renditaCatastale);
   const ristMq = num(f.costoRistMq), vendMq = num(f.prezzoVenditaMq);
-  const imp = useMemo(() => calcImposteAcquisto(prezzo, rendita, f.daImpresa), [prezzo, rendita, f.daImpresa]);
+  const imp = useMemo(() => calcImposteAcquisto(prezzo, rendita, false), [prezzo, rendita]);
   const opz = imp.opzioni.find((o) => o.key === f.tipoAcquisto) || imp.opzioni[0];
   const imposte = prezzo > 0 ? opz.imposte : 0;
   const provvigione = prezzo * CE_FISSI.provvigionePct;
   const ristrutturazione = mq * ristMq;
-  const ready = prezzo > 0 && mq > 0;
+  const ready = prezzo > 0 && mq > 0 && vendMq > 0;
   const investimento = ready ? prezzo + imposte + provvigione + CE_FISSI.notaio + CE_FISSI.speseTecniche + ristrutturazione : 0;
   const costoMq = ready ? investimento / mq : 0;
-  const ricavo = ready && vendMq > 0 ? vendMq * mq : 0;
+  const ricavo = ready ? vendMq * mq : 0;
   const margine = ricavo - investimento;
   const roi = investimento > 0 ? margine / investimento : 0;
   const isPrivato = f.tipoAcquisto !== "societa";
@@ -2049,7 +2049,7 @@ export function ContoEconomicoPage() {
     r.push("");
     r.push(`Prezzo di acquisto: ${fmtEur(prezzo)}  (${fmtEur(prezzo / mq)}/mq)`);
     r.push(`Superficie calpestabile: ${fmtMq(mq)}`);
-    r.push(`Acquisto: ${opz.nome} · da ${f.daImpresa ? "impresa (IVA)" : "privato (registro)"}${rendita > 0 ? ` · rendita catastale ${fmtEur(rendita)}` : ""}`);
+    r.push(`Acquisto: ${opz.nome} · da privato (imposta di registro)${rendita > 0 ? ` · rendita catastale ${fmtEur(rendita)}` : ""}`);
     r.push("");
     r.push(`Imposte di acquisto: ${fmtEur(imposte)}  (${opz.dettaglio})`);
     r.push(`Provvigione agenzia 3%: ${fmtEur(provvigione)}`);
@@ -2057,7 +2057,7 @@ export function ContoEconomicoPage() {
     r.push(`Spese tecniche: ${fmtEur(CE_FISSI.speseTecniche)}`);
     r.push(`Ristrutturazione: ${fmtEur(ristrutturazione)}  (${fmtMq(mq)} × ${fmtEur(ristMq)}/mq)`);
     r.push(`INVESTIMENTO TOTALE: ${fmtEur(investimento)}  (${fmtEur(costoMq)}/mq)`);
-    if (vendMq > 0) {
+    {
       r.push("");
       r.push(`Ricavo di vendita: ${fmtEur(ricavo)}  (${fmtMq(mq)} × ${fmtEur(vendMq)}/mq)`);
       r.push(`${margine >= 0 ? "MARGINE LORDO" : "PERDITA"}: ${fmtEur(margine)}  (ROI ${fmtPct(roi)})`);
@@ -2074,9 +2074,9 @@ export function ContoEconomicoPage() {
     const riepilogo = riepilogoTesto();
     const payload = {
       nome, email, telefono, note, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
-      prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, da_impresa: f.daImpresa, rendita_eur: rendita,
+      prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, rendita_eur: rendita,
       rist_mq_eur: ristMq, vendita_mq_eur: vendMq, investimento_eur: Math.round(investimento),
-      margine_eur: vendMq > 0 ? Math.round(margine) : "", roi_pct: vendMq > 0 ? (roi * 100).toFixed(1) : "", ...LEAD_UTM,
+      margine_eur: Math.round(margine), roi_pct: (roi * 100).toFixed(1), ...LEAD_UTM,
     };
     try {
       const res = await fetch("https://api.web3forms.com/submit", {
@@ -2115,7 +2115,7 @@ export function ContoEconomicoPage() {
         <div style={{ textAlign: "center", marginBottom: isMobile ? 22 : 30 }}>
           <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>Strumento gratuito · nessuna registrazione</div>
           <h1 style={{ color: C.navy, fontFamily: "'Playfair Display', 'Georgia', serif", fontSize: isMobile ? 30 : 42, lineHeight: 1.15, margin: "0 0 12px" }}>Conto economico immobiliare</h1>
-          <p style={{ color: C.textMid, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, margin: "0 auto", maxWidth: 560 }}>Inserisci prezzo e metri quadrati: vedi subito una stima di quanto costa l'operazione, imposte comprese, e di quanto potrebbe restare.</p>
+          <p style={{ color: C.textMid, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, margin: "0 auto", maxWidth: 560 }}>Inserisci prezzo di acquisto, metri quadrati e prezzo di vendita: vedi subito una stima di quanto costa l'operazione, imposte comprese, e di quanto potrebbe restare.</p>
         </div>
 
         {/* DISCLAIMER */}
@@ -2147,28 +2147,13 @@ export function ContoEconomicoPage() {
               </div>
             </div>
 
-            <div>
-              <label style={CE_LBL}>Da chi compri?</label>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-                {[{ v: false, label: "Da un privato", desc: "Imposta di registro" }, { v: true, label: "Da un'impresa", desc: "Con IVA" }].map((o) => {
-                  const on = f.daImpresa === o.v;
-                  return (
-                    <button key={String(o.v)} onClick={() => upd("daImpresa", o.v)} style={{ textAlign: "center", padding: "10px 6px", borderRadius: 8, cursor: "pointer", border: `2px solid ${on ? C.accent : C.borderDark}`, background: on ? C.highlight : C.card, fontFamily: CE_SANS }}>
-                      <div style={{ color: C.dark, fontWeight: 700, fontSize: 13.5 }}>{o.label}</div>
-                      <div style={{ color: C.textMid, fontSize: 10.5, marginTop: 2 }}>{o.desc}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {isPrivato && !f.daImpresa && (
+            {isPrivato && (
               <CeField value={f.renditaCatastale} onChange={(v) => upd("renditaCatastale", v)} label="Rendita catastale (opzionale)" suffix="€" placeholder="la trovi in visura" step={10}
                 hint={rendita > 0 ? "Imposte stimate col prezzo-valore sul valore catastale." : "Senza rendita le imposte sono stimate sul prezzo: nella realtà, col prezzo-valore, sono quasi sempre più basse."} />
             )}
 
-            <CeField value={f.costoRistMq} onChange={(v) => upd("costoRistMq", v)} label="Costo ristrutturazione" suffix="€/mq" step={50} hint={mq > 0 && ristMq > 0 ? `Totale lavori: ${fmtEur(ristrutturazione)}` : "Media indicativa: 1.000 €/mq per una ristrutturazione completa."} />
-            <CeField value={f.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} label="Prezzo di vendita (opzionale)" suffix="€/mq" placeholder="es. 2.500" step={100} hint={vendMq > 0 && mq > 0 ? `Ricavo stimato: ${fmtEur(ricavo)}` : "Se lo inserisci vedi anche margine e ROI."} />
+            <CeField value={f.costoRistMq} onChange={(v) => upd("costoRistMq", v)} label="Costo ristrutturazione" suffix="€/mq" step={50} hint={`Valore suggerito: 1.000 €/mq, media italiana per una ristrutturazione completa. Puoi cambiarlo.${mq > 0 && ristMq > 0 ? ` Totale lavori: ${fmtEur(ristrutturazione)}` : ""}`} />
+            <CeField value={f.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} label="Prezzo di vendita" suffix="€/mq" placeholder="es. 2.500" step={100} hint={vendMq > 0 && mq > 0 ? `Ricavo stimato: ${fmtEur(vendMq * mq)}` : "A quanto pensi di rivendere al metro quadro, finito."} />
 
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, color: C.textLight, fontSize: 12, lineHeight: 1.5 }}>
               Voci fisse incluse (valori medi di studio): provvigione agenzia 3%, notaio 2.000 €, spese tecniche 5.000 €.
@@ -2180,7 +2165,7 @@ export function ContoEconomicoPage() {
             {!ready ? (
               <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
-                <div style={{ color: C.textMid, fontSize: 15, lineHeight: 1.5 }}>Inserisci <strong style={{ color: C.dark }}>prezzo</strong> e <strong style={{ color: C.dark }}>metri quadrati</strong> per vedere il conto economico.</div>
+                <div style={{ color: C.textMid, fontSize: 15, lineHeight: 1.5 }}>Inserisci <strong style={{ color: C.dark }}>prezzo di acquisto</strong>, <strong style={{ color: C.dark }}>metri quadrati</strong> e <strong style={{ color: C.dark }}>prezzo di vendita</strong> per vedere il conto economico.</div>
               </div>
             ) : (
               <div>
@@ -2199,8 +2184,7 @@ export function ContoEconomicoPage() {
                   <div style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(investimento)}</div>
                 </div>
 
-                {vendMq > 0 ? (
-                  <div style={{ marginTop: 18 }}>
+                <div style={{ marginTop: 18 }}>
                     <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita · stima</div>
                     <CeRow label="Ricavo di vendita" sub={`${fmtMq(mq)} × ${fmtEur(vendMq)}/mq`} value={fmtEur(ricavo)} />
                     <div style={{ background: margine >= 0 ? C.greenBg : C.redBg, borderRadius: 10, padding: "14px 16px", marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
@@ -2211,10 +2195,7 @@ export function ContoEconomicoPage() {
                       <div style={{ color: margine >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margine)}</div>
                     </div>
                     <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Margine prima di imposte sulla plusvalenza, interessi e imprevisti. Stima di studio, non un dato certo.</div>
-                  </div>
-                ) : (
-                  <div style={{ color: C.textLight, fontSize: 12.5, lineHeight: 1.45, marginTop: 12 }}>Inserisci il prezzo di vendita al mq per vedere anche margine e ROI.</div>
-                )}
+                </div>
 
                 {/* INVIO A LORENZO */}
                 <div style={{ marginTop: 22, borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
