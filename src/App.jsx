@@ -2183,6 +2183,7 @@ export function ContoEconomicoPage() {
               <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
                 <div style={{ color: C.textMid, fontSize: 15, lineHeight: 1.5 }}>Inserisci <strong style={{ color: C.dark }}>prezzo di acquisto</strong>, <strong style={{ color: C.dark }}>metri quadrati</strong> e <strong style={{ color: C.dark }}>prezzo di vendita</strong> per vedere il conto economico.</div>
+                <div style={{ marginTop: 16, background: C.highlight, border: `1px solid ${C.accentLight}`, borderRadius: 8, padding: "12px 14px", color: C.dark, fontSize: 14, lineHeight: 1.5 }}>Per <strong>inviare a Lorenzo il conto economico</strong> e analizzarlo insieme, completa tutti i dati {isMobile ? "qui sopra" : "a sinistra"}: qui comparirà il modulo di invio.</div>
               </div>
             ) : (
               <div>
