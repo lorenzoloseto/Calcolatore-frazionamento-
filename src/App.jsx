@@ -1961,7 +1961,7 @@ async function uploadPlanimetria(file, fieldName, updFn, setBusy) {
 // Rotta: /conto-economico-immobiliare (vedi main.jsx)
 // ============================================================
 const CE_FISSI = { provvigionePct: 0.03, notaio: 2000, speseTecniche: 5000 };
-const CE_INIT = { prezzoAcquisto: "", metratura: "", tipoAcquisto: "privato_seconda", renditaCatastale: "", costoRistMq: 1000, prezzoVenditaMq: "" };
+const CE_INIT = { citta: "", prezzoAcquisto: "", metratura: "", tipoAcquisto: "privato_seconda", renditaCatastale: "", costoRistMq: 1000, prezzoVenditaMq: "" };
 const CE_TIPI = [
   { key: "privato_prima", label: "Prima casa", desc: "Privato, sarà la tua residenza" },
   { key: "privato_seconda", label: "Seconda casa", desc: "Privato, non è la tua prima casa" },
@@ -1973,12 +1973,12 @@ const CE_LBL = { display: "block", color: C.textMid, fontSize: 12, fontWeight: 7
 const CE_INP = { width: "100%", boxSizing: "border-box", background: C.inputBg, border: `2px solid ${C.inputBorder}`, borderRadius: 8, color: C.dark, fontSize: 18, fontWeight: 700, padding: "12px 14px", outline: "none", fontFamily: "'Georgia', serif" };
 // Definiti fuori dal componente: se fossero dentro, React li ricreerebbe a ogni
 // render e l'input perderebbe il focus a ogni tasto.
-function CeField({ label, value, onChange, suffix, placeholder, hint, step }) {
+function CeField({ label, value, onChange, suffix, placeholder, hint, step, type = "number" }) {
   return (
     <div>
       <label style={CE_LBL}>{label}</label>
       <div style={{ position: "relative" }}>
-        <input type="number" inputMode="decimal" min="0" step={step || 1} value={value} placeholder={placeholder || ""} onChange={(e) => onChange(e.target.value)}
+        <input type={type} inputMode={type === "number" ? "decimal" : "text"} min={type === "number" ? "0" : undefined} step={type === "number" ? (step || 1) : undefined} autoComplete={type === "text" ? "address-level2" : undefined} value={value} placeholder={placeholder || ""} onChange={(e) => onChange(e.target.value)}
           onFocus={(e) => (e.target.style.borderColor = C.inputFocus)} onBlur={(e) => (e.target.style.borderColor = C.inputBorder)}
           style={{ ...CE_INP, paddingRight: suffix ? 64 : 14 }} />
         {suffix && <span style={{ position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)", color: C.textLight, fontSize: 13, fontWeight: 600, fontFamily: CE_SANS, pointerEvents: "none" }}>{suffix}</span>}
@@ -2039,7 +2039,7 @@ export function ContoEconomicoPage() {
   useEffect(() => {
     if (!ready || trackedRef.current) return;
     trackedRef.current = true;
-    DB.trackEvent("conto_economico_calc", { prezzo_eur: prezzo, metratura_mq: mq, tipo: f.tipoAcquisto, investimento_eur: Math.round(investimento), ...LEAD_UTM });
+    DB.trackEvent("conto_economico_calc", { citta: f.citta.trim(), prezzo_eur: prezzo, metratura_mq: mq, tipo: f.tipoAcquisto, investimento_eur: Math.round(investimento), ...LEAD_UTM });
   }, [ready]);
 
   // Riepilogo in testo semplice: è il corpo della mail che arriva a Lorenzo.
@@ -2047,6 +2047,7 @@ export function ContoEconomicoPage() {
     const r = [];
     r.push("CONTO ECONOMICO IMMOBILIARE (studio indicativo)");
     r.push("");
+    r.push(`Città: ${citta || "-"}`);
     r.push(`Prezzo di acquisto: ${fmtEur(prezzo)}  (${fmtEur(prezzo / mq)}/mq)`);
     r.push(`Superficie calpestabile: ${fmtMq(mq)}`);
     r.push(`Acquisto: ${opz.nome} · da privato (imposta di registro)${rendita > 0 ? ` · rendita catastale ${fmtEur(rendita)}` : ""}`);
@@ -2065,15 +2066,17 @@ export function ContoEconomicoPage() {
     return r.join("\n");
   };
 
+  const citta = f.citta.trim();
   const inviaConto = async () => {
     const nome = inv.nome.trim(), email = inv.email.trim(), telefono = inv.telefono.trim(), note = inv.note.trim();
+    if (!citta) return setInvState({ sending: false, sent: false, error: "Indica la città dell'immobile (primo campo in alto)" });
     if (!nome) return setInvState({ sending: false, sent: false, error: "Inserisci il tuo nome" });
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setInvState({ sending: false, sent: false, error: "Inserisci un'email valida" });
     if (!inv.privacy) return setInvState({ sending: false, sent: false, error: "Devi accettare l'informativa privacy per inviare" });
     setInvState({ sending: true, sent: false, error: "" });
     const riepilogo = riepilogoTesto();
     const payload = {
-      nome, email, telefono, note, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
+      nome, email, telefono, note, citta, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
       prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, rendita_eur: rendita,
       rist_mq_eur: ristMq, vendita_mq_eur: vendMq, investimento_eur: Math.round(investimento),
       margine_eur: Math.round(margine), roi_pct: (roi * 100).toFixed(1), ...LEAD_UTM,
@@ -2083,9 +2086,9 @@ export function ContoEconomicoPage() {
         method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           access_key: "bf3b6b30-9edb-4998-bfd2-e89215260f58",
-          subject: `[Conto economico] ${nome} — ${fmtEur(prezzo)}, ${fmtMq(mq)}`,
+          subject: `[Conto economico] ${nome} — ${citta}, ${fmtEur(prezzo)}, ${fmtMq(mq)}`,
           from_name: "Conto Economico Immobiliare", replyto: email,
-          name: nome, email, telefono: telefono || "-",
+          name: nome, email, telefono: telefono || "-", citta,
           message: riepilogo + (note ? `\n\nNOTE DI ${nome.toUpperCase()}:\n${note}` : "") + "\n\nInviato da lorenzoloseto.com/conto-economico-immobiliare",
           ...Object.fromEntries(Object.entries(LEAD_UTM)),
         }),
@@ -2129,6 +2132,7 @@ export function ContoEconomicoPage() {
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28, alignItems: "start" }}>
           {/* INPUT */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 2px 12px rgba(13,34,64,0.05)" }}>
+            <CeField type="text" value={f.citta} onChange={(v) => upd("citta", v)} label="Città dell'immobile" placeholder="es. Bari" />
             <CeField value={f.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} label="Prezzo di acquisto" suffix="€" placeholder="es. 150.000" step={1000} hint={prezzo > 0 && mq > 0 ? `Equivale a ${fmtEur(prezzo / mq)}/mq` : ""} />
             <CeField value={f.metratura} onChange={(v) => upd("metratura", v)} label="Superficie calpestabile" suffix="mq" placeholder="es. 90" step={5} />
 
