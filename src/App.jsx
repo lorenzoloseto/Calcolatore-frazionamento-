@@ -2030,8 +2030,16 @@ export function ContoEconomicoPage() {
   const costoMq = ready ? investimento / mq : 0;
   const ricavo = ready ? vendMq * mq : 0;
   const margine = ricavo - investimento;
-  const roi = investimento > 0 ? margine / investimento : 0;
   const isPrivato = f.tipoAcquisto !== "societa";
+  // Tasse sulla vendita (uscita). Persona fisica: plusvalenza tassata con imposta
+  // sostitutiva 26%, richiesta direttamente al notaio nell'atto di vendita.
+  // Società: utile tassato IRES 24% + IRAP 3,9%. Se non c'è utile, niente tasse.
+  const tasseUscita = isPrivato
+    ? { aliquota: 0.26, label: "Persona fisica · imposta sostitutiva 26% sulla plusvalenza, pagata al notaio nell'atto" }
+    : { aliquota: 0.279, label: "Società · IRES 24% + IRAP 3,9% sull'utile" };
+  const tasseVendita = margine > 0 ? margine * tasseUscita.aliquota : 0;
+  const margineNetto = margine - tasseVendita;
+  const roi = investimento > 0 ? margineNetto / investimento : 0;
   const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?utm_source=conto-economico&utm_medium=link";
 
   // Tracking leggero: una volta al primo risultato completo.
@@ -2061,7 +2069,9 @@ export function ContoEconomicoPage() {
     {
       r.push("");
       r.push(`Ricavo di vendita: ${fmtEur(ricavo)}  (${fmtMq(mq)} × ${fmtEur(vendMq)}/mq)`);
-      r.push(`${margine >= 0 ? "MARGINE LORDO" : "PERDITA"}: ${fmtEur(margine)}  (ROI ${fmtPct(roi)})`);
+      r.push(`Margine lordo: ${fmtEur(margine)}`);
+      r.push(`Tasse sulla vendita: ${fmtEur(tasseVendita)}  (${tasseUscita.label})`);
+      r.push(`${margineNetto >= 0 ? "MARGINE NETTO" : "PERDITA"}: ${fmtEur(margineNetto)}  (ROI netto ${fmtPct(roi)})`);
     }
     return r.join("\n");
   };
@@ -2079,7 +2089,7 @@ export function ContoEconomicoPage() {
       nome, email, telefono, note, citta, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
       prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, rendita_eur: rendita,
       rist_mq_eur: ristMq, vendita_mq_eur: vendMq, investimento_eur: Math.round(investimento),
-      margine_eur: Math.round(margine), roi_pct: (roi * 100).toFixed(1), ...LEAD_UTM,
+      margine_lordo_eur: Math.round(margine), tasse_vendita_eur: Math.round(tasseVendita), margine_eur: Math.round(margineNetto), roi_pct: (roi * 100).toFixed(1), ...LEAD_UTM,
     };
     try {
       const res = await fetch("https://api.web3forms.com/submit", {
@@ -2191,14 +2201,16 @@ export function ContoEconomicoPage() {
                 <div style={{ marginTop: 18 }}>
                     <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita · stima</div>
                     <CeRow label="Ricavo di vendita" sub={`${fmtMq(mq)} × ${fmtEur(vendMq)}/mq`} value={fmtEur(ricavo)} />
-                    <div style={{ background: margine >= 0 ? C.greenBg : C.redBg, borderRadius: 10, padding: "14px 16px", marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
+                    <CeRow label="Margine lordo" sub="Ricavo meno investimento totale" value={fmtEur(margine)} top />
+                    <CeRow label="Tasse sulla vendita" sub={tasseUscita.label} value={fmtEur(tasseVendita)} top />
+                    <div style={{ background: margineNetto >= 0 ? C.greenBg : C.redBg, borderRadius: 10, padding: "14px 16px", marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
                       <div>
-                        <div style={{ color: margine >= 0 ? C.green : C.red, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>{margine >= 0 ? "Margine lordo" : "Perdita"}</div>
-                        <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>ROI {fmtPct(roi)} sull'investimento</div>
+                        <div style={{ color: margineNetto >= 0 ? C.green : C.red, fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>{margineNetto >= 0 ? "Margine netto" : "Perdita"}</div>
+                        <div style={{ color: C.textMid, fontSize: 12, marginTop: 2 }}>ROI netto {fmtPct(roi)} sull'investimento</div>
                       </div>
-                      <div style={{ color: margine >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margine)}</div>
+                      <div style={{ color: margineNetto >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margineNetto)}</div>
                     </div>
-                    <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Margine prima di imposte sulla plusvalenza, interessi e imprevisti. Stima di studio, non un dato certo.</div>
+                    <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Netto stimato prima di interessi, imprevisti e altre spese. Le aliquote sono quelle ordinarie: casi particolari (prima casa abitata, rivendita oltre 5 anni, regimi diversi) cambiano il risultato. Stima di studio, non un dato certo.</div>
                 </div>
 
                 {/* INVIO A LORENZO */}
