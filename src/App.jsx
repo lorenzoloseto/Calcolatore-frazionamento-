@@ -2145,7 +2145,7 @@ export function ContoEconomicoPage() {
           {/* INPUT */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 2px 12px rgba(13,34,64,0.05)" }}>
             <CeField type="text" value={f.citta} onChange={(v) => upd("citta", v)} label="Città dell'immobile" placeholder="es. Bari" />
-            <CeField type="url" autoComplete="off" value={f.linkAnnuncio} onChange={(v) => upd("linkAnnuncio", v)} label="Link dell'annuncio (facoltativo)" placeholder="es. idealista.it/immobile/..." hint="Idealista, Immobiliare.it o altro: così vedo l'immobile di cui parliamo." />
+            <CeField type="url" autoComplete="off" value={f.linkAnnuncio} onChange={(v) => upd("linkAnnuncio", v)} label="Link dell'annuncio" placeholder="es. idealista.it/immobile/..." hint="Più che facoltativo: se vuoi che analizziamo insieme il tuo investimento, incolla qui l'annuncio (Idealista, Immobiliare.it o altro)." />
             <CeField value={f.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} label="Prezzo di acquisto" suffix="€" placeholder="es. 150.000" step={1000} hint={prezzo > 0 && mq > 0 ? `Equivale a ${fmtEur(prezzo / mq)}/mq` : ""} />
             <CeField value={f.metratura} onChange={(v) => upd("metratura", v)} label="Superficie calpestabile" suffix="mq" placeholder="es. 90" step={5} />
 
