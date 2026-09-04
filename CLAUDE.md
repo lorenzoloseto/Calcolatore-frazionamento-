@@ -127,10 +127,12 @@ Quando LEAD_MODE è true:
 
 ## CONTO ECONOMICO IMMOBILIARE (pagina light, settembre 2026)
 
-Rotta `/conto-economico-immobiliare` (in produzione `https://lorenzoloseto.com/calcolatore-frazionamento/conto-economico-immobiliare`).
+Rotta `/conto-economico-immobiliare`. URL pubblico **`https://lorenzoloseto.com/conto-economico-immobiliare`** (primo livello): rewrite nel `vercel.json` del sito Astro → `calcolatore-frazionamento.vercel.app/calcolatore-frazionamento/conto-economico-immobiliare`. Gli asset restano sotto `/calcolatore-frazionamento/assets/`, già proxati.
 - Instradata in `src/main.jsx` sul pathname: renderizza `ContoEconomicoPage` (in `App.jsx`, subito prima di `App`) invece dell'app completa.
 - Pagina **libera**: nessun login, nessun gate email, **nessun salvataggio** (stato solo in memoria, sparisce chiudendo la pagina). Nessun `localStorage` tranne il consenso cookie.
 - Voci: prezzo acquisto, superficie, tipo acquisto (1ª casa / 2ª casa / società), venditore privato o impresa, rendita catastale opzionale (prezzo-valore), ristrutturazione €/mq (default 1000), prezzo vendita €/mq opzionale (mostra margine e ROI). Fisse: provvigione 3%, notaio 2.000 €, spese tecniche 5.000 € (`CE_FISSI`).
 - Imposte: funzione pura `calcImposteAcquisto()` condivisa con il calcolatore completo (`confrontoAcquisto` la usa). Non duplicare la logica.
-- CTA → calcolatore completo con `?utm_source=conto-economico`. Eventi: `page_view` (page: conto-economico), `conto_economico_calc`, `conto_economico_cta_click`.
+- Disclaimer "a solo titolo di studio, non dati certi" in evidenza (box sotto l'hero + footer + navbar).
+- Azione principale: form **"Invia il conto economico a Lorenzo"** (nome, email, telefono e note facoltativi, privacy) per parlarne al workshop. Invio SOLO via Web3Forms (key del sito, reply-to = email del mittente, corpo = riepilogo testuale) + evento Supabase `conto_economico_invio`. Niente Kajabi, niente Zapier, niente pixel Lead (da decidere con Francesco).
+- Link discreto nel footer al calcolatore completo (`?utm_source=conto-economico`). Eventi: `page_view` (page: conto-economico), `conto_economico_calc`, `conto_economico_cta_click`.
 - I componenti `CeField`/`CeRow` stanno fuori dal componente pagina: se li sposti dentro, l'input perde il focus a ogni tasto.

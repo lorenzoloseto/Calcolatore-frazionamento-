@@ -2001,11 +2001,13 @@ function CeRow({ label, sub, value, bold, color, top }) {
 
 export function ContoEconomicoPage() {
   const [f, setF] = useState(CE_INIT);
+  const [inv, setInv] = useState({ nome: "", email: "", telefono: "", note: "", privacy: false });
+  const [invState, setInvState] = useState({ sending: false, sent: false, error: "" });
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [cookieOk, setCookieOk] = useState(() => { try { return localStorage.getItem("cookie_consent") === "1"; } catch { return true; } });
   const [isMobile, setIsMobile] = useState(() => typeof window !== "undefined" && window.innerWidth < 640);
-  const resultRef = useRef(null);
   const upd = (k, v) => setF((x) => ({ ...x, [k]: v }));
+  const updInv = (k, v) => setInv((x) => ({ ...x, [k]: v }));
   const num = (v) => { const n = parseFloat(String(v).replace(/\./g, "").replace(",", ".")); return isFinite(n) && n > 0 ? n : 0; };
 
   useEffect(() => {
@@ -2030,9 +2032,9 @@ export function ContoEconomicoPage() {
   const margine = ricavo - investimento;
   const roi = investimento > 0 ? margine / investimento : 0;
   const isPrivato = f.tipoAcquisto !== "societa";
-  const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?utm_source=conto-economico&utm_medium=cta";
+  const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?utm_source=conto-economico&utm_medium=link";
 
-  // Tracking leggero: una volta al primo risultato completo, una al click CTA.
+  // Tracking leggero: una volta al primo risultato completo.
   const trackedRef = useRef(false);
   useEffect(() => {
     if (!ready || trackedRef.current) return;
@@ -2040,20 +2042,88 @@ export function ContoEconomicoPage() {
     DB.trackEvent("conto_economico_calc", { prezzo_eur: prezzo, metratura_mq: mq, tipo: f.tipoAcquisto, investimento_eur: Math.round(investimento), ...LEAD_UTM });
   }, [ready]);
 
+  // Riepilogo in testo semplice: è il corpo della mail che arriva a Lorenzo.
+  const riepilogoTesto = () => {
+    const r = [];
+    r.push("CONTO ECONOMICO IMMOBILIARE (studio indicativo)");
+    r.push("");
+    r.push(`Prezzo di acquisto: ${fmtEur(prezzo)}  (${fmtEur(prezzo / mq)}/mq)`);
+    r.push(`Superficie calpestabile: ${fmtMq(mq)}`);
+    r.push(`Acquisto: ${opz.nome} · da ${f.daImpresa ? "impresa (IVA)" : "privato (registro)"}${rendita > 0 ? ` · rendita catastale ${fmtEur(rendita)}` : ""}`);
+    r.push("");
+    r.push(`Imposte di acquisto: ${fmtEur(imposte)}  (${opz.dettaglio})`);
+    r.push(`Provvigione agenzia 3%: ${fmtEur(provvigione)}`);
+    r.push(`Notaio: ${fmtEur(CE_FISSI.notaio)}`);
+    r.push(`Spese tecniche: ${fmtEur(CE_FISSI.speseTecniche)}`);
+    r.push(`Ristrutturazione: ${fmtEur(ristrutturazione)}  (${fmtMq(mq)} × ${fmtEur(ristMq)}/mq)`);
+    r.push(`INVESTIMENTO TOTALE: ${fmtEur(investimento)}  (${fmtEur(costoMq)}/mq)`);
+    if (vendMq > 0) {
+      r.push("");
+      r.push(`Ricavo di vendita: ${fmtEur(ricavo)}  (${fmtMq(mq)} × ${fmtEur(vendMq)}/mq)`);
+      r.push(`${margine >= 0 ? "MARGINE LORDO" : "PERDITA"}: ${fmtEur(margine)}  (ROI ${fmtPct(roi)})`);
+    }
+    return r.join("\n");
+  };
+
+  const inviaConto = async () => {
+    const nome = inv.nome.trim(), email = inv.email.trim(), telefono = inv.telefono.trim(), note = inv.note.trim();
+    if (!nome) return setInvState({ sending: false, sent: false, error: "Inserisci il tuo nome" });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setInvState({ sending: false, sent: false, error: "Inserisci un'email valida" });
+    if (!inv.privacy) return setInvState({ sending: false, sent: false, error: "Devi accettare l'informativa privacy per inviare" });
+    setInvState({ sending: true, sent: false, error: "" });
+    const riepilogo = riepilogoTesto();
+    const payload = {
+      nome, email, telefono, note, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
+      prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, da_impresa: f.daImpresa, rendita_eur: rendita,
+      rist_mq_eur: ristMq, vendita_mq_eur: vendMq, investimento_eur: Math.round(investimento),
+      margine_eur: vendMq > 0 ? Math.round(margine) : "", roi_pct: vendMq > 0 ? (roi * 100).toFixed(1) : "", ...LEAD_UTM,
+    };
+    try {
+      const res = await fetch("https://api.web3forms.com/submit", {
+        method: "POST", headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          access_key: "bf3b6b30-9edb-4998-bfd2-e89215260f58",
+          subject: `[Conto economico] ${nome} — ${fmtEur(prezzo)}, ${fmtMq(mq)}`,
+          from_name: "Conto Economico Immobiliare", replyto: email,
+          name: nome, email, telefono: telefono || "-",
+          message: riepilogo + (note ? `\n\nNOTE DI ${nome.toUpperCase()}:\n${note}` : "") + "\n\nInviato da lorenzoloseto.com/conto-economico-immobiliare",
+          ...Object.fromEntries(Object.entries(LEAD_UTM)),
+        }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!res.ok || j.success === false) throw new Error(j.message || "invio fallito");
+      DB.trackEvent("conto_economico_invio", payload);
+      setInvState({ sending: false, sent: true, error: "" });
+    } catch (e) {
+      setInvState({ sending: false, sent: false, error: "Errore nell'invio. Riprova tra poco o scrivi a info@lorenzoloseto.com" });
+    }
+  };
+
+  const invInp = { width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 15, fontWeight: 600, padding: "11px 13px", outline: "none", fontFamily: CE_SANS };
+  const resetAll = () => { setF(CE_INIT); setInv({ nome: "", email: "", telefono: "", note: "", privacy: false }); setInvState({ sending: false, sent: false, error: "" }); trackedRef.current = false; };
+
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: CE_SANS }}>
       {/* NAVBAR */}
       <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <div style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5 }}>LORENZO LOSETO</div>
-        <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "navbar" })} style={{ color: C.accent, fontSize: 12, fontWeight: 700, textDecoration: "none", letterSpacing: 0.5, whiteSpace: "nowrap" }}>Calcolatore completo →</a>
+        <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>
+        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: "nowrap" }}>A titolo di studio</div>
       </div>
 
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: isMobile ? "28px 16px 40px" : "44px 24px 64px" }}>
         {/* HERO */}
-        <div style={{ textAlign: "center", marginBottom: isMobile ? 26 : 38 }}>
+        <div style={{ textAlign: "center", marginBottom: isMobile ? 22 : 30 }}>
           <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: 10 }}>Strumento gratuito · nessuna registrazione</div>
           <h1 style={{ color: C.navy, fontFamily: "'Playfair Display', 'Georgia', serif", fontSize: isMobile ? 30 : 42, lineHeight: 1.15, margin: "0 0 12px" }}>Conto economico immobiliare</h1>
-          <p style={{ color: C.textMid, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, margin: "0 auto", maxWidth: 560 }}>Inserisci prezzo e metri quadrati: ti diciamo subito quanto ti costa davvero l'operazione, imposte comprese, e quanto ti resta in tasca.</p>
+          <p style={{ color: C.textMid, fontSize: isMobile ? 15 : 17, lineHeight: 1.5, margin: "0 auto", maxWidth: 560 }}>Inserisci prezzo e metri quadrati: vedi subito una stima di quanto costa l'operazione, imposte comprese, e di quanto potrebbe restare.</p>
+        </div>
+
+        {/* DISCLAIMER */}
+        <div style={{ maxWidth: 720, margin: `0 auto ${isMobile ? 22 : 32}px`, background: C.highlight, border: `1px solid ${C.accentLight}`, borderLeft: `4px solid ${C.accent}`, borderRadius: 10, padding: "12px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <div style={{ fontSize: 20, lineHeight: 1 }}>📐</div>
+          <div style={{ color: C.dark, fontSize: 13.5, lineHeight: 1.55 }}>
+            <strong>Strumento a solo titolo di studio.</strong> I numeri che vedi sono stime indicative, <strong>non dati certi</strong>: imposte, costi e prezzi reali dipendono dal singolo immobile, dal Comune e dalla tua situazione fiscale. Non è una consulenza e non sostituisce la verifica di un professionista.
+          </div>
         </div>
 
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28, alignItems: "start" }}>
@@ -2094,19 +2164,19 @@ export function ContoEconomicoPage() {
 
             {isPrivato && !f.daImpresa && (
               <CeField value={f.renditaCatastale} onChange={(v) => upd("renditaCatastale", v)} label="Rendita catastale (opzionale)" suffix="€" placeholder="la trovi in visura" step={10}
-                hint={rendita > 0 ? "Imposte calcolate col prezzo-valore sul valore catastale." : "Senza rendita le imposte sono stimate sul prezzo: nella realtà, col prezzo-valore, sono quasi sempre più basse."} />
+                hint={rendita > 0 ? "Imposte stimate col prezzo-valore sul valore catastale." : "Senza rendita le imposte sono stimate sul prezzo: nella realtà, col prezzo-valore, sono quasi sempre più basse."} />
             )}
 
             <CeField value={f.costoRistMq} onChange={(v) => upd("costoRistMq", v)} label="Costo ristrutturazione" suffix="€/mq" step={50} hint={mq > 0 && ristMq > 0 ? `Totale lavori: ${fmtEur(ristrutturazione)}` : "Media indicativa: 1.000 €/mq per una ristrutturazione completa."} />
             <CeField value={f.prezzoVenditaMq} onChange={(v) => upd("prezzoVenditaMq", v)} label="Prezzo di vendita (opzionale)" suffix="€/mq" placeholder="es. 2.500" step={100} hint={vendMq > 0 && mq > 0 ? `Ricavo stimato: ${fmtEur(ricavo)}` : "Se lo inserisci vedi anche margine e ROI."} />
 
             <div style={{ borderTop: `1px solid ${C.border}`, paddingTop: 12, color: C.textLight, fontSize: 12, lineHeight: 1.5 }}>
-              Voci fisse incluse: provvigione agenzia 3%, notaio 2.000 €, spese tecniche 5.000 €.
+              Voci fisse incluse (valori medi di studio): provvigione agenzia 3%, notaio 2.000 €, spese tecniche 5.000 €.
             </div>
           </div>
 
           {/* RISULTATO */}
-          <div ref={resultRef} style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: "0 2px 12px rgba(13,34,64,0.05)", position: isMobile ? "static" : "sticky", top: 20 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: "0 2px 12px rgba(13,34,64,0.05)", position: isMobile ? "static" : "sticky", top: 20 }}>
             {!ready ? (
               <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
@@ -2114,7 +2184,7 @@ export function ContoEconomicoPage() {
               </div>
             ) : (
               <div>
-                <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Costi dell'operazione</div>
+                <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Costi dell'operazione · stima</div>
                 <CeRow label="Prezzo di acquisto" value={fmtEur(prezzo)} />
                 <CeRow label="Imposte di acquisto" sub={`${opz.nome} · ${opz.dettaglio}`} value={fmtEur(imposte)} top />
                 <CeRow label="Provvigione agenzia" sub="3% del prezzo" value={fmtEur(provvigione)} top />
@@ -2131,7 +2201,7 @@ export function ContoEconomicoPage() {
 
                 {vendMq > 0 ? (
                   <div style={{ marginTop: 18 }}>
-                    <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita</div>
+                    <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita · stima</div>
                     <CeRow label="Ricavo di vendita" sub={`${fmtMq(mq)} × ${fmtEur(vendMq)}/mq`} value={fmtEur(ricavo)} />
                     <div style={{ background: margine >= 0 ? C.greenBg : C.redBg, borderRadius: 10, padding: "14px 16px", marginTop: 8, display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
                       <div>
@@ -2140,28 +2210,52 @@ export function ContoEconomicoPage() {
                       </div>
                       <div style={{ color: margine >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margine)}</div>
                     </div>
-                    <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Margine prima di imposte sulla plusvalenza, interessi e imprevisti. Per il quadro completo usa il calcolatore.</div>
+                    <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Margine prima di imposte sulla plusvalenza, interessi e imprevisti. Stima di studio, non un dato certo.</div>
                   </div>
                 ) : (
                   <div style={{ color: C.textLight, fontSize: 12.5, lineHeight: 1.45, marginTop: 12 }}>Inserisci il prezzo di vendita al mq per vedere anche margine e ROI.</div>
                 )}
 
-                {/* CTA */}
+                {/* INVIO A LORENZO */}
                 <div style={{ marginTop: 22, borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
-                  <div style={{ color: C.dark, fontSize: 15, fontWeight: 700, lineHeight: 1.35, marginBottom: 6 }}>Vuoi il conto economico completo?</div>
-                  <div style={{ color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 12 }}>Frazionamento in più unità, computo lavori voce per voce, scenari pessimistico e ottimistico, messa a reddito.</div>
-                  <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "result", investimento_eur: Math.round(investimento) })} style={{ display: "block", textAlign: "center", background: C.accent, color: "#FFF", textDecoration: "none", borderRadius: 8, padding: "14px 18px", fontWeight: 700, fontSize: 15, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>Apri il calcolatore completo →</a>
+                  {invState.sent ? (
+                    <div style={{ background: C.greenBg, border: `1px solid #BFE3C8`, borderRadius: 10, padding: "16px 16px" }}>
+                      <div style={{ color: C.green, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>✓ Conto economico inviato</div>
+                      <div style={{ color: C.textMid, fontSize: 13.5, lineHeight: 1.5 }}>L'ho ricevuto insieme ai tuoi dati. Ne parliamo brevemente al workshop: porta con te i numeri dell'immobile.</div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div style={{ color: C.dark, fontSize: 16, fontWeight: 700, lineHeight: 1.35, marginBottom: 4 }}>Vuoi parlarne al workshop?</div>
+                      <div style={{ color: C.textMid, fontSize: 13, lineHeight: 1.5, marginBottom: 14 }}>Inviami questo conto economico: lo leggo prima e al workshop ne parliamo brevemente insieme.</div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                        <input type="text" value={inv.nome} onChange={(e) => updInv("nome", e.target.value)} placeholder="Nome e cognome" autoComplete="name" style={invInp} />
+                        <input type="email" value={inv.email} onChange={(e) => updInv("email", e.target.value)} placeholder="La tua email" inputMode="email" autoCapitalize="none" autoComplete="email" style={invInp} />
+                        <input type="tel" value={inv.telefono} onChange={(e) => updInv("telefono", e.target.value)} placeholder="Telefono (facoltativo)" inputMode="tel" autoComplete="tel" style={invInp} />
+                        <textarea value={inv.note} onChange={(e) => updInv("note", e.target.value)} placeholder="Due righe sull'operazione: dove si trova, cosa vorresti farci (facoltativo)" rows={3} style={{ ...invInp, resize: "vertical", fontWeight: 500, lineHeight: 1.4 }} />
+                        <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
+                          <input type="checkbox" checked={inv.privacy} onChange={(e) => updInv("privacy", e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+                          <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span>: i dati servono solo a leggere il conto economico e ricontattarti in merito.</span>
+                        </label>
+                        {invState.error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px" }}>{invState.error}</div>}
+                        <button onClick={inviaConto} disabled={invState.sending} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "14px 18px", fontWeight: 700, fontSize: 15, cursor: invState.sending ? "wait" : "pointer", fontFamily: CE_SANS, opacity: invState.sending ? 0.7 : 1, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+                          {invState.sending ? "Invio in corso..." : "Invia il conto economico a Lorenzo →"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: 30, color: C.textLight, fontSize: 12, lineHeight: 1.6 }}>
+        <div style={{ textAlign: "center", marginTop: 30, color: C.textLight, fontSize: 12, lineHeight: 1.7 }}>
           I dati inseriti non vengono salvati: chiudendo la pagina spariscono.
-          {ready && <> · <span onClick={() => setF(CE_INIT)} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Ricomincia</span></>}
+          {ready && <> · <span onClick={resetAll} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Ricomincia</span></>}
           <br />
-          Stime indicative a scopo informativo, non costituiscono consulenza fiscale. <PrivacyLink onClick={() => setShowPrivacy(true)} />
+          Strumento a solo titolo di studio: stime indicative, non dati certi, nessuna consulenza fiscale o d'investimento. <PrivacyLink onClick={() => setShowPrivacy(true)} />
+          <br />
+          Vuoi l'analisi completa con frazionamento, computo lavori e scenari? <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "footer" })} style={{ color: C.accent }}>Calcolatore frazionamento</a>
         </div>
       </div>
 
