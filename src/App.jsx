@@ -2020,12 +2020,31 @@ export function ContoEconomicoPage() {
 
   const prezzo = num(f.prezzoAcquisto), mq = num(f.metratura), rendita = num(f.renditaCatastale);
   const ristMq = num(f.costoRistMq), vendMq = num(f.prezzoVenditaMq);
-  // Rendita catastale proporzionale ai metri (Lorenzo, 3 nov 2026): senza visura si stima
-  // ~2 €/mq calpestabile (500 mq ≈ 1.000 €); un valore inserito molto sotto la stima viene segnalato.
-  const CE_RENDITA_MQ = 2;
-  const renditaStimata = mq > 0 ? Math.max(10, Math.round((mq * CE_RENDITA_MQ) / 10) * 10) : 0;
+  // Rendita catastale stimata senza visura (3 nov 2026): metri × rendita media al mq delle
+  // abitazioni (A/2-A/7) della città, dalle Statistiche catastali 2025 dell'Agenzia delle Entrate
+  // (rendita totale / superficie totale per provincia, capoluogo e non capoluogo separati).
+  // La tabella sta in public/catasto-rendita.json e si scarica solo quando serve.
+  const [catasto, setCatasto] = useState(null);
+  useEffect(() => {
+    if (catasto || !f.citta.trim()) return;
+    const url = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/catasto-rendita.json";
+    fetch(url).then((r) => (r.ok ? r.json() : null)).then((j) => { if (j && j.p) setCatasto(j); }).catch(() => {});
+  }, [f.citta, catasto]);
+  const stimaRendita = useMemo(() => {
+    const it = catasto ? catasto.it : { cap: 6.31, non: 3.47, tutte: 4.17 };
+    const chiave = f.citta.trim().split(/[(,/]/)[0].normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/['’\-]/g, " ").split(/\s+/).filter(Boolean).join(" ");
+    const cod = catasto && chiave ? catasto.n[chiave] : null;
+    if (cod && catasto.p[cod.slice(0, 2)]) {
+      const prov = cod.slice(0, 2), cap = cod.endsWith("1");
+      const tasso = catasto.p[prov][cap ? "cap" : "non"] || it.tutte;
+      return { tasso, dove: cap ? `nel capoluogo ${f.citta.trim()}` : `nei comuni della provincia di ${prov} fuori dal capoluogo`, trovata: true };
+    }
+    return { tasso: it.tutte, dove: "in Italia (media nazionale)", trovata: false };
+  }, [catasto, f.citta]);
+  const renditaStimata = mq > 0 ? Math.max(10, Math.round((mq * stimaRendita.tasso) / 10) * 10) : 0;
   const renditaUsata = rendita > 0 ? rendita : renditaStimata;
-  const renditaBassa = rendita > 0 && renditaStimata > 0 && rendita < renditaStimata * 0.6;
+  const renditaBassa = rendita > 0 && renditaStimata > 0 && rendita < renditaStimata * 0.5;
+  const fmtTasso = (t) => t.toLocaleString("it-IT", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
   const imp = useMemo(() => calcImposteAcquisto(prezzo, renditaUsata, false), [prezzo, renditaUsata]);
   const opz = imp.opzioni.find((o) => o.key === f.tipoAcquisto) || imp.opzioni[0];
   const imposte = prezzo > 0 ? opz.imposte : 0;
@@ -2065,7 +2084,7 @@ export function ContoEconomicoPage() {
     if (linkAnnuncio) r.push(`Annuncio: ${linkAnnuncio}`);
     r.push(`Prezzo di acquisto: ${fmtEur(prezzo)}  (${fmtEur(prezzo / mq)}/mq)`);
     r.push(`Superficie calpestabile: ${fmtMq(mq)}`);
-    r.push(`Acquisto: ${opz.nome} · da privato (imposta di registro)${renditaUsata > 0 ? ` · rendita catastale ${fmtEur(renditaUsata)}${rendita > 0 ? "" : " (stimata sui mq)"}` : ""}`);
+    r.push(`Acquisto: ${opz.nome} · da privato (imposta di registro)${renditaUsata > 0 ? ` · rendita catastale ${fmtEur(renditaUsata)}${rendita > 0 ? "" : ` (stimata: ${fmt(mq)} mq × ${fmtTasso(stimaRendita.tasso)} €/mq, media Catasto ${stimaRendita.dove})`}` : ""}`);
     r.push("");
     r.push(`Imposte di acquisto: ${fmtEur(imposte)}  (${opz.dettaglio})`);
     r.push(`Provvigione agenzia 3%: ${fmtEur(provvigione)}`);
@@ -2095,7 +2114,7 @@ export function ContoEconomicoPage() {
     const riepilogo = riepilogoTesto();
     const payload = {
       nome, email, telefono, note, citta, link_annuncio: linkAnnuncio, landing: "conto-economico-immobiliare", timestamp: new Date().toISOString(),
-      prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, rendita_eur: renditaUsata, rendita_stimata: rendita <= 0,
+      prezzo_eur: prezzo, metratura_mq: mq, tipo_acquisto: f.tipoAcquisto, rendita_eur: renditaUsata, rendita_stimata: rendita <= 0, rendita_tasso_mq: stimaRendita.tasso, rendita_zona: stimaRendita.dove,
       rist_mq_eur: ristMq, vendita_mq_eur: vendMq, investimento_eur: Math.round(investimento),
       margine_lordo_eur: Math.round(margine), tasse_vendita_eur: Math.round(tasseVendita), margine_eur: Math.round(margineNetto), roi_pct: (roi * 100).toFixed(1), ...LEAD_UTM,
     };
@@ -2172,7 +2191,7 @@ export function ContoEconomicoPage() {
 
             {isPrivato && (
               <CeField value={f.renditaCatastale} onChange={(v) => upd("renditaCatastale", v)} label="Rendita catastale" suffix="€" placeholder={renditaStimata > 0 ? `stima ${renditaStimata}` : "la trovi in visura"} step={10}
-                hint={renditaBassa ? `Attenzione: per ${fmt(mq)} mq in visura è difficile che sia sotto ${fmtEur(renditaStimata)}. Controlla il valore.` : rendita > 0 ? "Imposte stimate col prezzo-valore sul valore catastale della visura." : renditaStimata > 0 ? `Senza visura uso una stima proporzionale ai metri: ${fmtEur(renditaStimata)} (circa ${CE_RENDITA_MQ} € al mq). Se hai la visura, metti il valore vero.` : "La trovi in visura. Se la lasci vuota, la stimo dai metri quadrati."} />
+                hint={renditaBassa ? `Attenzione: per ${fmt(mq)} mq ${stimaRendita.dove} la rendita media del Catasto è ${fmtEur(renditaStimata)} (${fmtTasso(stimaRendita.tasso)} € al mq). Controlla il valore in visura.` : rendita > 0 ? "Imposte stimate col prezzo-valore sul valore catastale della visura." : renditaStimata > 0 ? `Senza visura stimo ${fmtEur(renditaStimata)}: ${fmt(mq)} mq × ${fmtTasso(stimaRendita.tasso)} € al mq, la rendita media delle abitazioni ${stimaRendita.dove} secondo le Statistiche catastali 2025 dell'Agenzia delle Entrate.${stimaRendita.trovata ? "" : " Scrivi la città in alto per usare il dato della tua zona."} Se hai la visura, metti il valore vero.` : "La trovi in visura. Se la lasci vuota, la stimo dai metri e dalla città con i dati del Catasto."} />
             )}
 
             <CeField value={f.costoRistMq} onChange={(v) => upd("costoRistMq", v)} label="Costo ristrutturazione" suffix="€/mq" step={50} hint={`Valore suggerito: 1.000 €/mq, media italiana per una ristrutturazione completa. Puoi cambiarlo.${mq > 0 && ristMq > 0 ? ` Totale lavori: ${fmtEur(ristrutturazione)}` : ""}`} />
