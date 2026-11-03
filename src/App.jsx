@@ -2051,9 +2051,12 @@ export function ContoEconomicoPage() {
   const provvigione = prezzo * CE_FISSI.provvigionePct;
   const ristrutturazione = mq * ristMq;
   const ready = prezzo > 0 && mq > 0 && vendMq > 0;
-  const investimento = ready ? prezzo + imposte + provvigione + CE_FISSI.notaio + CE_FISSI.speseTecniche + ristrutturazione : 0;
-  const costoMq = ready ? investimento / mq : 0;
-  const ricavo = ready ? vendMq * mq : 0;
+  // Il conto si apre dal primo dato inserito (Lorenzo, 3 nov 2026): le voci mancanti restano "da inserire".
+  const iniziato = !!f.citta.trim() || prezzo > 0 || mq > 0 || vendMq > 0;
+  const investimento = iniziato ? prezzo + imposte + provvigione + CE_FISSI.notaio + CE_FISSI.speseTecniche + ristrutturazione : 0;
+  const costoMq = mq > 0 ? investimento / mq : 0;
+  const ricavo = mq > 0 && vendMq > 0 ? vendMq * mq : 0;
+  const mancanti = [prezzo > 0 ? null : "il prezzo di acquisto", mq > 0 ? null : "i metri quadrati", vendMq > 0 ? null : "il prezzo di vendita"].filter(Boolean);
   const margine = ricavo - investimento;
   const isPrivato = f.tipoAcquisto !== "societa";
   // Tasse sulla vendita (uscita). Persona fisica: plusvalenza tassata con imposta
@@ -2204,7 +2207,7 @@ export function ContoEconomicoPage() {
 
           {/* RISULTATO */}
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: "0 2px 12px rgba(13,34,64,0.05)", position: isMobile ? "static" : "sticky", top: 20 }}>
-            {!ready ? (
+            {!iniziato ? (
               <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
                 <div style={{ color: C.textMid, fontSize: 15, lineHeight: 1.5 }}>Inserisci <strong style={{ color: C.dark }}>prezzo di acquisto</strong>, <strong style={{ color: C.dark }}>metri quadrati</strong> e <strong style={{ color: C.dark }}>prezzo di vendita</strong> per vedere il conto economico.</div>
@@ -2212,22 +2215,28 @@ export function ContoEconomicoPage() {
               </div>
             ) : (
               <div>
-                <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Costi dell'operazione · stima</div>
-                <CeRow label="Prezzo di acquisto" value={fmtEur(prezzo)} />
-                <CeRow label="Imposte di acquisto" sub={`${opz.nome} · ${opz.dettaglio}`} value={fmtEur(imposte)} top />
-                <CeRow label="Provvigione agenzia" sub="3% del prezzo" value={fmtEur(provvigione)} top />
+                <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Costi dell'operazione · stima{f.citta.trim() ? ` · ${f.citta.trim()}` : ""}</div>
+                <CeRow label="Prezzo di acquisto" value={prezzo > 0 ? fmtEur(prezzo) : "da inserire"} />
+                <CeRow label="Imposte di acquisto" sub={prezzo > 0 ? `${opz.nome} · ${opz.dettaglio}` : "Si calcolano sul prezzo"} value={prezzo > 0 ? fmtEur(imposte) : "—"} top />
+                <CeRow label="Provvigione agenzia" sub="3% del prezzo" value={prezzo > 0 ? fmtEur(provvigione) : "—"} top />
                 <CeRow label="Notaio" value={fmtEur(CE_FISSI.notaio)} top />
                 <CeRow label="Spese tecniche" sub="Pratiche, progetto, direzione lavori" value={fmtEur(CE_FISSI.speseTecniche)} top />
-                <CeRow label="Ristrutturazione" sub={`${fmtMq(mq)} × ${fmtEur(ristMq)}/mq`} value={fmtEur(ristrutturazione)} top />
+                <CeRow label="Ristrutturazione" sub={mq > 0 ? `${fmtMq(mq)} × ${fmtEur(ristMq)}/mq` : `${fmtEur(ristMq)}/mq × metri da inserire`} value={mq > 0 ? fmtEur(ristrutturazione) : "—"} top />
                 <div style={{ background: C.navy, borderRadius: 10, padding: "14px 16px", margin: "12px 0 4px", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12 }}>
                   <div>
                     <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase" }}>Investimento totale</div>
-                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>{fmtEur(costoMq)} al mq</div>
+                    <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 12, marginTop: 2 }}>{mq > 0 ? `${fmtEur(costoMq)} al mq` : ready ? "" : "parziale: mancano dati"}</div>
                   </div>
                   <div style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(investimento)}</div>
                 </div>
 
-                <div style={{ marginTop: 18 }}>
+                {!ready && (
+                  <div style={{ marginTop: 14, background: C.highlight, border: `1px solid ${C.accentLight}`, borderRadius: 8, padding: "12px 14px", color: C.dark, fontSize: 13.5, lineHeight: 1.5 }}>
+                    Per vedere ricavo, margine e tasse sulla vendita inserisci {mancanti.join(", ").replace(/, ([^,]*)$/, " e $1")} {isMobile ? "qui sopra" : "a sinistra"}. Poi comparirà anche il modulo per inviare il conto economico a Lorenzo.
+                  </div>
+                )}
+
+                {ready && <div style={{ marginTop: 18 }}>
                     <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 6 }}>Vendita · stima</div>
                     <CeRow label="Ricavo di vendita" sub={`${fmtMq(mq)} × ${fmtEur(vendMq)}/mq`} value={fmtEur(ricavo)} />
                     <CeRow label="Margine lordo" sub="Ricavo meno investimento totale" value={fmtEur(margine)} top />
@@ -2240,10 +2249,10 @@ export function ContoEconomicoPage() {
                       <div style={{ color: margineNetto >= 0 ? C.green : C.red, fontFamily: "'Georgia', serif", fontSize: isMobile ? 22 : 26, fontWeight: 700, whiteSpace: "nowrap" }}>{fmtEur(margineNetto)}</div>
                     </div>
                     <div style={{ color: C.textLight, fontSize: 11.5, lineHeight: 1.45, marginTop: 8 }}>Netto stimato prima di interessi, imprevisti e altre spese. Le aliquote sono quelle ordinarie: casi particolari (prima casa abitata, rivendita oltre 5 anni, regimi diversi) cambiano il risultato. Stima di studio, non un dato certo.</div>
-                </div>
+                </div>}
 
                 {/* INVIO A LORENZO */}
-                <div style={{ marginTop: 22, borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
+                {ready && <div style={{ marginTop: 22, borderTop: `1px solid ${C.border}`, paddingTop: 18 }}>
                   {invState.sent ? (
                     <div style={{ background: C.greenBg, border: `1px solid #BFE3C8`, borderRadius: 10, padding: "16px 16px" }}>
                       <div style={{ color: C.green, fontSize: 16, fontWeight: 700, marginBottom: 4 }}>✓ Conto economico inviato</div>
@@ -2269,7 +2278,7 @@ export function ContoEconomicoPage() {
                       </div>
                     </div>
                   )}
-                </div>
+                </div>}
               </div>
             )}
           </div>
@@ -2277,7 +2286,7 @@ export function ContoEconomicoPage() {
 
         <div style={{ textAlign: "center", marginTop: 30, color: C.textLight, fontSize: 12, lineHeight: 1.7 }}>
           I dati inseriti non vengono salvati: chiudendo la pagina spariscono.
-          {ready && <> · <span onClick={resetAll} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Ricomincia</span></>}
+          {iniziato && <> · <span onClick={resetAll} style={{ color: C.accent, cursor: "pointer", textDecoration: "underline" }}>Ricomincia</span></>}
           <br />
           Strumento a solo titolo di studio: stime indicative, non dati certi, nessuna consulenza fiscale o d'investimento. <PrivacyLink onClick={() => setShowPrivacy(true)} />
           <br />
