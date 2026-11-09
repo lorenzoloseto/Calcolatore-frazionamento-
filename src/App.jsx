@@ -146,6 +146,13 @@ const DB = {
     );
     if (error) console.warn("ensureProfile:", error.message);
   },
+  // Livello di membro della community Spacca il Mattone (9 nov 2026): tabella community_piani (stesso progetto Supabase),
+  // il membro legge solo la propria riga. 'professional' = percorso a pagamento: le 4 sezioni professionali sono sbloccate.
+  async getPiano(userId) {
+    if (!userId) return "normale";
+    const { data } = await supabase.from("community_piani").select("piano").eq("user_id", userId).maybeSingle();
+    return data?.piano === "professional" ? "professional" : "normale";
+  },
   async saveProject(pd) {
     if (!this._user) return { ok: false, error: "Non autenticato" };
     const body = { name: pd.name, data: pd.data, scenari: pd.scenari, comparabili: pd.comparabili, rist_items: pd.ristItems };
@@ -746,7 +753,7 @@ function WizardSlider({ value, onChange, min, max, step = 1, labels, unit }) {
     </div>
   );
 }
-function TrustpilotGate({ locked, canUnlock, onGoReview, onUnlock, children }) {
+function TrustpilotGate({ locked, canUnlock, onGoReview, onUnlock, onLogin, children }) {
   if (!locked) return children;
   return (
     <div style={{ position: "relative" }}>
@@ -756,6 +763,7 @@ function TrustpilotGate({ locked, canUnlock, onGoReview, onUnlock, children }) {
           <div style={{ fontWeight: 700, fontSize: 16, color: C.dark, marginBottom: 8, fontFamily: "-apple-system, sans-serif" }}>Sblocca questa sezione</div>
           <div style={{ fontSize: 13, color: C.textMid, marginBottom: 18, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Lasciaci una recensione su Trustpilot — bastano 30 secondi — e sblocchi subito questa e le altre sezioni avanzate del calcolatore.</div>
           <button onClick={onGoReview} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 20px", fontWeight: 700, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%", marginBottom: 10 }}>Lascia una recensione su Trustpilot →</button>
+          {onLogin && <div style={{ fontSize: 12, color: C.textMid, margin: "0 0 12px", fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={onLogin} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi con il tuo account</button> e hai tutto sbloccato.</div>}
           <button onClick={onUnlock} disabled={!canUnlock} style={{ background: "none", border: "none", color: canUnlock ? C.accent : C.textLight, fontSize: 12, fontWeight: 600, cursor: canUnlock ? "pointer" : "not-allowed", textDecoration: canUnlock ? "underline" : "none", fontFamily: "-apple-system, sans-serif" }}>{canUnlock ? "Ho lasciato la recensione, sblocca" : "Ho lasciato la recensione, sblocca (attendi qualche secondo…)"}</button>
         </div>
       </div>
@@ -2379,7 +2387,8 @@ export default function App() {
         // Vai a projects e logga il login solo se l'utente non era già autenticato
         // (SIGNED_IN si ripete ad ogni handshake di Supabase: cambio tab, refresh token, ecc.)
         if (!DB._wasAuthenticated) {
-          if (authScreenRef.current !== "reset-password" && !__sharedId) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
+          // sul sito (LEAD_MODE) chi entra lo fa per il livello Professional: resta sul calcolatore, niente lista progetti
+          if (authScreenRef.current !== "reset-password" && !__sharedId && !LEAD_MODE) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
           if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
         }
         DB._wasAuthenticated = true;
@@ -2487,7 +2496,11 @@ export default function App() {
   const [ristAppaltoApplied, setRistAppaltoApplied] = useState(false);
   const [tpUnlocked, setTpUnlocked] = useState(() => { try { return localStorage.getItem("ll_tp_unlocked") === "1"; } catch { return false; } });
   const [tpCanUnlock, setTpCanUnlock] = useState(false);
-  const tpLocked = LEAD_MODE && !tpUnlocked;
+  // Membri "Spacca il Mattone Professional" (community): sezioni professionali sbloccate senza recensione (9 nov 2026)
+  const [piano, setPiano] = useState("normale");
+  useEffect(() => { let vivo = true; DB.getPiano(user?.id).then((p) => { if (vivo) setPiano(p); }).catch(() => {}); return () => { vivo = false; }; }, [user?.id]);
+  const isPro = piano === "professional";
+  const tpLocked = LEAD_MODE && !tpUnlocked && !isPro;
   const handleTpGoReview = () => {
     window.open(TRUSTPILOT_URL, "_blank");
     DB.trackEvent("trustpilot_review_click");
@@ -4163,6 +4176,7 @@ export default function App() {
             {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
+            {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: "rgba(196,132,29,0.2)", color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
             {user && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
           </div>
         </div>
@@ -4255,7 +4269,7 @@ export default function App() {
                   <LpIconLock />
                   <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>Sblocca tutte le funzionalità</div>
                 </div>
-                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione.</div>
+                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione.{!user && <> Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={() => setAuthScreen("login")} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi</button> e hai tutto sbloccato.</>}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
                   {advanced.map(({ id, Icon, title, desc }) => (
                     <button key={id} onClick={() => { DB.trackEvent("unlock_banner_click", { section: id, ...behaviorCtx() }); setDashTab(id); }}
@@ -4582,7 +4596,7 @@ export default function App() {
 
         {/* RISTRUTTURAZIONE TAB */}
         {dashTab === "ristrutturazione" && (
-          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
               <div>
@@ -4679,7 +4693,7 @@ export default function App() {
 
         {/* SCENARI TAB */}
         {dashTab === "scenari" && (
-          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
               <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: 16, borderTop: `3px solid ${C.red}` }}>
@@ -4710,7 +4724,7 @@ export default function App() {
 
         {/* COMPARABILI TAB */}
         {dashTab === "comparabili" && (
-          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
               <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -4784,7 +4798,7 @@ export default function App() {
           const addCommittente = () => uA("committentiList", [...committenti, { nome: "", sede: "", cf: "", rea: "", pec: "" }]);
           const removeCommittente = (idx) => uA("committentiList", committenti.filter((_, i) => i !== idx));
           return (
-          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock}>
+          <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <>
             <p style={{ color: C.textMid, fontSize: 12.5, margin: "0 0 16px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>Compila i dati mancanti e genera una bozza di contratto d'appalto Word, basata sul modello standard tra committente e società appaltatrice per la ristrutturazione. Alcuni dati (indirizzo, superficie, costo ristrutturazione) sono già ripresi dal progetto.</p>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16 }}>
