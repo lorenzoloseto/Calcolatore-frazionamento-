@@ -422,6 +422,7 @@ const LpIconServer = () => <svg width="24" height="24" viewBox="0 0 24 24" fill=
 function LpBrandLogo({ size = 32, animated = false }) {
   const s = size;
   const sw = 1.5;
+  if (SPACCA) return <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: Math.max(22, s * 1.4), width: "auto", display: "block" }} />;
   if (!animated) {
     // Versione statica — nessuna animazione CSS necessaria
     return (
@@ -484,7 +485,7 @@ function LpDashboardMockup({ compact = false }) {
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#27c93f" }} />
-        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO — Conto Economico</span>
+        <span style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, marginLeft: 8, fontFamily: "-apple-system, sans-serif" }}>{SPACCA ? "SPACCA IL MATTONE — Conto Economico" : "LORENZO LOSETO — Conto Economico"}</span>
       </div>
       <div style={{ background: C.greenBg, borderLeft: `3px solid ${C.green}`, margin: "12px 12px 8px", borderRadius: 4, padding: "8px 12px" }}>
         <span style={{ color: C.green, fontWeight: 700, fontSize: compact ? 10 : 12, fontFamily: "-apple-system, sans-serif" }}>✓ Operazione sostenibile — Margine positivo in tutti gli scenari</span>
@@ -511,13 +512,44 @@ const fmtEur = (n) => fmt(Math.round(n)) + " €";
 const fmtPct = (n) => (n * 100).toFixed(1) + "%";
 const fmtMq = (n) => fmt(Math.round(n)) + " mq";
 const fmtMesi = (n) => Math.round(n) + (Math.round(n) === 1 ? " mese" : " mesi");
-const C = {
+// Tema "Spacca il Mattone" (Lorenzo, 10 nov 2026: "armonizza la pagina del calcolatore dentro la community con la grafica di Spacca il Mattone").
+// Si attiva quando il calcolatore si apre dalla community (utm_source=community) o con ?tema=spacca, resta memorizzato (localStorage ll_tema)
+// finché non si apre con ?tema=base. Cambia colori (vinaccia, oro, rosso della community), font (DM Sans + Manrope) e logo. Mai dentro l'app iOS.
+const SPACCA = (() => {
+  if (isNative || typeof window === "undefined") return false;
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("tema") === "base") { localStorage.removeItem("ll_tema"); return false; }
+    if (q.get("tema") === "spacca" || q.get("utm_source") === "community") { localStorage.setItem("ll_tema", "spacca"); return true; }
+    return localStorage.getItem("ll_tema") === "spacca";
+  } catch { return false; }
+})();
+const SPACCA_LOGO = "https://www.lorenzoloseto.com/images/spacca/logo-spacca-mattone.webp";
+const SPACCA_COMMUNITY = "https://spaccailmattone.lorenzoloseto.com/dashboard";
+const C = SPACCA ? {
+  bg: "#faf7f8", card: "#FFFFFF", dark: "#2b151c", navy: "#25151b",
+  accent: "#a81738", accentLight: "#fde8ec", green: "#1c7c3c", greenBg: "#e5f6ea",
+  red: "#db3150", redBg: "#fde8ec", border: "#e6dde1", borderDark: "#d9d0d5",
+  text: "#2b151c", textMid: "#71636b", textLight: "#9a8d93", goldBar: "#ffd23b",
+  inputBg: "#faf7f8", inputBorder: "#d9d0d5", inputFocus: "#a81738", highlight: "#fff7e0",
+} : {
   bg: "#F8F7F4", card: "#FFFFFF", dark: "#1B2A4A", navy: "#0D2240",
   accent: "#C4841D", accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
   red: "#C82333", redBg: "#FDE8E8", border: "#E5E1D8", borderDark: "#D0CCC3",
   text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: "#C4841D",
   inputBg: "#FAFAF8", inputBorder: "#D0CCC3", inputFocus: "#C4841D", highlight: "#FFF8ED",
 };
+/** Font e sfondo del tema Spacca il Mattone: da mettere nella radice delle pagine (App e ContoEconomicoPage). */
+function SpaccaTema() {
+  if (!SPACCA) return null;
+  return <style>{`
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
+    body { background: #25151b !important; }
+    body, body * { font-family: 'DM Sans', -apple-system, Arial, sans-serif !important; }
+    h1, h2, h3, h4 { font-family: Manrope, 'DM Sans', Arial, sans-serif !important; letter-spacing: -0.3px; }
+    code, pre, .mono { font-family: ui-monospace, Menlo, monospace !important; }
+  `}</style>;
+}
 
 const DEFAULT_DATA = {
   via: "", civico: "", citta: "", prezzoAcquisto: 200000, metratura: 120, numUnita: 3,
@@ -2155,9 +2187,12 @@ export function ContoEconomicoPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: CE_SANS }}>
+      <SpaccaTema />
       {/* NAVBAR */}
       <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
-        <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>
+        {SPACCA
+          ? <a href={SPACCA_COMMUNITY} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}><img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: 34, width: "auto", display: "block" }} /><span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span></a>
+          : <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>}
         <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: "nowrap" }}>A titolo di studio</div>
       </div>
 
@@ -3764,7 +3799,7 @@ export default function App() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                 <LpBrandLogo size={16} />
-                <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+                <div style={{ color: SPACCA ? C.goldBar : C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{SPACCA ? "Spacca il Mattone · Community" : "LORENZO LOSETO"}</div>
               </div>
               <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>I miei conti economici</div>
             </div>
@@ -4143,9 +4178,10 @@ export default function App() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
+      <SpaccaTema />
       {renderFlowBar()}
       {LEAD_MODE && <style>{`
-        @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px rgba(196,132,29,0.35); } 50% { box-shadow: 0 0 26px 7px rgba(196,132,29,0.6); } }
+        @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px ${SPACCA ? "rgba(168,23,56,0.35)" : "rgba(196,132,29,0.35)"}; } 50% { box-shadow: 0 0 26px 7px ${SPACCA ? "rgba(168,23,56,0.6)" : "rgba(196,132,29,0.6)"}; } }
         @keyframes ll-popIn { 0% { opacity: 0; transform: translateY(18px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>}
       {/* HEADER */}
