@@ -422,7 +422,7 @@ const LpIconServer = () => <svg width="24" height="24" viewBox="0 0 24 24" fill=
 function LpBrandLogo({ size = 32, animated = false }) {
   const s = size;
   const sw = 1.5;
-  if (SPACCA) return <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: Math.max(22, s * 1.4), width: "auto", display: "block" }} />;
+  if (SPACCA) return <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: Math.max(34, s * 1.8), width: "auto", display: "block" }} />;
   if (!animated) {
     // Versione statica — nessuna animazione CSS necessaria
     return (
@@ -2194,7 +2194,7 @@ export function ContoEconomicoPage() {
       {/* NAVBAR */}
       <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         {SPACCA
-          ? <a href={SPACCA_COMMUNITY} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}><img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: 34, width: "auto", display: "block" }} /><span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span></a>
+          ? <a href={SPACCA_COMMUNITY} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}><img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: 44, width: "auto", display: "block" }} /><span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span></a>
           : <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>}
         <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: "nowrap" }}>A titolo di studio</div>
       </div>
@@ -3359,11 +3359,11 @@ export default function App() {
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", flexDirection: "column", cursor: "pointer", lineHeight: 1.1 }}>
-              {SPACCA && <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: isMobile ? 26 : 34, width: "auto", display: "block", marginBottom: 4 }} />}
+              {SPACCA && <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: isMobile ? 44 : 56, width: "auto", display: "block", marginBottom: 6 }} />}
               <div style={{
-                fontSize: isMobile ? 12 : 16, fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
+                fontSize: SPACCA ? (isMobile ? 11 : 13) : (isMobile ? 12 : 16), fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
-                background: `linear-gradient(90deg, ${C.accent} 0%, ${C.goldLight} 50%, ${C.accent} 100%)`,
+                background: SPACCA ? C.goldBar : `linear-gradient(90deg, ${C.accent} 0%, ${C.goldLight} 50%, ${C.accent} 100%)`,
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>Calcolatore Frazionamento</div>
