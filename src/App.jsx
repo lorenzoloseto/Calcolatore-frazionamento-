@@ -480,7 +480,7 @@ function LpBrandLogo({ size = 32, animated = false }) {
 
 function LpDashboardMockup({ compact = false }) {
   return (
-    <div style={{ background: C.card, borderRadius: 12, overflow: "hidden", border: `1px solid ${C.border}`, boxShadow: "0 20px 60px rgba(13,34,64,0.15)" }}>
+    <div style={{ background: C.card, borderRadius: 12, overflow: "hidden`, border: `1px solid ${C.border}`, boxShadow: `0 20px 60px rgba(${NAVY_RGB},0.15)" }}>
       <div style={{ background: C.navy, padding: "10px 16px", display: "flex", gap: 6, alignItems: "center" }}>
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ff5f56" }} />
         <div style={{ width: 10, height: 10, borderRadius: "50%", background: "#ffbd2e" }} />
@@ -526,6 +526,8 @@ const SPACCA = (() => {
 })();
 const SPACCA_LOGO = "https://www.lorenzoloseto.com/images/spacca/logo-spacca-mattone.webp";
 const SPACCA_COMMUNITY = "https://spaccailmattone.lorenzoloseto.com/dashboard";
+const NAVY_RGB = SPACCA ? "37,21,27" : "13,34,64";      // C.navy in rgb, per le trasparenze
+const ACCENT_RGB = SPACCA ? "168,23,56" : "196,132,29"; // C.accent in rgb
 const C = SPACCA ? {
   bg: "#faf7f8", card: "#FFFFFF", dark: "#2b151c", navy: "#25151b",
   accent: "#a81738", accentLight: "#fde8ec", green: "#1c7c3c", greenBg: "#e5f6ea",
@@ -534,13 +536,13 @@ const C = SPACCA ? {
   inputBg: "#faf7f8", inputBorder: "#d9d0d5", inputFocus: "#a81738", highlight: "#fff7e0",
 } : {
   bg: "#F8F7F4", card: "#FFFFFF", dark: "#1B2A4A", navy: "#0D2240",
-  accent: "#C4841D", accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
+  accent: `${C.accent}`, accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
   red: "#C82333", redBg: "#FDE8E8", border: "#E5E1D8", borderDark: "#D0CCC3",
-  text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: "#C4841D",
+  text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: `${C.accent}`,
   inputBg: "#FAFAF8", inputBorder: "#D0CCC3", inputFocus: "#C4841D", highlight: "#FFF8ED",
 };
 /** Font e sfondo del tema Spacca il Mattone: da mettere nella radice delle pagine (App e ContoEconomicoPage). */
-function SpaccaTema() {
+export function SpaccaTema() {
   if (!SPACCA) return null;
   return <style>{`
     @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@600;700;800&display=swap');
@@ -930,7 +932,7 @@ function AuthInput({ label, type = "text", value, onChange, placeholder, autoFoc
 // ============================================================
 function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, onSubmit, onClose, onShowPrivacy }) {
   return (
-    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.85)", backdropFilter: "blur(4px)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+    <div onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.85)`, backdropFilter: "blur(4px)", zIndex: 5000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
       <div onKeyDown={(e) => { e.stopPropagation(); if (e.key === "Enter" && !submitting) onSubmit(); }} style={{ background: "#FFF", borderRadius: 12, maxWidth: 440, width: "100%", boxSizing: "border-box", padding: "28px 24px", position: "relative", boxShadow: "0 20px 60px rgba(0,0,0,0.4)" }}>
         <button onClick={onClose} aria-label="Chiudi" style={{ position: "absolute", top: 12, right: 12, background: "none", border: "none", color: "#9AA7B8", fontSize: 22, cursor: "pointer", lineHeight: 1, padding: 4 }}>×</button>
         <div style={{ height: 6, background: "#EEE", borderRadius: 3, marginBottom: 6 }}>
@@ -951,7 +953,7 @@ function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, 
             <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); onShowPrivacy(); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span> e acconsento a ricevere contenuti su frazionamento e investimenti immobiliari.</span>
           </label>
           {error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px", fontFamily: "-apple-system, sans-serif" }}>{error}</div>}
-          <button onClick={onSubmit} disabled={submitting} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, cursor: submitting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: submitting ? 0.7 : 1, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+          <button onClick={onSubmit} disabled={submitting} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, cursor: submitting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px rgba(${ACCENT_RGB},0.35)` }}>
             {submitting ? "Un attimo..." : "Mostrami i risultati →"}
           </button>
           <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: 0, fontFamily: "-apple-system, sans-serif" }}>Riceverai anche il video gratuito di Lorenzo sul frazionamento immobiliare.</p>
@@ -1671,7 +1673,7 @@ function AdminDashboard({ user, onClose }) {
     const sharesReceived = userDetails.shares_received || [];
     const events = userDetails.recent_events || [];
     return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => { setSelectedUser(null); setUserDetails(null); }}>
+      <div style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => { setSelectedUser(null); setUserDetails(null); }}>
         <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, maxWidth: 700, width: "100%", maxHeight: "85vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
           <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
@@ -1777,7 +1779,7 @@ function AdminDashboard({ user, onClose }) {
       { k: "costoRistMq", l: "Costo rist./mq" }, { k: "durataOp", l: "Durata (mesi)" },
     ];
     return (
-      <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => setSelectedProject(null)}>
+      <div style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999, padding: 16 }} onClick={() => setSelectedProject(null)}>
         <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, maxWidth: 650, width: "100%", maxHeight: "85vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
           <div style={{ padding: "20px 24px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
@@ -1850,7 +1852,7 @@ function AdminDashboard({ user, onClose }) {
 
       {/* Confirm dialog */}
       {confirmDialog && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !confirmDialog.loading && setConfirmDialog(null)}>
+        <div style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !confirmDialog.loading && setConfirmDialog(null)}>
           <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: confirmDialog.danger ? `2px solid ${C.red}` : `1px solid ${C.border}` }}>
             <div style={{ textAlign: "center", marginBottom: 20 }}>
               <div style={{ width: 48, height: 48, borderRadius: "50%", background: confirmDialog.danger ? C.redBg : C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px", fontSize: 22 }}>
@@ -2187,7 +2189,6 @@ export function ContoEconomicoPage() {
 
   return (
     <div style={{ minHeight: "100vh", background: C.bg, fontFamily: CE_SANS }}>
-      <SpaccaTema />
       {/* NAVBAR */}
       <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         {SPACCA
@@ -2214,7 +2215,7 @@ export function ContoEconomicoPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 18 : 28, alignItems: "start" }}>
           {/* INPUT */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: "0 2px 12px rgba(13,34,64,0.05)" }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, display: "flex", flexDirection: "column", gap: 18, boxShadow: `0 2px 12px rgba(${NAVY_RGB},0.05)` }}>
             <CeField type="text" value={f.citta} onChange={(v) => upd("citta", v)} label="Città dell'immobile" placeholder="es. Bari" />
             <CeField type="url" autoComplete="off" value={f.linkAnnuncio} onChange={(v) => upd("linkAnnuncio", v)} label="Link dell'annuncio" placeholder="es. idealista.it/immobile/..." hint="Più che facoltativo: se vuoi che analizziamo insieme il tuo investimento, incolla qui l'annuncio (Idealista, Immobiliare.it o altro)." />
             <CeField value={f.prezzoAcquisto} onChange={(v) => upd("prezzoAcquisto", v)} label="Prezzo di acquisto" suffix="€" placeholder="es. 150.000" step={1000} hint={prezzo > 0 && mq > 0 ? `Equivale a ${fmtEur(prezzo / mq)}/mq` : ""} />
@@ -2249,7 +2250,7 @@ export function ContoEconomicoPage() {
           </div>
 
           {/* RISULTATO */}
-          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: "0 2px 12px rgba(13,34,64,0.05)", position: isMobile ? "static" : "sticky", top: 20 }}>
+          <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 14, padding: isMobile ? "20px 16px" : 28, boxShadow: `0 2px 12px rgba(${NAVY_RGB},0.05)`, position: isMobile ? "static" : "sticky", top: 20 }}>
             {!iniziato ? (
               <div style={{ textAlign: "center", padding: "36px 12px", color: C.textLight }}>
                 <div style={{ fontSize: 40, marginBottom: 10 }}>🏠</div>
@@ -2315,7 +2316,7 @@ export function ContoEconomicoPage() {
                           <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span>: i dati servono solo a leggere il conto economico e ricontattarti in merito.</span>
                         </label>
                         {invState.error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px" }}>{invState.error}</div>}
-                        <button onClick={inviaConto} disabled={invState.sending} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "14px 18px", fontWeight: 700, fontSize: 15, cursor: invState.sending ? "wait" : "pointer", fontFamily: CE_SANS, opacity: invState.sending ? 0.7 : 1, boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+                        <button onClick={inviaConto} disabled={invState.sending} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "14px 18px", fontWeight: 700, fontSize: 15, cursor: invState.sending ? "wait" : "pointer", fontFamily: CE_SANS, opacity: invState.sending ? 0.7 : 1, boxShadow: `0 4px 16px rgba(${ACCENT_RGB},0.35)` }}>
                           {invState.sending ? "Invio in corso..." : "Invia il conto economico a Lorenzo →"}
                         </button>
                       </div>
@@ -2733,12 +2734,12 @@ export default function App() {
     const curKey = showLanding ? "landing" : showLeadGate ? "gate" : showDash ? "result" : step;
     return (
       <div style={{ position: "sticky", top: 0, zIndex: 2147483647, display: "flex", alignItems: "center", gap: 10, background: "#0B1220", borderBottom: "1px solid #233148", padding: "7px 10px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif" }}>
-        <span style={{ flex: "0 0 auto", color: "#C4841D", fontWeight: 800, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase" }}>🔧 STEP · solo tu</span>
+        <span style={{ flex: "0 0 auto", color: `${C.accent}`, fontWeight: 800, fontSize: 10, letterSpacing: 0.8, textTransform: "uppercase" }}>🔧 STEP · solo tu</span>
         <nav style={{ flex: "1 1 auto", display: "flex", gap: 6, overflowX: "auto", whiteSpace: "nowrap" }}>
           {FLOW_STEPS.map(([label, key]) => {
             const cur = String(key) === String(curKey);
             return (
-              <button key={String(key)} onClick={() => goScreen(key)} style={{ flex: "0 0 auto", cursor: "pointer", borderRadius: 7, padding: "5px 9px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: cur ? "#C4841D" : "#131c2e", color: cur ? "#0B1220" : "#9fb0c6", border: `1px solid ${cur ? "#C4841D" : "#233148"}` }}>{label}</button>
+              <button key={String(key)} onClick={() => goScreen(key)} style={{ flex: "0 0 auto", cursor: "pointer", borderRadius: 7, padding: "5px 9px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: cur ? `${C.accent}` : "#131c2e", color: cur ? "#0B1220" : "#9fb0c6`, border: `1px solid ${cur ? `${C.accent}" : "#233148"}` }}>{label}</button>
             );
           })}
         </nav>
@@ -3346,7 +3347,7 @@ export default function App() {
           @keyframes lp-gradientShift { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
           @keyframes lp-float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-12px); } }
           @keyframes lp-shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
-          @keyframes lp-borderGlow { 0%, 100% { box-shadow: 0 20px 60px rgba(13,34,64,0.15); } 50% { box-shadow: 0 20px 60px rgba(196,132,29,0.25); } }
+          @keyframes lp-borderGlow { 0%, 100% { box-shadow: 0 20px 60px rgba(${NAVY_RGB},0.15); } 50% { box-shadow: 0 20px 60px rgba(${ACCENT_RGB},0.25); } }
           @keyframes lp-strokeDraw { from { stroke-dashoffset: inherit; opacity: 0.2; } to { stroke-dashoffset: 0; opacity: 1; } }
           @keyframes lp-split { 0% { transform: translateX(0); } 100% { transform: translateX(3px); } }
           @keyframes lp-splitLeft { 0% { transform: translateX(0); } 100% { transform: translateX(-3px); } }
@@ -3359,7 +3360,7 @@ export default function App() {
               <div style={{
                 fontSize: isMobile ? 12 : 16, fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
-                background: "linear-gradient(90deg, #C4841D 0%, #E8B85D 50%, #C4841D 100%)",
+                background: `linear-gradient(90deg, ${C.accent} 0%, #E8B85D 50%, ${C.accent} 100%)`,
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>Calcolatore Frazionamento</div>
@@ -3373,7 +3374,7 @@ export default function App() {
         </div>
 
         {/* === HERO === */}
-        <div style={{ background: `linear-gradient(135deg, #0D2240 0%, #162D50 40%, #1A3558 70%, #0D2240 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
+        <div style={{ background: `linear-gradient(135deg, ${C.navy} 0%, #162D50 40%, #1A3558 70%, ${C.navy} 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
               <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>{LEAD_MODE ? "Il calcolatore gratuito per il frazionamento" : "La piattaforma per condividere conti economici in sicurezza"}</div>
@@ -3384,7 +3385,7 @@ export default function App() {
                 {LEAD_MODE ? "Non comprare un immobile da frazionare senza aver fatto i conti. Inserisci i dati e scopri subito margine, ROI e i costi reali dell'operazione — come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
-                <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
+                <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: `0 4px 20px rgba(${ACCENT_RGB},0.4)` }}>
                   {LEAD_MODE ? "Calcola il tuo frazionamento →" : "Crea il tuo primo progetto →"}
                 </button>
                 <button onClick={() => document.getElementById("lp-how")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "transparent", color: "#FFF", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: isMobile ? "14px 24px" : "16px 28px", fontWeight: 600, fontSize: isMobile ? 14 : 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
@@ -3438,7 +3439,7 @@ export default function App() {
                     transition: "all 0.3s ease",
                     opacity: featVisible ? 1 : 0, animation: featVisible ? `lp-fadeUp 0.6s ease-out ${i * 0.1}s both` : "none",
                   }}>
-                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: "rgba(196,132,29,0.15)", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: "50%", background: `rgba(${ACCENT_RGB},0.15)`, display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 16 }}>
                     <Icon />
                   </div>
                   <div style={{ color: "#FFF", fontSize: 17, fontWeight: 700, marginBottom: 8, fontFamily: "'Georgia', serif" }}>{title}</div>
@@ -3491,7 +3492,7 @@ export default function App() {
                 <LpDashboardMockup />
               </div>
             </div>
-            <button onClick={() => handleLandingCTA(false)} style={{ marginTop: 40, background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "16px 36px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 4px 20px rgba(196,132,29,0.4)" }}>
+            <button onClick={() => handleLandingCTA(false)} style={{ marginTop: 40, background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "16px 36px", fontWeight: 700, fontSize: 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: `0 4px 20px rgba(${ACCENT_RGB},0.4)` }}>
               Prova gratuitamente →
             </button>
           </div>
@@ -3526,7 +3527,7 @@ export default function App() {
               {LEAD_MODE ? "Scopri quanto rende la tua operazione" : "Pronto a condividere le tue analisi in sicurezza?"}
             </h2>
             <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 18, marginBottom: 36, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE ? "Gratuito · Nessuna registrazione · Risultato immediato" : "Gratuito · NDA integrato · Tutela legale"}</p>
-            <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: "linear-gradient(90deg, transparent 0%, rgba(196,132,29,0.4) 50%, transparent 100%)", backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
+            <div style={{ display: "inline-block", padding: 2, borderRadius: 10, background: `linear-gradient(90deg, transparent 0%, rgba(${ACCENT_RGB},0.4) 50%, transparent 100%)`, backgroundSize: "200% 100%", animation: "lp-shimmer 3s infinite" }}>
               <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "16px 36px" : "18px 56px", fontWeight: 700, fontSize: isMobile ? 16 : 18, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "block" }}>
                 Inizia ora →
               </button>
@@ -3858,9 +3859,9 @@ export default function App() {
                       <button onClick={() => handleLoadProject(p)} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Apri</button>
                       {!isShared && (
                         <>
-                          <button onClick={() => { setRenamingProject(p); setRenameValue(p.name); }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rinomina"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
-                          <button onClick={async () => { const res = await DB.saveProject({ name: "Copia di " + p.name, data: p.data ? { ...p.data } : {}, scenari: p.scenari ? { ...p.scenari } : {}, comparabili: p.comparabili ? [...p.comparabili] : [], ristItems: p.rist_items ? [...p.rist_items] : [] }); if (res.ok) { DB.trackEvent("project_duplicate", { source_project_id: p.id, new_project_id: res.project.id }); handleLoadProject(res.project); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(13,34,64,0.06)", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Duplica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
-                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: "rgba(196,132,29,0.1)", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
+                          <button onClick={() => { setRenamingProject(p); setRenameValue(p.name); }} style={{ background: `rgba(${NAVY_RGB},0.06)`, color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rinomina"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
+                          <button onClick={async () => { const res = await DB.saveProject({ name: "Copia di " + p.name, data: p.data ? { ...p.data } : {}, scenari: p.scenari ? { ...p.scenari } : {}, comparabili: p.comparabili ? [...p.comparabili] : [], ristItems: p.rist_items ? [...p.rist_items] : [] }); if (res.ok) { DB.trackEvent("project_duplicate", { source_project_id: p.id, new_project_id: res.project.id }); handleLoadProject(res.project); } else { alert("Errore: " + res.error); } }} style={{ background: `rgba(${NAVY_RGB},0.06)`, color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Duplica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
+                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: `rgba(${ACCENT_RGB},0.1)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); DB.trackEvent("project_delete", { project_id: p.id }); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
@@ -3933,7 +3934,7 @@ export default function App() {
         </div>
         {/* RENAME PROJECT MODAL */}
         {renamingProject && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setRenamingProject(null)}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setRenamingProject(null)}>
             <div style={{ background: C.card, borderRadius: 12, padding: 24, maxWidth: 400, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.15)" }} onClick={(e) => e.stopPropagation()}>
               <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 16px" }}>Rinomina progetto</h3>
               <input
@@ -3951,7 +3952,7 @@ export default function App() {
         )}
         {/* DELETE ACCOUNT MODAL */}
         {showDeleteAccount && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !deleteAccountLoading && setShowDeleteAccount(false)}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => !deleteAccountLoading && setShowDeleteAccount(false)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `2px solid ${C.red}` }}>
               <div style={{ textAlign: "center", marginBottom: 20 }}>
                 <div style={{ width: 48, height: 48, borderRadius: "50%", background: C.redBg, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 12px" }}>
@@ -3973,7 +3974,7 @@ export default function App() {
         )}
         {/* SHARE MODAL */}
         {shareModal && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareModal(null)}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareModal(null)}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 440, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)" }}>
               <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Condividi con protezione NDA</h3>
               <p style={{ color: C.textMid, fontSize: 13, margin: "0 0 18px", fontFamily: "-apple-system, sans-serif" }}>Il destinatario riceverà accesso al progetto. Per visualizzarlo dovrà identificarsi con codice fiscale e firmare un impegno di riservatezza.</p>
@@ -4014,7 +4015,7 @@ export default function App() {
           </div>
         )}
         {shareLinkUrl && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(13,34,64,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
                 <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -4071,8 +4072,8 @@ export default function App() {
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
               {user ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
-                  {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
+                  <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
+                  {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: `rgba(${NAVY_RGB},0.15)`, color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
               ) : !LEAD_MODE ? (
@@ -4150,7 +4151,7 @@ export default function App() {
         </div>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "0 20px 24px", display: "flex", justifyContent: "center", gap: 10 }}>
           {step > 0 && <button onClick={goBack} style={{ background: "transparent", color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 6, padding: "12px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Indietro</button>}
-          <button onClick={goNext} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "12px 36px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: "0 2px 8px rgba(13,34,64,0.2)" }}>
+          <button onClick={goNext} style={{ background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "12px 36px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: `0 2px 8px rgba(${NAVY_RGB},0.2)` }}>
             {s.isWelcome ? "Inizia l'analisi" : step === STEPS.length - 1 ? "Vedi i risultati" : "Avanti"}
           </button>
         </div>
@@ -4178,10 +4179,9 @@ export default function App() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
-      <SpaccaTema />
       {renderFlowBar()}
       {LEAD_MODE && <style>{`
-        @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px ${SPACCA ? "rgba(168,23,56,0.35)" : "rgba(196,132,29,0.35)"}; } 50% { box-shadow: 0 0 26px 7px ${SPACCA ? "rgba(168,23,56,0.6)" : "rgba(196,132,29,0.6)"}; } }
+        @keyframes ll-ctaPulse { 0%, 100% { box-shadow: 0 4px 16px rgba(${ACCENT_RGB},0.35); } 50% { box-shadow: 0 0 26px 7px rgba(${ACCENT_RGB},0.6); } }
         @keyframes ll-popIn { 0% { opacity: 0; transform: translateY(18px) scale(0.97); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
       `}</style>}
       {/* HEADER */}
@@ -4203,16 +4203,16 @@ export default function App() {
                     {saveStatus === "saving" ? "Salvataggio..." : "✓ Salvato"}
                   </span>
                 )}
-                <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
+                <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   I miei progetti
                 </button>
-                {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: "rgba(13,34,64,0.15)", color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
+                {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: `rgba(${NAVY_RGB},0.15)`, color: "#FFF", border: "none", borderRadius: 4, padding: "6px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
               </>
             )}
-            {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(196,132,29,0.15)", color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
+            {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
-            {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: "rgba(196,132,29,0.2)", color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
+            {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: `rgba(${ACCENT_RGB},0.2)`, color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
             {user && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
           </div>
         </div>
@@ -4244,7 +4244,7 @@ export default function App() {
           </div>
         )}
         {LEAD_MODE && showVideoPopup && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(13,34,64,0.85)", backdropFilter: "blur(4px)", zIndex: 6000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
+          <div style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.85)`, backdropFilter: "blur(4px)", zIndex: 6000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
             <div style={{ background: "#FFF", borderRadius: 12, maxWidth: 460, width: "100%", boxSizing: "border-box", padding: "30px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", textAlign: "center", animation: "ll-popIn 0.35s ease-out both" }}>
               <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 12 }}>Prima di continuare</div>
               <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", fontFamily: "'Georgia', serif" }}>
@@ -4253,7 +4253,7 @@ export default function App() {
               <p style={{ color: C.textMid, fontSize: 14, lineHeight: 1.55, margin: "0 0 22px", fontFamily: "-apple-system, sans-serif" }}>
                 Nel video strategico gratuito Lorenzo ti mostra dove il margine sparisce prima del rogito e come blindarlo, con i numeri di operazioni reali.
               </p>
-              <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore-popup" onClick={() => DB.trackEvent("video_cta_click", { source: "popup" })} style={{ display: "block", background: C.accent, color: "#FFF", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxSizing: "border-box", boxShadow: "0 4px 16px rgba(196,132,29,0.35)" }}>
+              <a href="https://lorenzoloseto.com/video-mfib/?from=calcolatore-popup" onClick={() => DB.trackEvent("video_cta_click", { source: "popup" })} style={{ display: "block", background: C.accent, color: "#FFF", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif", textDecoration: "none", boxSizing: "border-box", boxShadow: `0 4px 16px rgba(${ACCENT_RGB},0.35)` }}>
                 Guarda il video strategico gratuito →
               </a>
               <button onClick={() => { setShowVideoPopup(false); DB.trackEvent("video_popup_dismiss", {}); }} style={{ background: "none", border: "none", color: C.textLight, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline", marginTop: 14 }}>
@@ -4300,7 +4300,7 @@ export default function App() {
               { id: "appalto", Icon: LpIconShield, title: "Contratto d'appalto", desc: "Genera il contratto d'appalto della tua operazione, pronto da firmare." },
             ];
             return (
-              <div style={{ background: "linear-gradient(135deg, rgba(196,132,29,0.09), rgba(196,132,29,0.02))", border: `1px solid ${C.accent}`, borderRadius: 8, padding: "16px 18px", marginBottom: 18 }}>
+              <div style={{ background: `linear-gradient(135deg, rgba(${ACCENT_RGB},0.09), rgba(${ACCENT_RGB},0.02))`, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "16px 18px", marginBottom: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <LpIconLock />
                   <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>Sblocca tutte le funzionalità</div>
