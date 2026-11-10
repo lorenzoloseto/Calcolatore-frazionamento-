@@ -534,12 +534,14 @@ const C = SPACCA ? {
   red: "#db3150", redBg: "#fde8ec", border: "#e6dde1", borderDark: "#d9d0d5",
   text: "#2b151c", textMid: "#71636b", textLight: "#9a8d93", goldBar: "#ffd23b",
   inputBg: "#faf7f8", inputBorder: "#d9d0d5", inputFocus: "#a81738", highlight: "#fff7e0",
+  navy2: "#321820", navy3: "#3b2029", goldLight: "#ffe27a",
 } : {
   bg: "#F8F7F4", card: "#FFFFFF", dark: "#1B2A4A", navy: "#0D2240",
   accent: `${C.accent}`, accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
   red: "#C82333", redBg: "#FDE8E8", border: "#E5E1D8", borderDark: "#D0CCC3",
   text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: `${C.accent}`,
   inputBg: "#FAFAF8", inputBorder: "#D0CCC3", inputFocus: "#C4841D", highlight: "#FFF8ED",
+  navy2: "#162D50", navy3: "#1A3558", goldLight: "#E8B85D",
 };
 /** Font e sfondo del tema Spacca il Mattone: da mettere nella radice delle pagine (App e ContoEconomicoPage). */
 export function SpaccaTema() {
@@ -3360,7 +3362,7 @@ export default function App() {
               <div style={{
                 fontSize: isMobile ? 12 : 16, fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
-                background: `linear-gradient(90deg, ${C.accent} 0%, #E8B85D 50%, ${C.accent} 100%)`,
+                background: `linear-gradient(90deg, ${C.accent} 0%, ${C.goldLight} 50%, ${C.accent} 100%)`,
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>Calcolatore Frazionamento</div>
@@ -3374,7 +3376,7 @@ export default function App() {
         </div>
 
         {/* === HERO === */}
-        <div style={{ background: `linear-gradient(135deg, ${C.navy} 0%, #162D50 40%, #1A3558 70%, ${C.navy} 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
+        <div style={{ background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 40%, ${C.navy3} 70%, ${C.navy} 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
               <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>{LEAD_MODE ? "Il calcolatore gratuito per il frazionamento" : "La piattaforma per condividere conti economici in sicurezza"}</div>
