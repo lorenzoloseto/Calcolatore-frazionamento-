@@ -2739,7 +2739,7 @@ export default function App() {
           {FLOW_STEPS.map(([label, key]) => {
             const cur = String(key) === String(curKey);
             return (
-              <button key={String(key)} onClick={() => goScreen(key)} style={{ flex: "0 0 auto", cursor: "pointer", borderRadius: 7, padding: "5px 9px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: cur ? `${C.accent}` : "#131c2e", color: cur ? "#0B1220" : "#9fb0c6`, border: `1px solid ${cur ? `${C.accent}" : "#233148"}` }}>{label}</button>
+              <button key={String(key)} onClick={() => goScreen(key)} style={{ flex: "0 0 auto", cursor: "pointer", borderRadius: 7, padding: "5px 9px", fontSize: 12, fontWeight: 600, fontFamily: "inherit", background: cur ? C.accent : "#131c2e", color: cur ? "#0B1220" : "#9fb0c6", border: `1px solid ${cur ? C.accent : "#233148"}` }}>{label}</button>
             );
           })}
         </nav>
