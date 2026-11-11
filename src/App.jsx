@@ -4236,8 +4236,8 @@ export default function App() {
             </div>
           </div>
         )}
-        {/* LEAD MODE — CTA verso il funnel MFIB */}
-        {LEAD_MODE && (
+        {/* LEAD MODE — CTA verso il funnel MFIB (mai nel tema Spacca né per i Professional: funnel separati) */}
+        {LEAD_MODE && !SPACCA && piano !== "professional" && (
           <div style={{ background: C.navy, borderRadius: 8, padding: "16px 18px", marginBottom: 18, display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
             <div style={{ flex: 1, minWidth: 220 }}>
               <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 4 }}>Il prossimo passo</div>
