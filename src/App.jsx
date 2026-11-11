@@ -537,9 +537,9 @@ const C = SPACCA ? {
   navy2: "#321820", navy3: "#3b2029", goldLight: "#ffe27a",
 } : {
   bg: "#F8F7F4", card: "#FFFFFF", dark: "#1B2A4A", navy: "#0D2240",
-  accent: `${C.accent}`, accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
+  accent: "#C4841D", accentLight: "#F5E6CC", green: "#1A7F37", greenBg: "#E6F4EA",
   red: "#C82333", redBg: "#FDE8E8", border: "#E5E1D8", borderDark: "#D0CCC3",
-  text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: `${C.accent}`,
+  text: "#1B2A4A", textMid: "#5A6578", textLight: "#8E95A2", goldBar: "#C4841D",
   inputBg: "#FAFAF8", inputBorder: "#D0CCC3", inputFocus: "#C4841D", highlight: "#FFF8ED",
   navy2: "#162D50", navy3: "#1A3558", goldLight: "#E8B85D",
 };
@@ -2629,7 +2629,7 @@ export default function App() {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
     DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep, citta: data.citta || "", metratura: data.metratura, prezzo_acquisto: data.prezzoAcquisto, prezzo_vendita_mq: data.prezzoVenditaMq });
     if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
-    else if (LEAD_MODE && !leadCaptured) { openLeadGate(); }
+    else if (LEAD_MODE && !leadCaptured && piano !== "professional") { openLeadGate(); }
     else animTo(() => {
       setShowDash(true);
       window._stepEnteredAt = Date.now();
@@ -2760,7 +2760,8 @@ export default function App() {
   }, [data, scenari, comparabili, ristItems]);
   // LEAD MODE — popup video strategico 15s dopo l'arrivo sulla dashboard (una volta per sessione)
   useEffect(() => {
-    if (!LEAD_MODE || !showDash) return;
+    // Lorenzo, 11 nov 2026: niente popup per chi arriva dalla community (tema Spacca) e per i membri Professional
+    if (!LEAD_MODE || !showDash || SPACCA || piano === "professional") return;
     try { if (sessionStorage.getItem("ll_video_popup_shown") === "1") return; } catch {}
     const t = setTimeout(() => {
       try { sessionStorage.setItem("ll_video_popup_shown", "1"); } catch {}
@@ -2768,7 +2769,7 @@ export default function App() {
       DB.trackEvent("video_popup_view", {});
     }, 15000);
     return () => clearTimeout(t);
-  }, [showDash]);
+  }, [showDash, piano]);
   const openLeadGate = () => {
     setShowLeadGate(true);
     if (typeof window.fbq !== "undefined") window.fbq("track", "InitiateCheckout");
@@ -3359,7 +3360,8 @@ export default function App() {
         <div style={{ position: "sticky", top: 0, zIndex: 1000, background: C.navy, borderBottom: "1px solid rgba(255,255,255,0.08)", paddingTop: "max(env(safe-area-inset-top), 14px)" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "0 16px" : "0 24px", height: isMobile ? 56 : 60, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
             <div onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} style={{ display: "flex", flexDirection: "column", cursor: "pointer", lineHeight: 1.1 }}>
-              {SPACCA && <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: isMobile ? 44 : 56, width: "auto", display: "block", marginBottom: 6 }} />}
+              {SPACCA && <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: isMobile ? 44 : 56, width: "auto", display: "block", marginBottom: 0 }} />}
+              {!SPACCA && <>
               <div style={{
                 fontSize: SPACCA ? (isMobile ? 11 : 13) : (isMobile ? 12 : 16), fontWeight: 800, letterSpacing: isMobile ? 0.3 : 1, textTransform: "uppercase",
                 fontFamily: "-apple-system, sans-serif",
@@ -3368,6 +3370,8 @@ export default function App() {
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
               }}>Calcolatore Frazionamento</div>
               <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 8 : 10, fontWeight: 600, letterSpacing: isMobile ? 0.5 : 1.2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginTop: 1 }}>{SPACCA ? "Spacca il Mattone · Community" : "Professional tool by Lorenzo Loseto"}</div>
+
+              </>}
             </div>
             <div style={{ display: "flex", gap: isMobile ? 8 : 10 }}>
               {!LEAD_MODE && <button onClick={() => handleLandingCTA(true)} style={{ background: "transparent", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.2)", borderRadius: 6, padding: isMobile ? "10px 16px" : "8px 20px", fontWeight: 600, fontSize: isMobile ? 12 : 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", minHeight: 40 }}>Accedi</button>}
@@ -4246,7 +4250,7 @@ export default function App() {
             </a>
           </div>
         )}
-        {LEAD_MODE && showVideoPopup && (
+        {LEAD_MODE && showVideoPopup && !SPACCA && piano !== "professional" && (
           <div style={{ position: "fixed", inset: 0, background: `rgba(${NAVY_RGB},0.85)`, backdropFilter: "blur(4px)", zIndex: 6000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, overflowY: "auto" }}>
             <div style={{ background: "#FFF", borderRadius: 12, maxWidth: 460, width: "100%", boxSizing: "border-box", padding: "30px 24px", boxShadow: "0 20px 60px rgba(0,0,0,0.45)", textAlign: "center", animation: "ll-popIn 0.35s ease-out both" }}>
               <div style={{ color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginBottom: 12 }}>Prima di continuare</div>
