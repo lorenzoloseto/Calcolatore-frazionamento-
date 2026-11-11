@@ -4199,7 +4199,7 @@ export default function App() {
               <LpBrandLogo size={18} />
               {!SPACCA && <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
             </div>
-            <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
+            {!SPACCA && <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>}
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
