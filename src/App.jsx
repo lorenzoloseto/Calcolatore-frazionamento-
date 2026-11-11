@@ -3650,7 +3650,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+            {!SPACCA && <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>
             {isLogin ? "Accedi" : "Registrati"}
@@ -3744,7 +3744,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+            {!SPACCA && <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Password dimenticata</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
@@ -3775,7 +3775,7 @@ export default function App() {
         <div style={{ background: C.card, borderRadius: 10, padding: "36px 32px", maxWidth: 400, width: "90%", border: `1px solid ${C.border}`, boxShadow: "0 4px 24px rgba(0,0,0,0.08)" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, marginBottom: 20 }}>
             <LpBrandLogo size={28} />
-            <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+            {!SPACCA && <div style={{ color: C.accent, fontWeight: 800, fontSize: 14, letterSpacing: 3, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
           </div>
           <h2 style={{ color: C.dark, fontSize: 22, fontWeight: 700, textAlign: "center", margin: "0 0 6px" }}>Nuova password</h2>
           <p style={{ color: C.textMid, fontSize: 14, textAlign: "center", margin: "0 0 24px", fontFamily: "-apple-system, sans-serif" }}>
@@ -3807,7 +3807,7 @@ export default function App() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
                 <LpBrandLogo size={16} />
-                <div style={{ color: SPACCA ? C.goldBar : C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>{SPACCA ? "Spacca il Mattone · Community" : "LORENZO LOSETO"}</div>
+                {!SPACCA && <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
               </div>
               <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16 }}>I miei conti economici</div>
             </div>
@@ -4073,7 +4073,7 @@ export default function App() {
           <div style={{ maxWidth: 600, margin: "0 auto", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}>
               <LpBrandLogo size={18} />
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+              {!SPACCA && <div style={{ color: C.accent, fontWeight: 700, fontSize: 11, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
@@ -4197,7 +4197,7 @@ export default function App() {
           <div style={{ minWidth: 0, flex: 1 }}>
             <div onClick={() => setShowLanding(true)} style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", marginBottom: 1 }}>
               <LpBrandLogo size={18} />
-              <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>
+              {!SPACCA && <div style={{ color: C.accent, fontWeight: 700, fontSize: 10, letterSpacing: 2.5, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif" }}>LORENZO LOSETO</div>}
             </div>
             <div style={{ color: "#FFF", fontWeight: 700, fontSize: 16, lineHeight: 1.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{indirizzo}</div>
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
