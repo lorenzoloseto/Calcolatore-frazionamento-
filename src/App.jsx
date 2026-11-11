@@ -4183,6 +4183,9 @@ export default function App() {
     { id: "appalto", label: "Contratto appalto" },
   ];
   const indirizzo = (() => { const street = [data.via, data.civico].filter(Boolean).join(" "); return [street, data.citta].filter(Boolean).join(", ") || "Nuova operazione"; })();
+  // Tema Spacca (11 nov 2026): per chi non è Professional le altre schede si vedono ma non si aprono
+  const spaccaBlocco = SPACCA && !isPro && !viewOnly;
+  const tabAttivo = spaccaBlocco ? "risultati" : dashTab;
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh", fontFamily: "'Georgia', 'Times New Roman', serif" }}>
@@ -4278,8 +4281,9 @@ export default function App() {
         </div>
         {/* TABS */}
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
-          {tabs.map((t) => (
-            <button key={t.id} onClick={() => {
+          {tabs.map((t) => { const bloccato = spaccaBlocco && t.id !== "risultati"; return (
+            <button key={t.id} disabled={bloccato} aria-disabled={bloccato} title={bloccato ? "Riservato ai membri Professional" : undefined} onClick={() => {
+              if (bloccato) return;
               // Tab sempre liberi anche nel lead magnet: il conto economico (rivendita)
               // e la messa a reddito. Sono i due motori di calcolo, l'amo del tool.
               const FREE_TABS = ["risultati", "reddito"];
@@ -4287,20 +4291,22 @@ export default function App() {
               DB.trackEvent("dash_tab_open", { tab: t.id, tab_label: t.label, locked, ...behaviorCtx() });
               setDashTab(t.id);
             }} style={{
-              background: "transparent", border: "none", borderBottom: dashTab === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
-              color: dashTab === t.id ? C.dark : C.textLight, padding: "10px 14px", fontWeight: dashTab === t.id ? 700 : 500, fontSize: 13, cursor: "pointer",
+              background: "transparent", border: "none", borderBottom: tabAttivo === t.id ? `2px solid ${C.accent}` : "2px solid transparent",
+              color: tabAttivo === t.id ? C.dark : C.textLight, padding: "10px 14px", fontWeight: tabAttivo === t.id ? 700 : 500, fontSize: 13, cursor: bloccato ? "not-allowed" : "pointer",
               fontFamily: "-apple-system, sans-serif", marginBottom: -2, transition: "all 0.15s", whiteSpace: "nowrap", flexShrink: 0,
-            }}>{t.label}</button>
-          ))}
+              opacity: bloccato ? 0.45 : 1, display: "inline-flex", alignItems: "center", gap: 5,
+            }}>{bloccato && <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>}{t.label}</button>
+          ); })}
         </div>
 
         {/* RISULTATI TAB */}
-        {dashTab === "risultati" && (<>
+        {tabAttivo === "risultati" && (<>
           {/* BANNER SBLOCCA FUNZIONALITÀ — solo lead magnet, finché non sbloccato.
               Risolve il problema di scoperta: i tab avanzati scorrono fuori schermo e
               gli utenti (es. Francesco) non si accorgono che Computo/Scenari/ecc. esistono. */}
-          {LEAD_MODE && tpLocked && (() => {
+          {((LEAD_MODE && tpLocked) || spaccaBlocco) && (() => {
             const advanced = [
+              ...(spaccaBlocco ? [{ id: "reddito", Icon: LpIconDownload, title: "Messa a reddito", desc: "La stessa operazione vista come affitto invece che come rivendita." }] : []),
               { id: "ristrutturazione", Icon: LpIconGrid, title: "Computo lavori", desc: "Ristrutturazione voce per voce: 30 voci precaricate (impianti, infissi, frazionamento, oneri)." },
               { id: "scenari", Icon: LpIconChart, title: "Analisi scenari", desc: "3 scenari a confronto: pessimistico, realistico e ottimistico." },
               { id: "comparabili", Icon: LpIconServer, title: "Confronto comparabili", desc: "Confronta il tuo prezzo di uscita con la media reale del mercato di zona." },
@@ -4310,16 +4316,16 @@ export default function App() {
               <div style={{ background: `linear-gradient(135deg, rgba(${ACCENT_RGB},0.09), rgba(${ACCENT_RGB},0.02))`, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "16px 18px", marginBottom: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <LpIconLock />
-                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>Sblocca tutte le funzionalità</div>
+                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>{spaccaBlocco ? "Sezioni per i membri Professional" : "Sblocca tutte le funzionalità"}</div>
                 </div>
-                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione.{!user && <> Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={() => setAuthScreen("login")} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi</button> e hai tutto sbloccato.</>}</div>
+                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>{spaccaBlocco ? "Il conto economico è solo l'inizio: le altre sezioni sono riservate ai membri Spacca il Mattone Professional." : "Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione."}{!user && <> Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={() => setAuthScreen("login")} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi</button> e hai tutto sbloccato.</>}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
                   {advanced.map(({ id, Icon, title, desc }) => (
-                    <button key={id} onClick={() => { DB.trackEvent("unlock_banner_click", { section: id, ...behaviorCtx() }); setDashTab(id); }}
-                      style={{ textAlign: "left", background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 14px", cursor: "pointer", display: "flex", flexDirection: "column", gap: 6, fontFamily: "-apple-system, sans-serif" }}>
+                    <button key={id} disabled={spaccaBlocco} onClick={() => { if (spaccaBlocco) return; DB.trackEvent("unlock_banner_click", { section: id, ...behaviorCtx() }); setDashTab(id); }}
+                      style={{ textAlign: "left", background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 14px", cursor: spaccaBlocco ? "default" : "pointer", opacity: spaccaBlocco ? 0.7 : 1, display: "flex", flexDirection: "column", gap: 6, fontFamily: "-apple-system, sans-serif" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Icon />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>Sblocca →</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>{spaccaBlocco ? "Professional" : "Sblocca →"}</span>
                       </div>
                       <div style={{ color: C.dark, fontWeight: 700, fontSize: 13 }}>{title}</div>
                       <div style={{ color: C.textMid, fontSize: 11.5, lineHeight: 1.4 }}>{desc}</div>
@@ -4543,7 +4549,7 @@ export default function App() {
         </>)}
 
         {/* MESSA A REDDITO TAB — seconda uscita dell'operazione: affittare invece di rivendere */}
-        {dashTab === "reddito" && (() => {
+        {tabAttivo === "reddito" && (() => {
           const R = calcReddito, red = R.r;
           const posCF = R.cashFlowMensile >= 0;
           return (
@@ -4638,7 +4644,7 @@ export default function App() {
         })()}
 
         {/* RISTRUTTURAZIONE TAB */}
-        {dashTab === "ristrutturazione" && (
+        {tabAttivo === "ristrutturazione" && (
           <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${C.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
@@ -4735,7 +4741,7 @@ export default function App() {
         )}
 
         {/* SCENARI TAB */}
-        {dashTab === "scenari" && (
+        {tabAttivo === "scenari" && (
           <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 12, marginBottom: 20 }}>
@@ -4766,7 +4772,7 @@ export default function App() {
         )}
 
         {/* COMPARABILI TAB */}
-        {dashTab === "comparabili" && (
+        {tabAttivo === "comparabili" && (
           <TrustpilotGate locked={tpLocked} canUnlock={tpCanUnlock} onGoReview={handleTpGoReview} onUnlock={handleTpUnlock} onLogin={!user ? () => setAuthScreen("login") : undefined}>
           <>
             <div style={{ background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, boxShadow: "0 1px 4px rgba(0,0,0,0.04)", overflow: "hidden" }}>
@@ -4833,7 +4839,7 @@ export default function App() {
           </>
           </TrustpilotGate>
         )}
-        {dashTab === "appalto" && (() => {
+        {tabAttivo === "appalto" && (() => {
           const ap = { ...DEFAULT_DATA.appalto, ...data.appalto };
           const uA = (f, v) => updAppalto(f, v);
           const committenti = ap.committentiList?.length ? ap.committentiList : [{ nome: "", sede: "", cf: "", rea: "", pec: "" }];
