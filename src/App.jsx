@@ -2628,7 +2628,7 @@ export default function App() {
   const goNext = () => {
     const timeOnStep = window._stepEnteredAt ? Math.round((Date.now() - window._stepEnteredAt) / 1000) : null;
     DB.trackEvent("wizard_step_change", { from_step: step, to_step: step < STEPS.length - 1 ? step + 1 : "dashboard", direction: "next", seconds_on_step: timeOnStep, citta: data.citta || "", metratura: data.metratura, prezzo_acquisto: data.prezzoAcquisto, prezzo_vendita_mq: data.prezzoVenditaMq });
-    if (step < STEPS.length - 1) animTo(() => { setStep((s) => s + 1); window._stepEnteredAt = Date.now(); });
+    if (step < STEPS.length - 1) animTo(() => { setStep((s) => Math.min(s + 1, STEPS.length - 1)); window._stepEnteredAt = Date.now(); }); // min: due tocchi veloci non devono superare l'ultimo passo (pagina bianca)
     else if (LEAD_MODE && !leadCaptured && piano !== "professional") { openLeadGate(); }
     else animTo(() => {
       setShowDash(true);
@@ -4282,7 +4282,7 @@ export default function App() {
         {/* TABS */}
         <div style={{ borderBottom: `2px solid ${C.border}`, display: "flex", gap: 0, marginBottom: 20, overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
           {tabs.map((t) => { const bloccato = spaccaBlocco && t.id !== "risultati"; return (
-            <button key={t.id} disabled={bloccato} aria-disabled={bloccato} title={bloccato ? "Riservato ai membri Professional" : undefined} onClick={() => {
+            <button key={t.id} disabled={bloccato} aria-disabled={bloccato} title={bloccato ? "Non attiva" : undefined} onClick={() => {
               if (bloccato) return;
               // Tab sempre liberi anche nel lead magnet: il conto economico (rivendita)
               // e la messa a reddito. Sono i due motori di calcolo, l'amo del tool.
@@ -4316,16 +4316,16 @@ export default function App() {
               <div style={{ background: `linear-gradient(135deg, rgba(${ACCENT_RGB},0.09), rgba(${ACCENT_RGB},0.02))`, border: `1px solid ${C.accent}`, borderRadius: 8, padding: "16px 18px", marginBottom: 18 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                   <LpIconLock />
-                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>{spaccaBlocco ? "Sezioni per i membri Professional" : "Sblocca tutte le funzionalità"}</div>
+                  <div style={{ color: C.dark, fontWeight: 700, fontSize: 16, fontFamily: "-apple-system, sans-serif" }}>{spaccaBlocco ? "Altre sezioni del calcolatore" : "Sblocca tutte le funzionalità"}</div>
                 </div>
-                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>{spaccaBlocco ? "Il conto economico è solo l'inizio: le altre sezioni sono riservate ai membri Spacca il Mattone Professional." : "Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione."}{!user && <> Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={() => setAuthScreen("login")} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi</button> e hai tutto sbloccato.</>}</div>
+                <div style={{ color: C.textMid, fontSize: 13, marginBottom: 14, fontFamily: "-apple-system, sans-serif", lineHeight: 1.5 }}>{spaccaBlocco ? "Il conto economico è solo l'inizio. Queste sezioni per ora non sono attive." : "Il conto economico è solo l'inizio: ci sono altre 4 sezioni professionali pronte per la tua operazione."}{!user && !spaccaBlocco && <> Sei membro <b>Spacca il Mattone Professional</b>? <button onClick={() => setAuthScreen("login")} style={{ background: "none", border: "none", padding: 0, color: C.accent, fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", textDecoration: "underline" }}>Accedi</button> e hai tutto sbloccato.</>}</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: 10 }}>
                   {advanced.map(({ id, Icon, title, desc }) => (
                     <button key={id} disabled={spaccaBlocco} onClick={() => { if (spaccaBlocco) return; DB.trackEvent("unlock_banner_click", { section: id, ...behaviorCtx() }); setDashTab(id); }}
                       style={{ textAlign: "left", background: C.card, border: `1px solid ${C.border}`, borderRadius: 6, padding: "12px 14px", cursor: spaccaBlocco ? "default" : "pointer", opacity: spaccaBlocco ? 0.7 : 1, display: "flex", flexDirection: "column", gap: 6, fontFamily: "-apple-system, sans-serif" }}>
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                         <Icon />
-                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>{spaccaBlocco ? "Professional" : "Sblocca →"}</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: C.accent }}>{spaccaBlocco ? "Non attiva" : "Sblocca →"}</span>
                       </div>
                       <div style={{ color: C.dark, fontWeight: 700, fontSize: 13 }}>{title}</div>
                       <div style={{ color: C.textMid, fontSize: 11.5, lineHeight: 1.4 }}>{desc}</div>
