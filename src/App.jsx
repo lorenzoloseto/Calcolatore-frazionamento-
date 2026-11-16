@@ -36,11 +36,16 @@ const TRUSTPILOT_URL = "https://www.trustpilot.com/evaluate/lorenzoloseto.com";
 //
 // La scelta resta memorizzata (localStorage ll_app_mode: "1" app, "0" lead) così
 // sopravvive al ritorno dal login Google/Apple. ?app, /admin e /accedi riportano all'app.
+// Chi ha già fatto l'accesso vede sempre l'app completa.
 // ============================================================
 const APP_MODE = (() => {
   if (isNative || typeof window === "undefined") return false;
   try {
     const q = new URLSearchParams(window.location.search);
+    // Chi ha già fatto l'accesso vede sempre l'app completa, anche se arriva da un vecchio
+    // link con ?lead (Lorenzo, 16 nov 2026: da loggato vedeva la versione raccolta contatti).
+    const loggato = (() => { try { return !!JSON.parse(localStorage.getItem(`sb-${SB_URL.split("//")[1].split(".")[0]}-auth-token`) || "null")?.user; } catch { return false; } })();
+    if (loggato) return true;
     if (q.has("lead")) { localStorage.setItem("ll_app_mode", "0"); return false; }
     const daPercorso = /\/(admin|accedi)\/?$/.test(window.location.pathname);
     if (q.has("app") || daPercorso) {
@@ -2363,7 +2368,7 @@ export function ContoEconomicoPage() {
           <br />
           Strumento a solo titolo di studio: stime indicative, non dati certi, nessuna consulenza fiscale o d'investimento. <PrivacyLink onClick={() => setShowPrivacy(true)} />
           <br />
-          Vuoi l'analisi completa con frazionamento, computo lavori e scenari? <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "footer" })} style={{ color: C.accent }}>Calcolatore frazionamento</a>
+          Vuoi l'analisi completa con computo lavori e scenari? <a href={fullCalcUrl} onClick={() => DB.trackEvent("conto_economico_cta_click", { where: "footer" })} style={{ color: C.accent }}>Calcolatore Economico Professional</a>
         </div>
       </div>
 
@@ -3406,7 +3411,7 @@ export default function App() {
     { Icon: LpIconGrid, title: "Ristrutturazione Voce per Voce", desc: "30 voci di costo precaricate: impianti, infissi, frazionamento catastale, oneri. Affina la stima come un cantiere vero." },
     { Icon: LpIconServer, title: "Confronto Comparabili", desc: "Inserisci gli immobili in vendita nella zona e confronta il tuo prezzo di uscita con la media reale del mercato." },
     { Icon: LpIconDownload, title: "Export Excel Professionale", desc: "Scarica il conto economico completo, pronto per banche, soci e finanziatori." },
-    { Icon: LpIconShield, title: "Il Metodo di un Costruttore", desc: "La stessa struttura di analisi che Lorenzo Loseto usa da 20 anni sulle sue operazioni di frazionamento a Bari." },
+    { Icon: LpIconShield, title: "Il Metodo di un Costruttore", desc: "La stessa struttura di analisi che Lorenzo Loseto usa da 20 anni sulle sue operazioni immobiliari a Bari." },
   ] : [
     { Icon: LpIconShield, title: "NDA e Identificazione Integrati", desc: "Ogni destinatario deve identificarsi con codice fiscale verificato e firmare un impegno di non divulgazione prima di accedere." },
     { Icon: LpIconLock, title: "Tracciamento Completo degli Accessi", desc: "Ogni accesso è registrato con identità verificata, data, ora e IP. Sai sempre chi ha visto i tuoi numeri." },
@@ -3491,16 +3496,16 @@ export default function App() {
         <div style={{ background: `linear-gradient(135deg, ${C.navy} 0%, ${C.navy2} 40%, ${C.navy3} 70%, ${C.navy} 100%)`, backgroundSize: "400% 400%", animation: "lp-gradientShift 15s ease infinite", minHeight: isMobile ? "auto" : "92vh", display: "flex", alignItems: "center" }}>
           <div style={{ maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px 56px" : "80px 24px", display: "grid", gridTemplateColumns: isMobile ? "1fr" : "1fr 1fr", gap: isMobile ? 40 : 60, alignItems: "center", width: "100%" }}>
             <div>
-              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>{LEAD_MODE ? "Il calcolatore gratuito per il frazionamento" : "La piattaforma per condividere conti economici in sicurezza"}</div>
+              <div style={{ ...overline, animation: "lp-fadeUp 0.8s ease-out both" }}>{LEAD_MODE ? "Il calcolatore gratuito per le operazioni immobiliari" : "La piattaforma per condividere conti economici in sicurezza"}</div>
               <h1 style={{ color: "#FFF", fontSize: isMobile ? 34 : 50, fontWeight: 700, lineHeight: 1.15, margin: "0 0 20px", fontFamily: "'Playfair Display', Georgia, serif", animation: "lp-fadeUp 0.8s ease-out 0.1s both" }}>
-                {LEAD_MODE ? <>Quanto rende davvero il tuo <span style={{ color: C.accent }}>frazionamento</span>?</> : <>Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span></>}
+                {LEAD_MODE ? <>Quanto rende davvero la tua <span style={{ color: C.accent }}>operazione immobiliare</span>?</> : <>Condividi i tuoi conti economici con <span style={{ color: C.accent }}>protezione NDA</span></>}
               </h1>
               <p style={{ color: "rgba(255,255,255,0.65)", fontSize: isMobile ? 16 : 18, lineHeight: 1.6, margin: "0 0 32px", fontFamily: "-apple-system, sans-serif", animation: "lp-fadeUp 0.8s ease-out 0.2s both" }}>
-                {LEAD_MODE ? "Non comprare un immobile da frazionare senza aver fatto i conti. Inserisci i dati e scopri subito margine, ROI e i costi reali dell'operazione — come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
+                {LEAD_MODE ? "Non comprare un immobile senza aver fatto i conti. Inserisci i dati e scopri subito margine, ROI e i costi reali dell'operazione, come un operatore con 20 anni di esperienza. Gratis." : "Crea il conto economico della tua operazione immobiliare e condividilo con partner, finanziatori e collaboratori. Chi accede si identifica con codice fiscale e firma un impegno di riservatezza."}
               </p>
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap", animation: "lp-fadeUp 0.8s ease-out 0.35s both" }}>
                 <button onClick={() => handleLandingCTA(false)} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: isMobile ? "14px 28px" : "16px 36px", fontWeight: 700, fontSize: isMobile ? 15 : 16, cursor: "pointer", fontFamily: "-apple-system, sans-serif", boxShadow: `0 4px 20px rgba(${ACCENT_RGB},0.4)` }}>
-                  {LEAD_MODE ? "Calcola il tuo frazionamento →" : "Crea il tuo primo progetto →"}
+                  {LEAD_MODE ? "Calcola la tua operazione →" : "Crea il tuo primo progetto →"}
                 </button>
                 <button onClick={() => document.getElementById("lp-how")?.scrollIntoView({ behavior: "smooth" })} style={{ background: "transparent", color: "#FFF", border: "1px solid rgba(255,255,255,0.25)", borderRadius: 8, padding: isMobile ? "14px 24px" : "16px 28px", fontWeight: 600, fontSize: isMobile ? 14 : 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
                   Scopri come funziona
@@ -3540,7 +3545,7 @@ export default function App() {
         <div ref={featRef} style={{ background: C.navy }}>
           <div style={{ ...sectionPad, textAlign: "center" }}>
             <div style={overline}>{LEAD_MODE ? "Il calcolatore" : "La piattaforma"}</div>
-            <h2 style={sectionTitle("#FFF")}>{LEAD_MODE ? "Tutto quello che serve per valutare un frazionamento" : "Condivisione protetta e analisi professionale in un unico strumento"}</h2>
+            <h2 style={sectionTitle("#FFF")}>{LEAD_MODE ? "Tutto quello che serve per valutare un'operazione immobiliare" : "Condivisione protetta e analisi professionale in un unico strumento"}</h2>
             <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(3, 1fr)", gap: 20, marginTop: 48 }}>
               {LP_FEATURES.map(({ Icon, title, desc }, i) => (
                 <div key={i}
@@ -4177,7 +4182,7 @@ export default function App() {
         </div>
         <div style={{ maxWidth: 520, margin: "0 auto", padding: "40px 20px 30px", textAlign: "center", opacity: fadeIn ? 1 : 0, transform: fadeIn ? "translateY(0)" : "translateY(16px)", transition: "all 0.2s ease" }}>
           {s.isWelcome && <div style={{ width: 64, height: 4, background: C.accent, margin: "0 auto 24px", borderRadius: 2 }} />}
-          <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{LEAD_MODE && s.isWelcome ? "Calcola il tuo\nfrazionamento" : s.title}</h1>
+          <h1 style={{ color: C.dark, fontSize: s.isWelcome ? 28 : 22, fontWeight: 700, lineHeight: 1.3, margin: "0 0 10px", whiteSpace: "pre-line" }}>{LEAD_MODE && s.isWelcome ? "Calcola la tua\noperazione immobiliare" : s.title}</h1>
           <p style={{ color: C.textMid, fontSize: 15, margin: "0 0 36px", lineHeight: 1.5, fontFamily: "-apple-system, sans-serif" }}>{LEAD_MODE && s.isWelcome ? "Rispondi in pochi passaggi. Al termine vedrai margine, ROI e analisi scenari come un operatore professionale." : s.subtitle}</p>
           {s.type === "address" && (
             <div style={{ maxWidth: 400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 14 }}>
