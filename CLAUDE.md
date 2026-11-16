@@ -171,3 +171,7 @@ Richiesta di Lorenzo: accanto a "Esporta Excel" c'è anche "Condividi" (solo per
 Richiesta di Lorenzo: la versione raccolta contatti (`?lead`) non parla più di frazionamento nei titoli. Benvenuto "Calcola la tua operazione immobiliare", titolo "Quanto rende davvero la tua operazione immobiliare?", bottone "Calcola la tua operazione". Restano com'erano: le voci di costo che riguardano davvero il frazionamento (frazionamento catastale, oneri, allacci) e le etichette tecniche dei contatti (Zapier/Kajabi). Anche la frase sul video gratuito ("Riceverai anche il video gratuito di Lorenzo.") e quella del consenso ("contenuti su investimenti immobiliari") non nominano più il frazionamento.
 
 Inoltre chi ha già fatto l'accesso vede sempre l'app completa, anche se arriva da un vecchio link con `?lead` (controllo `loggato` dentro `APP_MODE`): prima Lorenzo, da loggato, si trovava i testi della versione raccolta contatti.
+
+## "Failed to fetch" sul link (16 nov 2026)
+Lorenzo ha avuto "Failed to fetch" creando un link senza NDA. Riprovato subito dopo dal suo Chrome, dalla lista e dalla dashboard: funzionava (database e permessi a posto), quindi era la linea caduta durante l'invio. Un conto con le due planimetrie pesa circa 500 KB e dalla dashboard parte due volte (salvataggio + snapshot). Ora `creaLinkCondiviso` riprova da solo due volte (`conRitento`) e, se non va, mostra un messaggio in italiano invece di "Failed to fetch".
+

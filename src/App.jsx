@@ -2938,6 +2938,19 @@ export default function App() {
   // Condividi (Lorenzo, 16 nov 2026): dalla dashboard (accanto a "Esporta Excel") e dalla lista
   // progetti. Prima si sceglie con o senza NDA (shareAsk), poi si crea il link. Dalla dashboard
   // il conto economico aperto viene prima salvato (serve un id).
+  // Se la linea cade a metà ("Failed to fetch", capitato a Lorenzo il 16 nov 2026: un conto con le
+  // planimetrie pesa circa 500 KB) si riprova da soli due volte prima di mostrare l'errore.
+  const erroreRete = (m) => /failed to fetch|load failed|networkerror|network request failed/i.test(String(m || ""));
+  const conRitento = async (fn) => {
+    let r;
+    for (let i = 0; i < 3; i++) {
+      try { r = await fn(); } catch (e) { r = { ok: false, error: e?.message || String(e) }; }
+      if (r.ok || !erroreRete(r.error)) break;
+      if (i < 2) await new Promise((res) => setTimeout(res, 1500));
+    }
+    return r;
+  };
+  const avvisoLink = (err) => alert(erroreRete(err) ? "La connessione si è interrotta mentre preparavo il link. Controlla la linea e riprova." : "Errore: " + (err || "link non creato"));
   const creaLinkCondiviso = async (target, senzaNda) => {
     if (shareLinkLoading || !target) return;
     setShareLinkLoading(true);
@@ -2946,11 +2959,11 @@ export default function App() {
       const p = target.p;
       pid = p.id; nome = p.name; d = p.data || {}; sc = p.scenari || {}; comp = p.comparabili || []; rist = p.rist_items || [];
     } else {
-      const saved = await handleSaveProject(true);
-      if (!saved.ok) { setShareLinkLoading(false); alert("Errore: " + (saved.error || "salvataggio non riuscito")); return; }
+      const saved = await conRitento(() => handleSaveProject(true));
+      if (!saved.ok) { setShareLinkLoading(false); avvisoLink(saved.error || "salvataggio non riuscito"); return; }
       pid = saved.project.id; nome = saved.project.name || projectName || "Conto economico"; d = data; sc = scenari; comp = comparabili; rist = ristItems;
     }
-    const res = await saveProjectSnapshot(pid, nome, d, sc, comp, rist, senzaNda);
+    const res = await conRitento(() => saveProjectSnapshot(pid, nome, d, sc, comp, rist, senzaNda));
     setShareLinkLoading(false);
     if (res.ok) {
       const base = isNative ? WEB_ORIGIN : `${window.location.origin}${import.meta.env.BASE_URL || "/"}`;
@@ -2958,7 +2971,7 @@ export default function App() {
       setShareLinkSenzaNda(!!senzaNda);
       setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false);
       DB.trackEvent("link_share", { project_id: pid, from: target.p ? "projects" : "dashboard", nda: !senzaNda });
-    } else { alert("Errore: " + res.error); }
+    } else { avvisoLink(res.error); }
   };
   const handleLoadProject = (project) => {
     // Cancella autosave in coda per evitare che salvi dati vecchi sul nuovo progetto
