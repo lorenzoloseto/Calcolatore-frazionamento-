@@ -127,6 +127,8 @@ Quando LEAD_MODE è true:
 
 ## CONTO ECONOMICO IMMOBILIARE (pagina light, settembre 2026)
 
+**Dal 16 nov 2026 l'indirizzo pubblico è `https://www.lorenzoloseto.com/conto-economicofacile`** (scelta di Lorenzo). Il vecchio `/conto-economico-immobiliare` rimanda al nuovo dal `vercel.json` del sito; `src/main.jsx` riconosce tutti e due i nomi. L'etichetta `landing: "conto-economico-immobiliare"` nei dati inviati non è cambiata.
+
 Rotta `/conto-economico-immobiliare`. URL pubblico **`https://lorenzoloseto.com/conto-economico-immobiliare`** (primo livello): rewrite nel `vercel.json` del sito Astro → `calcolatore-frazionamento.vercel.app/calcolatore-economico/conto-economico-immobiliare`. Gli asset restano sotto `/calcolatore-economico/assets/`, già proxati.
 - Instradata in `src/main.jsx` sul pathname: renderizza `ContoEconomicoPage` (in `App.jsx`, subito prima di `App`) invece dell'app completa.
 - Pagina **libera**: nessun login, nessun gate email, **nessun salvataggio** (stato solo in memoria, sparisce chiudendo la pagina). Nessun `localStorage` tranne il consenso cookie.

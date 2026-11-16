@@ -2,9 +2,9 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App, { ContoEconomicoPage, SpaccaTema } from './App.jsx'
 
-// Rotta leggera: /conto-economico-immobiliare (in produzione sotto /calcolatore-economico/).
+// Rotta leggera: /conto-economicofacile (prima /conto-economico-immobiliare) (in produzione sotto /calcolatore-economico/).
 // Pagina libera, senza login né salvataggio: non passa dall'app completa.
-const isContoEconomico = /\/conto-economico-immobiliare\/?$/.test(window.location.pathname)
+const isContoEconomico = /\/(conto-economicofacile|conto-economico-immobiliare)\/?$/.test(window.location.pathname)
 
 // Un solo indirizzo (16 nov 2026): chi apre calcolatore-frazionamento.vercel.app viene
 // portato su lorenzoloseto.com. Solo l'indirizzo di produzione: le anteprime Vercel
@@ -16,7 +16,7 @@ if (daVercel) {
   if (!isContoEconomico && !q.has('s') && !q.has('lead')) q.set('app', '1')
   const coda = (q.toString() ? '?' + q.toString() : '') + window.location.hash
   window.location.replace(isContoEconomico
-    ? 'https://www.lorenzoloseto.com/conto-economico-immobiliare' + coda
+    ? 'https://www.lorenzoloseto.com/conto-economicofacile' + coda
     : 'https://www.lorenzoloseto.com/calcolatore-economico/' + coda)
 } else {
   ReactDOM.createRoot(document.getElementById('root')).render(

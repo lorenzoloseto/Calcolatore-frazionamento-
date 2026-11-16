@@ -2193,7 +2193,7 @@ export function ContoEconomicoPage() {
           subject: `[Conto economico] ${nome} — ${citta}, ${fmtEur(prezzo)}, ${fmtMq(mq)}`,
           from_name: "Conto Economico Immobiliare", replyto: email,
           name: nome, email, telefono: telefono || "-", citta, link_annuncio: linkAnnuncio || "-",
-          message: riepilogo + (note ? `\n\nNOTE DI ${nome.toUpperCase()}:\n${note}` : "") + "\n\nInviato da lorenzoloseto.com/conto-economico-immobiliare",
+          message: riepilogo + (note ? `\n\nNOTE DI ${nome.toUpperCase()}:\n${note}` : "") + "\n\nInviato da lorenzoloseto.com/conto-economicofacile",
           ...Object.fromEntries(Object.entries(LEAD_UTM)),
         }),
       });
