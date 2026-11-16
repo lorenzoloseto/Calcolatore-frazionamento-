@@ -984,13 +984,13 @@ function LeadGateModal({ form, setForm, error, submitting, privacy, setPrivacy, 
             style={{ width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 16, fontWeight: 600, padding: "13px 14px", outline: "none", fontFamily: "-apple-system, sans-serif" }} />
           <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>
             <input type="checkbox" checked={privacy} onChange={(e) => setPrivacy(e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
-            <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); onShowPrivacy(); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span> e acconsento a ricevere contenuti su frazionamento e investimenti immobiliari.</span>
+            <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); onShowPrivacy(); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span> e acconsento a ricevere contenuti su investimenti immobiliari.</span>
           </label>
           {error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px", fontFamily: "-apple-system, sans-serif" }}>{error}</div>}
           <button onClick={onSubmit} disabled={submitting} style={{ background: C.accent, color: "#FFF", border: "none", borderRadius: 8, padding: "15px 20px", fontWeight: 700, fontSize: 16, cursor: submitting ? "wait" : "pointer", fontFamily: "-apple-system, sans-serif", opacity: submitting ? 0.7 : 1, boxShadow: `0 4px 16px rgba(${ACCENT_RGB},0.35)` }}>
             {submitting ? "Un attimo..." : "Mostrami i risultati →"}
           </button>
-          <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: 0, fontFamily: "-apple-system, sans-serif" }}>Riceverai anche il video gratuito di Lorenzo sul frazionamento immobiliare.</p>
+          <p style={{ color: C.textLight, fontSize: 12, textAlign: "center", margin: 0, fontFamily: "-apple-system, sans-serif" }}>Riceverai anche il video gratuito di Lorenzo.</p>
         </div>
       </div>
     </div>
