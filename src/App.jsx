@@ -714,8 +714,12 @@ function mergeRistItems(saved) {
 // ============================================================
 // SHARE LINK — Supabase snapshots (link corti)
 // ============================================================
-async function saveProjectSnapshot(projectId, name, data, scenari, comparabili, ristItems) {
+// senzaNda (Lorenzo, 16 nov 2026): il link si apre subito, senza identificazione né firma.
+// La scelta sta dentro lo snapshot (nda: false), non nell'indirizzo: chi riceve un link con NDA
+// non può toglierla cambiando il link.
+async function saveProjectSnapshot(projectId, name, data, scenari, comparabili, ristItems, senzaNda) {
   const payload = {
+    ...(senzaNda ? { nda: false } : {}),
     n: name, d: data, s: scenari, c: comparabili,
     r: (ristItems || []).filter(it => it.qty > 0).map(it => ({ n: it.nome, q: it.qty, p: it.prezzo })),
   };
@@ -730,6 +734,7 @@ async function loadProjectSnapshot(id) {
   const ristItems = mergeRistItems((compact.r || []).map(({ n, q, p }) => ({ nome: n, qty: q, prezzo: p })));
   return {
     name: compact.n || "Progetto condiviso",
+    senzaNda: compact.nda === false,
     data: { ...DEFAULT_DATA, ...compact.d },
     scenari: { ...DEFAULT_SCENARI, ...compact.s },
     comparabili: compact.c || [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }],
@@ -2491,6 +2496,16 @@ export default function App() {
         setRistItems(proj.ristItems);
         setShowDash(true);
         setViewOnly(true);
+        if (proj.senzaNda) {
+          // Link senza NDA: niente identificazione, si apre subito
+          setShareGateCompleted(true);
+          setVisitedLinks((prev) => {
+            const next = [{ id: __sharedId, name: proj.name || "Progetto condiviso", at: Date.now() }, ...prev.filter((v) => v.id !== __sharedId)];
+            try { localStorage.setItem("frazio_visited_links", JSON.stringify(next)); } catch {}
+            return next;
+          });
+          DB.trackEvent("snapshot_view", { nda: false });
+        }
       }
       setSharedLoading(false);
     });
@@ -2574,6 +2589,8 @@ export default function App() {
   const [shareLinkUrl, setShareLinkUrl] = useState("");
   const [linkCopied, setLinkCopied] = useState(false);
   const [shareLinkLoading, setShareLinkLoading] = useState(false);
+  const [shareAsk, setShareAsk] = useState(null); // scelta con/senza NDA: { current: true } (conto aperto) oppure { p: progetto della lista }
+  const [shareLinkSenzaNda, setShareLinkSenzaNda] = useState(false);
   const [sharedLoading, setSharedLoading] = useState(!!__sharedId);
   // Link ?s= già aperti su questo dispositivo: NDA firmata una sola volta, poi accesso diretto
   const [visitedLinks, setVisitedLinks] = useState(() => {
@@ -2913,19 +2930,29 @@ export default function App() {
     }
     return res;
   };
-  // Condividi dalla dashboard (Lorenzo, 16 nov 2026): accanto a "Esporta Excel". Salva il conto
-  // economico aperto (serve un id) e crea lo stesso link protetto con NDA della lista progetti.
-  const handleShareCurrent = async () => {
-    if (shareLinkLoading) return;
+  // Condividi (Lorenzo, 16 nov 2026): dalla dashboard (accanto a "Esporta Excel") e dalla lista
+  // progetti. Prima si sceglie con o senza NDA (shareAsk), poi si crea il link. Dalla dashboard
+  // il conto economico aperto viene prima salvato (serve un id).
+  const creaLinkCondiviso = async (target, senzaNda) => {
+    if (shareLinkLoading || !target) return;
     setShareLinkLoading(true);
-    const saved = await handleSaveProject(true);
-    if (!saved.ok) { setShareLinkLoading(false); alert("Errore: " + (saved.error || "salvataggio non riuscito")); return; }
-    const res = await saveProjectSnapshot(saved.project.id, saved.project.name || projectName || "Conto economico", data, scenari, comparabili, ristItems);
+    let pid, nome, d, sc, comp, rist;
+    if (target.p) {
+      const p = target.p;
+      pid = p.id; nome = p.name; d = p.data || {}; sc = p.scenari || {}; comp = p.comparabili || []; rist = p.rist_items || [];
+    } else {
+      const saved = await handleSaveProject(true);
+      if (!saved.ok) { setShareLinkLoading(false); alert("Errore: " + (saved.error || "salvataggio non riuscito")); return; }
+      pid = saved.project.id; nome = saved.project.name || projectName || "Conto economico"; d = data; sc = scenari; comp = comparabili; rist = ristItems;
+    }
+    const res = await saveProjectSnapshot(pid, nome, d, sc, comp, rist, senzaNda);
     setShareLinkLoading(false);
     if (res.ok) {
       const base = isNative ? WEB_ORIGIN : `${window.location.origin}${import.meta.env.BASE_URL || "/"}`;
+      setShareAsk(null);
+      setShareLinkSenzaNda(!!senzaNda);
       setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false);
-      DB.trackEvent("link_share", { project_id: saved.project.id, from: "dashboard" });
+      DB.trackEvent("link_share", { project_id: pid, from: target.p ? "projects" : "dashboard", nda: !senzaNda });
     } else { alert("Errore: " + res.error); }
   };
   const handleLoadProject = (project) => {
@@ -3327,7 +3354,24 @@ export default function App() {
   const btnPrimary = { background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
   const btnSecondary = { background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
   // Finestra col link protetto: si apre dalla lista progetti e dal bottone Condividi della dashboard
-  const shareLinkModal = shareLinkUrl ? (
+  const shareAskModal = shareAsk ? (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => { if (!shareLinkLoading) setShareAsk(null); }}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
+              <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: "0 0 6px" }}>Che link vuoi creare?</h3>
+              <p style={{ color: C.textMid, fontSize: 13, margin: "0 0 18px", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Scegli come si apre il conto economico per chi riceve il link."}</p>
+              <button disabled={shareLinkLoading} onClick={() => creaLinkCondiviso(shareAsk, false)} style={{ ...btnPrimary, textAlign: "left", padding: "14px 16px", opacity: shareLinkLoading ? 0.6 : 1 }}>
+                <span style={{ display: "block", fontSize: 15 }}>Link con NDA</span>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 400, opacity: 0.85, marginTop: 3, lineHeight: 1.4 }}>Chi lo apre si identifica con il codice fiscale e firma la riservatezza.</span>
+              </button>
+              <button disabled={shareLinkLoading} onClick={() => creaLinkCondiviso(shareAsk, true)} style={{ ...btnSecondary, textAlign: "left", padding: "14px 16px", marginTop: 10, opacity: shareLinkLoading ? 0.6 : 1 }}>
+                <span style={{ display: "block", fontSize: 15 }}>Link senza NDA</span>
+                <span style={{ display: "block", fontSize: 12, fontWeight: 400, color: C.textMid, marginTop: 3, lineHeight: 1.4 }}>Chi ha il link lo apre subito, senza dati e senza firma.</span>
+              </button>
+              <button disabled={shareLinkLoading} onClick={() => setShareAsk(null)} style={{ background: "none", border: "none", color: C.textLight, fontSize: 13, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%", marginTop: 14, padding: 6 }}>Annulla</button>
+            </div>
+          </div>
+  ) : null;
+  const shareLinkModal = shareAskModal || (shareLinkUrl ? (
           <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
             <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
@@ -3335,8 +3379,8 @@ export default function App() {
                   <span style={{ color: C.accent, fontSize: 18 }}>🔗</span>
                 </div>
                 <div>
-                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Link protetto con NDA</h3>
-                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chi accede al link dovrà identificarsi con codice fiscale e firmare un NDA prima di visualizzare il progetto.</p>
+                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>{shareLinkSenzaNda ? "Link senza NDA" : "Link protetto con NDA"}</h3>
+                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>{shareLinkSenzaNda ? "Chi ha questo link apre subito il conto economico, senza identificarsi e senza firmare. Mandalo solo a chi vuoi tu." : "Chi accede al link dovrà identificarsi con codice fiscale e firmare un NDA prima di visualizzare il progetto."}</p>
                 </div>
               </div>
               <div style={{ background: C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 6, padding: "10px 12px", marginBottom: 16, wordBreak: "break-all", fontSize: 12, color: C.textMid, fontFamily: "monospace", maxHeight: 80, overflow: "auto" }}>
@@ -3351,7 +3395,7 @@ export default function App() {
               <button onClick={() => setShareLinkUrl("")} style={{ ...btnSecondary, marginTop: 10 }}>Chiudi</button>
             </div>
           </div>
-  ) : null;
+  ) : null);
 
   // ============================================================
   // LANDING PAGE
@@ -3931,7 +3975,7 @@ export default function App() {
                         <>
                           <button onClick={() => { setRenamingProject(p); setRenameValue(p.name); }} style={{ background: `rgba(${NAVY_RGB},0.06)`, color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Rinomina"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
                           <button onClick={async () => { const res = await DB.saveProject({ name: "Copia di " + p.name, data: p.data ? { ...p.data } : {}, scenari: p.scenari ? { ...p.scenari } : {}, comparabili: p.comparabili ? [...p.comparabili] : [], ristItems: p.rist_items ? [...p.rist_items] : [] }); if (res.ok) { DB.trackEvent("project_duplicate", { source_project_id: p.id, new_project_id: res.project.id }); handleLoadProject(res.project); } else { alert("Errore: " + res.error); } }} style={{ background: `rgba(${NAVY_RGB},0.06)`, color: C.textMid, border: `1px solid ${C.borderDark}`, borderRadius: 4, padding: "7px 10px", fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }} title="Duplica"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></button>
-                          <button onClick={async () => { setShareLinkLoading(true); const res = await saveProjectSnapshot(p.id, p.name, p.data || {}, p.scenari || {}, p.comparabili || [], p.rist_items || []); setShareLinkLoading(false); if (res.ok) { const base = isNative ? WEB_ORIGIN : `${window.location.origin}${window.location.pathname}`; setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false); DB.trackEvent("link_share", { project_id: p.id }); } else { alert("Errore: " + res.error); } }} style={{ background: `rgba(${ACCENT_RGB},0.1)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
+                          <button onClick={() => setShareAsk({ p })} style={{ background: `rgba(${ACCENT_RGB},0.1)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "7px 14px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "..." : "Condividi"}</button>
                           <button onClick={async () => { if (confirm("Eliminare questo conto economico?")) { await DB.deleteProject(p.id); DB.trackEvent("project_delete", { project_id: p.id }); const updated = await DB.getProjects(); setProjectsList(updated); } }} style={{ background: "rgba(200,35,51,0.08)", color: C.red, border: "1px solid rgba(200,35,51,0.2)", borderRadius: 4, padding: "7px 10px", fontWeight: 600, fontSize: 12, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>✕</button>
                         </>
                       )}
@@ -4262,7 +4306,7 @@ export default function App() {
               </>
             )}
             {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
-            {user && !viewOnly && !__sharedId && <button onClick={handleShareCurrent} disabled={shareLinkLoading} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Condividi"}</button>}
+            {user && !viewOnly && !__sharedId && <button onClick={() => setShareAsk({ current: true })} disabled={shareLinkLoading} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Condividi"}</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
             {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: `rgba(${ACCENT_RGB},0.2)`, color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
