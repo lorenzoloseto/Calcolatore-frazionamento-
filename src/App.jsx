@@ -2913,6 +2913,21 @@ export default function App() {
     }
     return res;
   };
+  // Condividi dalla dashboard (Lorenzo, 16 nov 2026): accanto a "Esporta Excel". Salva il conto
+  // economico aperto (serve un id) e crea lo stesso link protetto con NDA della lista progetti.
+  const handleShareCurrent = async () => {
+    if (shareLinkLoading) return;
+    setShareLinkLoading(true);
+    const saved = await handleSaveProject(true);
+    if (!saved.ok) { setShareLinkLoading(false); alert("Errore: " + (saved.error || "salvataggio non riuscito")); return; }
+    const res = await saveProjectSnapshot(saved.project.id, saved.project.name || projectName || "Conto economico", data, scenari, comparabili, ristItems);
+    setShareLinkLoading(false);
+    if (res.ok) {
+      const base = isNative ? WEB_ORIGIN : `${window.location.origin}${import.meta.env.BASE_URL || "/"}`;
+      setShareLinkUrl(`${base}?s=${res.id}`); setLinkCopied(false);
+      DB.trackEvent("link_share", { project_id: saved.project.id, from: "dashboard" });
+    } else { alert("Errore: " + res.error); }
+  };
   const handleLoadProject = (project) => {
     // Cancella autosave in coda per evitare che salvi dati vecchi sul nuovo progetto
     if (autoSaveTimer.current) { clearTimeout(autoSaveTimer.current); autoSaveTimer.current = null; }
@@ -3311,6 +3326,32 @@ export default function App() {
   // ============================================================
   const btnPrimary = { background: C.navy, color: "#FFF", border: "none", borderRadius: 6, padding: "11px 24px", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
   const btnSecondary = { background: "transparent", color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 6, padding: "10px 24px", fontWeight: 600, fontSize: 14, cursor: "pointer", fontFamily: "-apple-system, sans-serif", width: "100%" };
+  // Finestra col link protetto: si apre dalla lista progetti e dal bottone Condividi della dashboard
+  const shareLinkModal = shareLinkUrl ? (
+          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
+            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
+                <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  <span style={{ color: C.accent, fontSize: 18 }}>🔗</span>
+                </div>
+                <div>
+                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Link protetto con NDA</h3>
+                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chi accede al link dovrà identificarsi con codice fiscale e firmare un NDA prima di visualizzare il progetto.</p>
+                </div>
+              </div>
+              <div style={{ background: C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 6, padding: "10px 12px", marginBottom: 16, wordBreak: "break-all", fontSize: 12, color: C.textMid, fontFamily: "monospace", maxHeight: 80, overflow: "auto" }}>
+                {shareLinkUrl}
+              </div>
+              <button onClick={() => { navigator.clipboard.writeText(shareLinkUrl).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500); }); }} style={{ ...btnPrimary, background: linkCopied ? C.green : C.navy, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+                {linkCopied ? "✓ Link copiato!" : "Copia link"}
+              </button>
+              {typeof navigator !== "undefined" && navigator.share && (
+                <button onClick={() => { navigator.share({ title: "Conto economico", url: shareLinkUrl }).catch(() => {}); }} style={{ ...btnSecondary, marginTop: 10 }}>Invia il link (WhatsApp, mail...)</button>
+              )}
+              <button onClick={() => setShareLinkUrl("")} style={{ ...btnSecondary, marginTop: 10 }}>Chiudi</button>
+            </div>
+          </div>
+  ) : null;
 
   // ============================================================
   // LANDING PAGE
@@ -4043,28 +4084,7 @@ export default function App() {
             </div>
           </div>
         )}
-        {shareLinkUrl && (
-          <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: `rgba(${NAVY_RGB},0.5)`, display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }} onClick={() => setShareLinkUrl("")}>
-            <div onClick={(e) => e.stopPropagation()} style={{ background: C.card, borderRadius: 10, padding: "28px 24px", maxWidth: 480, width: "90%", boxShadow: "0 8px 32px rgba(0,0,0,0.18)", border: `1px solid ${C.border}` }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: "50%", background: C.accentLight, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                  <span style={{ color: C.accent, fontSize: 18 }}>🔗</span>
-                </div>
-                <div>
-                  <h3 style={{ color: C.dark, fontSize: 18, fontWeight: 700, margin: 0 }}>Link protetto con NDA</h3>
-                  <p style={{ color: C.textMid, fontSize: 13, margin: "2px 0 0", fontFamily: "-apple-system, sans-serif" }}>Chi accede al link dovrà identificarsi con codice fiscale e firmare un NDA prima di visualizzare il progetto.</p>
-                </div>
-              </div>
-              <div style={{ background: C.inputBg, border: `1px solid ${C.inputBorder}`, borderRadius: 6, padding: "10px 12px", marginBottom: 16, wordBreak: "break-all", fontSize: 12, color: C.textMid, fontFamily: "monospace", maxHeight: 80, overflow: "auto" }}>
-                {shareLinkUrl}
-              </div>
-              <button onClick={() => { navigator.clipboard.writeText(shareLinkUrl).then(() => { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2500); }); }} style={{ ...btnPrimary, background: linkCopied ? C.green : C.navy, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-                {linkCopied ? "✓ Link copiato!" : "Copia link"}
-              </button>
-              <button onClick={() => setShareLinkUrl("")} style={{ ...btnSecondary, marginTop: 10 }}>Chiudi</button>
-            </div>
-          </div>
-        )}
+        {shareLinkModal}
         {/* GDPR: Privacy Modal + Cookie Banner */}
         {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
         {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
@@ -4242,6 +4262,7 @@ export default function App() {
               </>
             )}
             {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
+            {user && !viewOnly && !__sharedId && <button onClick={handleShareCurrent} disabled={shareLinkLoading} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Condividi"}</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
             <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
             {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: `rgba(${ACCENT_RGB},0.2)`, color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
@@ -4957,6 +4978,7 @@ export default function App() {
       </div>
 
 
+      {shareLinkModal}
       {/* GDPR: Privacy Modal + Cookie Banner */}
       {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
       {!cookieBannerDismissed && <CookieBanner onAccept={() => { localStorage.setItem("cookie_consent", "1"); setCookieBannerDismissed(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
