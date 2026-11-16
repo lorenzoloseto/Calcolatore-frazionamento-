@@ -91,13 +91,13 @@ Shared links (`?s=UUID`) load a snapshot and show a gate: visitor must enter ful
 ## LEAD MAGNET MODE (giugno 2026)
 
 Il calcolatore è ora pubblicato come **lead magnet di Lorenzo Loseto** su
-`https://lorenzoloseto.com/calcolatore-economico` (oltre che app SaaS completa).
+`https://lorenzoloseto.com/calcolatore-economicoprofessional` (oltre che app SaaS completa).
 
 ### Deploy / routing
 - Stesso progetto Vercel `calcolatore-frazionamento.vercel.app`.
-- Sul sito Astro `Lorenzo Loseto/vercel.json` c'è un **rewrite** `/calcolatore-economico/:path*` → `https://calcolatore-frazionamento.vercel.app/calcolatore-economico/:path*`.
-- `vite.config.js`: `base = '/calcolatore-economico/'` solo in `build` (in dev resta `/`).
-- `vercel.json` del calcolatore: rewrite interni `/calcolatore-economico/*` → SPA (`/`), con passthrough `/assets/*`.
+- Sul sito Astro `Lorenzo Loseto/vercel.json` c'è un **rewrite** `/calcolatore-economicoprofessional/:path*` → `https://calcolatore-frazionamento.vercel.app/calcolatore-economicoprofessional/:path*`.
+- `vite.config.js`: `base = '/calcolatore-economicoprofessional/'` solo in `build` (in dev resta `/`).
+- `vercel.json` del calcolatore: rewrite interni `/calcolatore-economicoprofessional/*` → SPA (`/`), con passthrough `/assets/*`.
 - `go.lorenzoloseto.com` NON è più il calcolatore (ora serve il workshop "Spacca il Mattone" su WordPress/SupportHost). `WEB_ORIGIN` aggiornato al nuovo path.
 
 ### LEAD_MODE (flag runtime in App.jsx, ~riga 20)
@@ -112,13 +112,13 @@ Quando LEAD_MODE è true:
   - Kajabi form `2149582625` (`lorenzo-loseto.mykajabi.com/forms/2149582625/form_submissions`)
   - Zapier `hooks.zapier.com/hooks/catch/22684503/4o0o06b/` (con dati calcolo: margine, ROI, investimento, città + UTM, per pre-qualifica Regina)
   - Web3Forms backup
-- **Thank-you page** `/grazie`: dopo il gate, `history.replaceState` → URL diventa `/calcolatore-economico/grazie` (per custom conversion Meta URL-based di Francesco) + banner verde conferma (`justCaptured`) + risultati subito (opzione B).
+- **Thank-you page** `/grazie`: dopo il gate, `history.replaceState` → URL diventa `/calcolatore-economicoprofessional/grazie` (per custom conversion Meta URL-based di Francesco) + banner verde conferma (`justCaptured`) + risultati subito (opzione B).
 - **CTA video MFIB**: banner pulsante (`ll-ctaPulse`) + popup dopo 15s (`ll_video_popup_shown` in sessionStorage, chiusura solo con "No grazie") → `https://lorenzoloseto.com/video-mfib/?from=calcolatore[-popup]`.
 - **Pixel**: Meta `850911246223558` + TikTok `CK4NBF3C77U7PQISJ0E0` iniettati a runtime solo in LEAD_MODE. Eventi: PageView → InitiateCheckout (apertura gate) → Lead + CompleteRegistration (submit) + PageView su /grazie.
 - Eventi analytics interni: `lead_capture`, `video_popup_view/dismiss`, `video_cta_click`.
 
 ### Consegna tracking a Francesco
-- Pixel Meta `850911246223558`; custom conversion URL-based su `/calcolatore-economico/grazie`, oppure evento standard `Lead`.
+- Pixel Meta `850911246223558`; custom conversion URL-based su `/calcolatore-economicoprofessional/grazie`, oppure evento standard `Lead`.
 - TikTok pixel `CK4NBF3C77U7PQISJ0E0`, evento `CompleteRegistration`.
 
 ### TODO aperti
@@ -129,7 +129,7 @@ Quando LEAD_MODE è true:
 
 **Dal 16 nov 2026 l'indirizzo pubblico è `https://www.lorenzoloseto.com/conto-economicofacile`** (scelta di Lorenzo). Il vecchio `/conto-economico-immobiliare` rimanda al nuovo dal `vercel.json` del sito; `src/main.jsx` riconosce tutti e due i nomi. L'etichetta `landing: "conto-economico-immobiliare"` nei dati inviati non è cambiata.
 
-Rotta `/conto-economico-immobiliare`. URL pubblico **`https://lorenzoloseto.com/conto-economico-immobiliare`** (primo livello): rewrite nel `vercel.json` del sito Astro → `calcolatore-frazionamento.vercel.app/calcolatore-economico/conto-economico-immobiliare`. Gli asset restano sotto `/calcolatore-economico/assets/`, già proxati.
+Rotta `/conto-economico-immobiliare`. URL pubblico **`https://lorenzoloseto.com/conto-economico-immobiliare`** (primo livello): rewrite nel `vercel.json` del sito Astro → `calcolatore-frazionamento.vercel.app/calcolatore-economicoprofessional/conto-economico-immobiliare`. Gli asset restano sotto `/calcolatore-economicoprofessional/assets/`, già proxati.
 - Instradata in `src/main.jsx` sul pathname: renderizza `ContoEconomicoPage` (in `App.jsx`, subito prima di `App`) invece dell'app completa.
 - Pagina **libera**: nessun login, nessun gate email, **nessun salvataggio** (stato solo in memoria, sparisce chiudendo la pagina). Nessun `localStorage` tranne il consenso cookie.
 - Voci: città (testo, obbligatoria solo per l'invio mail, entra in oggetto e riepilogo), link annuncio (url facoltativo, Idealista/Immobiliare, nella mail come `link_annuncio`), prezzo acquisto, superficie, tipo acquisto (1ª casa / 2ª casa / società; sempre acquisto da privato, imposta di registro), rendita catastale opzionale (prezzo-valore), ristrutturazione €/mq (valore suggerito 1000, "media italiana"), prezzo vendita €/mq OBBLIGATORIO (il risultato compare solo con acquisto + mq + vendita). Tasse sulla vendita: persona fisica 26% sostitutiva sulla plusvalenza (al notaio), società IRES 24% + IRAP 3,9% sull'utile → margine netto e ROI netto. Fisse: provvigione 3%, notaio 2.000 €, spese tecniche 5.000 € (`CE_FISSI`).
@@ -140,7 +140,7 @@ Rotta `/conto-economico-immobiliare`. URL pubblico **`https://lorenzoloseto.com/
 - I componenti `CeField`/`CeRow` stanno fuori dal componente pagina: se li sposti dentro, l'input perde il focus a ogni tasto.
 
 ## Membri Spacca il Mattone Professional (9 nov 2026)
-La community (`spaccailmattone.lorenzoloseto.com`, stesso progetto Supabase) ha due livelli di membro nella tabella `community_piani` (`piano` = 'normale' | 'professional'; il membro legge solo la propria riga). Nel calcolatore `DB.getPiano(userId)` la legge dopo il login e `isPro` sblocca le 4 sezioni professionali (Computo, Scenari, Comparabili, Appalto) senza recensione: `tpLocked = LEAD_MODE && !tpUnlocked && !isPro`. Nel muro Trustpilot e nel banner c'è il link "Accedi" per i Professional; in LEAD_MODE dopo il login si resta sul calcolatore (niente lista progetti). Etichetta PROFESSIONAL nell'header. Per gli altri utenti il muro Trustpilot è invariato. Redirect OAuth `https://www.lorenzoloseto.com/calcolatore-economico/**` aggiunto alla allow list di Supabase Auth il 9 nov 2026.
+La community (`spaccailmattone.lorenzoloseto.com`, stesso progetto Supabase) ha due livelli di membro nella tabella `community_piani` (`piano` = 'normale' | 'professional'; il membro legge solo la propria riga). Nel calcolatore `DB.getPiano(userId)` la legge dopo il login e `isPro` sblocca le 4 sezioni professionali (Computo, Scenari, Comparabili, Appalto) senza recensione: `tpLocked = LEAD_MODE && !tpUnlocked && !isPro`. Nel muro Trustpilot e nel banner c'è il link "Accedi" per i Professional; in LEAD_MODE dopo il login si resta sul calcolatore (niente lista progetti). Etichetta PROFESSIONAL nell'header. Per gli altri utenti il muro Trustpilot è invariato. Redirect OAuth `https://www.lorenzoloseto.com/calcolatore-economicoprofessional/**` aggiunto alla allow list di Supabase Auth il 9 nov 2026.
 
 ## Tema "Spacca il Mattone" (10 nov 2026)
 Quando il calcolatore si apre dalla community (`?utm_source=community`, i link della dashboard lo hanno già) o con `?tema=spacca`, `SPACCA` è vero e resta memorizzato in `localStorage.ll_tema` finché non si apre con `?tema=base`. Effetti: palette `C` della community (vinaccia `#25151b`, rosso `#a81738`, oro `#ffd23b`, carta `#faf7f8`; `navy2/navy3/goldLight` per le sfumature), `SpaccaTema` (montato in `main.jsx`) con font DM Sans + Manrope e sfondo vinaccia, logo `SPACCA_LOGO` al posto del marchio in `LpBrandLogo`, nella navbar del conto economico e nella landing, scritte "Spacca il Mattone · Community". Niente colori fissi navy/oro nel JSX: usare `C.*`, `NAVY_RGB`, `ACCENT_RGB`. Mai attivo nell'app iOS (`isNative`). Per gli altri visitatori (ads, SEO) il tema resta quello di Lorenzo Loseto.
@@ -153,11 +153,11 @@ Quando il calcolatore si apre dalla community (`?utm_source=community`, i link d
 - **Pagina iniziale nel tema Spacca**: in alto solo il logo, tolte le due righe "Calcolatore Frazionamento" e "Spacca il Mattone · Community". Lo stesso in tutte le altre schermate del tema Spacca (accesso, registrazione, elenco progetti, passaggi, risultato): accanto al logo non c'è più "LORENZO LOSETO" né "Spacca il Mattone · Community"; nel risultato dall'11 nov 2026 non c'è più nemmeno l'indirizzo sotto il logo (Lorenzo: "toglimi test", era l'indirizzo scritto dall'utente); l'indirizzo resta nella riga "Indirizzo" dei dati.
 - **Errore del 10 nov corretto**: la sostituzione automatica dei colori aveva scritto `accent: \`${C.accent}\`` e `goldBar: \`${C.accent}\`` dentro la palette normale di `C`, cioè un colore che richiama se stesso. Con il tema Spacca non si vedeva; senza tema la pagina andava in errore all'avvio (calcolatore pubblico e conto economico fuori dalla community fermi dal 10 all'11 nov). Regola: dopo ogni sostituzione in blocco aprire la pagina con `?tema=base` **e** con `?tema=spacca`, non solo compilare.
 
-## Un solo indirizzo: /calcolatore-economico (16 nov 2026)
-Scelta di Lorenzo: il calcolatore si chiama "Calcolatore Economico" e ha un solo indirizzo pubblico, `https://www.lorenzoloseto.com/calcolatore-economico/`.
-- `vite.config.js` base `/calcolatore-economico/`; `vercel.json` accetta sia `/calcolatore-economico/*` sia il vecchio `/calcolatore-frazionamento/*`.
-- Sul sito (`Lorenzo Loseto/vercel.json`): rewrite `/calcolatore-economico/*` → questo progetto; redirect permanenti `/calcolatore-frazionamento/*` → `/calcolatore-economico/*` (i link già in giro continuano a funzionare, UTM compresi).
+## Un solo indirizzo: /calcolatore-economicoprofessional (16 nov 2026; per qualche ora è stato /calcolatore-economico, che ora rimanda qui)
+Scelta di Lorenzo: il calcolatore si chiama "Calcolatore Economico Professional" e ha un solo indirizzo pubblico, `https://www.lorenzoloseto.com/calcolatore-economicoprofessional/`.
+- `vite.config.js` base `/calcolatore-economicoprofessional/`; `vercel.json` accetta `/calcolatore-economicoprofessional/*` e i vecchi `/calcolatore-economico/*` e `/calcolatore-frazionamento/*`.
+- Sul sito (`Lorenzo Loseto/vercel.json`): rewrite `/calcolatore-economicoprofessional/*` → questo progetto; redirect permanenti `/calcolatore-frazionamento/*` → `/calcolatore-economicoprofessional/*` (i link già in giro continuano a funzionare, UTM compresi).
 - `calcolatore-frazionamento.vercel.app` resta acceso solo come motore dietro al dominio: chi lo apre nel browser viene portato sul dominio (`src/main.jsx`, solo quel nome esatto, le anteprime Vercel restano apribili). Non darlo a nessuno.
-- **APP_MODE** (`src/App.jsx`, sopra `LEAD_MODE`): l'app completa (accesso, progetti, condivisioni NDA, admin) sul dominio si apre da `/calcolatore-economico/admin`, `/accedi` o `?app`; resta memorizzata in `localStorage.ll_app_mode`. `?lead` la toglie e riporta al lead magnet. Chi arriva dal vecchio indirizzo Vercel entra già in APP_MODE.
+- **APP_MODE** (`src/App.jsx`, sopra `LEAD_MODE`): l'app completa (accesso, progetti, condivisioni NDA, admin) sul dominio si apre da `/calcolatore-economicoprofessional/admin`, `/accedi` o `?app`; resta memorizzata in `localStorage.ll_app_mode`. `?lead` la toglie e riporta al lead magnet. Chi arriva dal vecchio indirizzo Vercel entra già in APP_MODE.
 - Non cambiati apposta: l'etichetta `landing: "calcolatore-frazionamento"` mandata a Zapier/Kajabi e l'oggetto della mail Web3Forms (filtri e automazioni potrebbero dipenderne).
-- Da controllare con Lorenzo/Francesco: la pagina di ringraziamento ora è `/calcolatore-economico/grazie` (una conversione Meta basata sul vecchio URL va aggiornata; l'evento `Lead` non cambia); su Supabase → Authentication → URL Configuration deve essere ammesso `https://www.lorenzoloseto.com/calcolatore-economico/**` per il ritorno dal login Google/Apple.
+- Da controllare con Lorenzo/Francesco: la pagina di ringraziamento ora è `/calcolatore-economicoprofessional/grazie` (una conversione Meta basata sul vecchio URL va aggiornata; l'evento `Lead` non cambia); su Supabase → Authentication → URL Configuration deve essere ammesso `https://www.lorenzoloseto.com/calcolatore-economicoprofessional/**` per il ritorno dal login Google/Apple.

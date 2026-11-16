@@ -2,7 +2,7 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App, { ContoEconomicoPage, SpaccaTema } from './App.jsx'
 
-// Rotta leggera: /conto-economicofacile (prima /conto-economico-immobiliare) (in produzione sotto /calcolatore-economico/).
+// Rotta leggera: /conto-economicofacile (prima /conto-economico-immobiliare) (in produzione sotto /calcolatore-economicoprofessional/).
 // Pagina libera, senza login né salvataggio: non passa dall'app completa.
 const isContoEconomico = /\/(conto-economicofacile|conto-economico-immobiliare)\/?$/.test(window.location.pathname)
 
@@ -17,7 +17,7 @@ if (daVercel) {
   const coda = (q.toString() ? '?' + q.toString() : '') + window.location.hash
   window.location.replace(isContoEconomico
     ? 'https://www.lorenzoloseto.com/conto-economicofacile' + coda
-    : 'https://www.lorenzoloseto.com/calcolatore-economico/' + coda)
+    : 'https://www.lorenzoloseto.com/calcolatore-economicoprofessional/' + coda)
 } else {
   ReactDOM.createRoot(document.getElementById('root')).render(
     <React.StrictMode>
