@@ -24,32 +24,34 @@ const ADMIN_EMAILS = ["lorenzoloseto@hotmail.it", "lorenzoloseto@gmail.com"];
 const TRUSTPILOT_URL = "https://www.trustpilot.com/evaluate/lorenzoloseto.com";
 
 // ============================================================
-// LEAD MODE — attivo su lorenzoloseto.com/calcolatore-economicoprofessional
-// Il calcolatore funziona da lead magnet: wizard anonimo, gate email
-// collegato a Kajabi prima dei risultati, CTA verso il funnel MFIB.
-// Su iOS resta l'app completa.
+// DUE MODI, UN SOLO INDIRIZZO (Lorenzo, 16 nov 2026)
+// lorenzoloseto.com/calcolatore-economicoprofessional apre di default l'APP COMPLETA
+// (accesso, progetti, condivisioni NDA, admin): è quella che stava su
+// calcolatore-frazionamento.vercel.app, che ora rimanda al dominio (vedi main.jsx).
 //
-// APP MODE (16 nov 2026) — un solo indirizzo: calcolatore-frazionamento.vercel.app
-// rimanda al dominio (vedi main.jsx). L'app completa (accesso, progetti, condivisioni,
-// admin) si apre sul dominio da /calcolatore-economicoprofessional/admin, /accedi oppure ?app:
-// la scelta resta memorizzata (localStorage ll_app_mode) così sopravvive al ritorno
-// dal login Google/Apple. ?lead la toglie e riporta alla versione lead magnet.
+// LEAD MODE (lead magnet: wizard anonimo, gate email collegato a Kajabi prima dei
+// risultati, CTA verso il funnel MFIB, pixel) si attiva solo con ?lead nell'indirizzo.
+// I vecchi link di ads, mail e community (/calcolatore-frazionamento...) ci arrivano
+// da soli: il redirect del sito aggiunge ?lead=1.
+//
+// La scelta resta memorizzata (localStorage ll_app_mode: "1" app, "0" lead) così
+// sopravvive al ritorno dal login Google/Apple. ?app, /admin e /accedi riportano all'app.
 // ============================================================
 const APP_MODE = (() => {
   if (isNative || typeof window === "undefined") return false;
   try {
     const q = new URLSearchParams(window.location.search);
-    if (q.has("lead")) { localStorage.removeItem("ll_app_mode"); return false; }
+    if (q.has("lead")) { localStorage.setItem("ll_app_mode", "0"); return false; }
     const daPercorso = /\/(admin|accedi)\/?$/.test(window.location.pathname);
     if (q.has("app") || daPercorso) {
       localStorage.setItem("ll_app_mode", "1");
       if (daPercorso) window.history.replaceState({}, "", window.location.pathname.replace(/(admin|accedi)\/?$/, "") + window.location.search + window.location.hash);
       return true;
     }
-    return localStorage.getItem("ll_app_mode") === "1";
-  } catch { return false; }
+    return localStorage.getItem("ll_app_mode") !== "0";
+  } catch { return true; }
 })();
-const LEAD_MODE = !isNative && !APP_MODE && typeof window !== "undefined" && (/(^|\.)lorenzoloseto\.com$/.test(window.location.hostname) || new URLSearchParams(window.location.search).has("lead"));
+const LEAD_MODE = !isNative && !APP_MODE && typeof window !== "undefined";
 const LEAD_UTM = (() => {
   if (typeof window === "undefined") return {};
   try {
@@ -2132,7 +2134,7 @@ export function ContoEconomicoPage() {
   const tasseVendita = margine > 0 ? margine * tasseUscita.aliquota : 0;
   const margineNetto = margine - tasseVendita;
   const roi = investimento > 0 ? margineNetto / investimento : 0;
-  const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?utm_source=conto-economico&utm_medium=link";
+  const fullCalcUrl = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/?lead=1&utm_source=conto-economico&utm_medium=link";
 
   // Tracking leggero: una volta al primo risultato completo.
   const trackedRef = useRef(false);
