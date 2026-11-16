@@ -1,6 +1,11 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
+    { "source": "/calcolatore-economico/assets/:path*", "destination": "/assets/:path*" },
+    { "source": "/calcolatore-economico/catasto-rendita.json", "destination": "/catasto-rendita.json" },
+    { "source": "/calcolatore-economico", "destination": "/" },
+    { "source": "/calcolatore-economico/", "destination": "/" },
+    { "source": "/calcolatore-economico/:path*", "destination": "/" },
     { "source": "/calcolatore-frazionamento/assets/:path*", "destination": "/assets/:path*" },
     { "source": "/calcolatore-frazionamento/catasto-rendita.json", "destination": "/catasto-rendita.json" },
     { "source": "/calcolatore-frazionamento", "destination": "/" },

@@ -17,19 +17,39 @@ const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
 const supabase = createClient(SB_URL, SB_KEY);
 const isNative = Capacitor.isNativePlatform();
-const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-frazionamento";
+const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-economico";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it"; // parametro legacy richiesto dalle RPC admin_*, l'autorizzazione vera è lato server su auth.email()
 const ADMIN_EMAILS = ["lorenzoloseto@hotmail.it", "lorenzoloseto@gmail.com"];
 const TRUSTPILOT_URL = "https://www.trustpilot.com/evaluate/lorenzoloseto.com";
 
 // ============================================================
-// LEAD MODE — attivo solo su lorenzoloseto.com/calcolatore-frazionamento
+// LEAD MODE — attivo su lorenzoloseto.com/calcolatore-economico
 // Il calcolatore funziona da lead magnet: wizard anonimo, gate email
 // collegato a Kajabi prima dei risultati, CTA verso il funnel MFIB.
-// Su calcolatore-frazionamento.vercel.app e su iOS resta l'app completa.
+// Su iOS resta l'app completa.
+//
+// APP MODE (16 nov 2026) — un solo indirizzo: calcolatore-frazionamento.vercel.app
+// rimanda al dominio (vedi main.jsx). L'app completa (accesso, progetti, condivisioni,
+// admin) si apre sul dominio da /calcolatore-economico/admin, /accedi oppure ?app:
+// la scelta resta memorizzata (localStorage ll_app_mode) così sopravvive al ritorno
+// dal login Google/Apple. ?lead la toglie e riporta alla versione lead magnet.
 // ============================================================
-const LEAD_MODE = !isNative && typeof window !== "undefined" && (/(^|\.)lorenzoloseto\.com$/.test(window.location.hostname) || new URLSearchParams(window.location.search).has("lead"));
+const APP_MODE = (() => {
+  if (isNative || typeof window === "undefined") return false;
+  try {
+    const q = new URLSearchParams(window.location.search);
+    if (q.has("lead")) { localStorage.removeItem("ll_app_mode"); return false; }
+    const daPercorso = /\/(admin|accedi)\/?$/.test(window.location.pathname);
+    if (q.has("app") || daPercorso) {
+      localStorage.setItem("ll_app_mode", "1");
+      if (daPercorso) window.history.replaceState({}, "", window.location.pathname.replace(/(admin|accedi)\/?$/, "") + window.location.search + window.location.hash);
+      return true;
+    }
+    return localStorage.getItem("ll_app_mode") === "1";
+  } catch { return false; }
+})();
+const LEAD_MODE = !isNative && !APP_MODE && typeof window !== "undefined" && (/(^|\.)lorenzoloseto\.com$/.test(window.location.hostname) || new URLSearchParams(window.location.search).has("lead"));
 const LEAD_UTM = (() => {
   if (typeof window === "undefined") return {};
   try {
@@ -2813,7 +2833,7 @@ export default function App() {
         body: JSON.stringify({ access_key: "8d4a8f3b-2c1d-4e5f-a1b2-c3d4e5f6a7b8", subject: "[Calcolatore Frazionamento] Nuovo lead — " + nome, from_name: "Calcolatore Frazionamento", ...payload }),
         keepalive: true,
       });
-      // Thank-you page: cambia l'URL in /calcolatore-frazionamento/grazie così
+      // Thank-you page: cambia l'URL in /calcolatore-economico/grazie così
       // Francesco può creare una custom conversion Meta basata su URL.
       try {
         const grazie = (import.meta.env.BASE_URL || "/").replace(/\/$/, "") + "/grazie";
@@ -3368,7 +3388,7 @@ export default function App() {
                 background: SPACCA ? C.goldBar : `linear-gradient(90deg, ${C.accent} 0%, ${C.goldLight} 50%, ${C.accent} 100%)`,
                 backgroundSize: "200% auto", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
                 backgroundClip: "text", animation: "lp-shimmer 3s linear infinite"
-              }}>Calcolatore Frazionamento</div>
+              }}>Calcolatore Economico</div>
               <div style={{ color: "rgba(255,255,255,0.55)", fontSize: isMobile ? 8 : 10, fontWeight: 600, letterSpacing: isMobile ? 0.5 : 1.2, textTransform: "uppercase", fontFamily: "-apple-system, sans-serif", marginTop: 1 }}>{SPACCA ? "Spacca il Mattone · Community" : "Professional tool by Lorenzo Loseto"}</div>
 
               </>}
@@ -3545,7 +3565,7 @@ export default function App() {
               </button>
             </div>}
             <div style={{ marginTop: 60, borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 20 }}>
-              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento — lorenzoloseto.com/calcolatore-frazionamento</p>
+              <p style={{ color: "rgba(255,255,255,0.25)", fontSize: 11, margin: "0 0 8px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto · Calcolatore Economico · lorenzoloseto.com/calcolatore-economico</p>
               <div style={{ display: "flex", justifyContent: "center", gap: 16 }}>
                 <span onClick={() => setShowPrivacy(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Informativa Privacy</span>
                 <span onClick={() => setShowTos(true)} style={{ color: "rgba(255,255,255,0.35)", cursor: "pointer", textDecoration: "underline", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>Termini di Servizio</span>
@@ -4929,7 +4949,7 @@ export default function App() {
       {/* FOOTER */}
       <div style={{ borderTop: `1px solid ${C.border}`, padding: "16px 0", marginTop: 32 }}>
         <div style={{ maxWidth: 960, margin: "0 auto", padding: "0 24px", textAlign: "center" }}>
-          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto — Calcolatore Frazionamento — lorenzoloseto.com/calcolatore-frazionamento</p>
+          <p style={{ color: C.textLight, fontSize: 11, margin: "0 0 6px", fontFamily: "-apple-system, sans-serif" }}>Lorenzo Loseto · Calcolatore Economico · lorenzoloseto.com/calcolatore-economico</p>
           <PrivacyLink onClick={() => setShowPrivacy(true)} />
         </div>
       </div>
