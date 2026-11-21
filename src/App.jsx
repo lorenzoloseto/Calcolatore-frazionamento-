@@ -17,7 +17,11 @@ const SB_URL = "https://hyfktrxffwdnawbvfajr.supabase.co";
 const SB_KEY = "sb_publishable_uJdFDJ4lGsrGdrqmu-NmdQ_7Dy2WVfb";
 const supabase = createClient(SB_URL, SB_KEY);
 const isNative = Capacitor.isNativePlatform();
-const WEB_ORIGIN = "https://lorenzoloseto.com/calcolatore-economicoprofessional";
+// Dentro l'app Spacca il Mattone (21 nov 2026): l'app apre il conto economico in una sua pagina interna per chi non ha un account
+// e si presenta con "SpaccaApp" nello user agent (per le prove: ?spaccaapp=1). Lì niente pixel pubblicitari, niente avviso cookie
+// e niente contatori d'uso: ad Apple l'app dichiara di non tracciare e di non registrare come viene usata.
+const IN_SPACCA_APP = typeof window !== "undefined" && (/SpaccaApp/.test(window.navigator.userAgent || "") || /[?&]spaccaapp=1/.test(window.location.search));
+const WEB_ORIGIN ="https://lorenzoloseto.com/calcolatore-economicoprofessional";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it"; // parametro legacy richiesto dalle RPC admin_*, l'autorizzazione vera è lato server su auth.email()
 const ADMIN_EMAILS = ["lorenzoloseto@hotmail.it", "lorenzoloseto@gmail.com"];
@@ -67,8 +71,8 @@ const LEAD_UTM = (() => {
     return JSON.parse(localStorage.getItem("ll_calc_utm") || "{}");
   } catch { return {}; }
 })();
-// Pixel Meta + TikTok solo in LEAD_MODE (mai su vercel.app né dentro l'app iOS)
-if (LEAD_MODE && typeof document !== "undefined") {
+// Pixel Meta + TikTok solo in LEAD_MODE (mai su vercel.app né dentro l'app iOS, né dentro l'app Spacca il Mattone)
+if (LEAD_MODE && !IN_SPACCA_APP && typeof document !== "undefined") {
   /* eslint-disable */
   !function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version="2.0";n.queue=[];t=b.createElement(e);t.async=!0;t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,document,"script","https://connect.facebook.net/en_US/fbevents.js");
   window.fbq("init", "850911246223558");
@@ -234,6 +238,7 @@ const DB = {
     return data || [];
   },
   trackEvent(eventType, metadata = {}) {
+    if (IN_SPACCA_APP) return; // dentro l'app Spacca il Mattone non si registra l'uso (vedi IN_SPACCA_APP)
     const userId = this._user?.id || null;
     supabase.from("analytics_events").insert({ user_id: userId, event_type: eventType, metadata, session_id: SESSION_ID }).then(() => {}).catch(() => {});
   },
@@ -2373,7 +2378,7 @@ export function ContoEconomicoPage() {
       </div>
 
       {showPrivacy && <PrivacyPolicyModal onClose={() => setShowPrivacy(false)} />}
-      {!cookieOk && <CookieBanner onAccept={() => { try { localStorage.setItem("cookie_consent", "1"); } catch {} setCookieOk(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
+      {!cookieOk && !IN_SPACCA_APP && <CookieBanner onAccept={() => { try { localStorage.setItem("cookie_consent", "1"); } catch {} setCookieOk(true); }} onShowPrivacy={() => setShowPrivacy(true)} />}
     </div>
   );
 }
