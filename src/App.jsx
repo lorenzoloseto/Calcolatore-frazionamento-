@@ -2620,8 +2620,10 @@ export default function App() {
       }
       const salvato = conto.dati;
       const superficie = Number(conto.immobile?.metratura);
+      const prezzo = Number(conto.immobile?.prezzoAcquisto);
       setData({
-        ...DEFAULT_DATA, citta: conto.immobile?.citta || conto.citta, prezzoAcquisto: 0,
+        ...DEFAULT_DATA, citta: conto.immobile?.citta || conto.citta, via: conto.immobile?.via || "",
+        prezzoAcquisto: Number.isFinite(prezzo) && prezzo > 0 ? prezzo : 0,
         metratura: Number.isFinite(superficie) && superficie > 0 ? superficie : 0, prezzoVenditaMq: 0,
         ...salvato?.data,
       });
@@ -4297,12 +4299,12 @@ export default function App() {
               <div style={{ display: "flex", gap: 10 }}>
                 <div style={{ flex: 3 }}>
                   <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 4, textAlign: "left" }}>Via</label>
-                  <input type="text" value={data.via} onChange={(e) => upd("via", e.target.value)} placeholder="Es. Via Roma" autoFocus
+                  <input type="text" value={data.via} onChange={(e) => upd("via", e.target.value)} placeholder="Es. Via Roma" autoFocus={!COLLABORAZIONE}
                     style={{ width: "100%", boxSizing: "border-box", background: C.card, border: `2px solid ${C.accent}`, borderRadius: 8, color: C.dark, fontSize: 18, fontWeight: 600, padding: "12px 14px", outline: "none", fontFamily: "'Georgia', serif" }} />
                 </div>
                 <div style={{ flex: 1, minWidth: 70 }}>
                   <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 4, textAlign: "left" }}>N.</label>
-                  <input type="text" value={data.civico} onChange={(e) => upd("civico", e.target.value)} placeholder="10"
+                  <input type="text" value={data.civico} onChange={(e) => upd("civico", e.target.value)} placeholder={COLLABORAZIONE ? undefined : "10"}
                     style={{ width: "100%", boxSizing: "border-box", background: C.card, border: `2px solid ${C.accent}`, borderRadius: 8, color: C.dark, fontSize: 18, fontWeight: 600, padding: "12px 14px", outline: "none", fontFamily: "'Georgia', serif", textAlign: "center" }} />
                 </div>
               </div>
@@ -4318,8 +4320,9 @@ export default function App() {
             <div style={{ maxWidth: 340, margin: "0 auto", display: "flex", flexDirection: "column", gap: 22 }}>
               {s.fields.map((f, i) => (
                 <div key={f.field}>
-                  <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>{f.label}</label>
-                  <WizardNumberInput value={data[f.field]} onChange={(v) => upd(f.field, v)} suffix={f.suffix} step={f.step} autoFocus={i === 0} />
+                  <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>{COLLABORAZIONE && f.field === "metratura" ? "Superficie dell'immobile" : f.label}</label>
+                  <WizardNumberInput value={COLLABORAZIONE && !data[f.field] ? "" : data[f.field]} onChange={(v) => upd(f.field, v)} suffix={f.suffix} step={f.step} autoFocus={i === 0 && !COLLABORAZIONE} />
+                  {f.field === "prezzoAcquisto" && contoCollab?.immobile?.tipoPrezzo && <p style={{ marginTop: 8, color: C.textMid, fontSize: 13 }}>Valore iniziale dalla scheda asta: {contoCollab.immobile.tipoPrezzo === "offerta_minima" ? "offerta minima" : "base d'asta"}.</p>}
                   {f.field === "prezzoAcquisto" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Equivale a {fmtEur(Math.round(data.prezzoAcquisto / data.metratura))}/mq</div>}
                   {f.field === "prezzoVenditaMq" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Ricavo totale stimato: <strong style={{ color: C.dark }}>{fmtEur(data.prezzoVenditaMq * data.metratura)}</strong></div>}
                 </div>
