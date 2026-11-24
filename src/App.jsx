@@ -21,6 +21,21 @@ const isNative = Capacitor.isNativePlatform();
 // e si presenta con "SpaccaApp" nello user agent (per le prove: ?spaccaapp=1). Lì niente pixel pubblicitari, niente avviso cookie
 // e niente contatori d'uso: ad Apple l'app dichiara di non tracciare e di non registrare come viene usata.
 const IN_SPACCA_APP = typeof window !== "undefined" && (/SpaccaApp/.test(window.navigator.userAgent || "") || /[?&]spaccaapp=1/.test(window.location.search));
+const COLLABORAZIONE = (() => {
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("collaborazione");
+  return !params.has("s") && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(id || "") ? id : null;
+})();
+const ritornoOAuth = () => {
+  const url = new URL(window.location.pathname, window.location.origin);
+  if (COLLABORAZIONE) {
+    url.searchParams.set("app", "1");
+    url.searchParams.set("utm_source", "community");
+    url.searchParams.set("collaborazione", COLLABORAZIONE);
+  }
+  return url.href;
+};
+const URL_CHAT_COLLAB = COLLABORAZIONE ? `https://spaccailmattone.lorenzoloseto.com/collaborazioni?id=${COLLABORAZIONE}` : null;
 const WEB_ORIGIN ="https://lorenzoloseto.com/calcolatore-economicoprofessional";
 const SESSION_ID = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2) + Date.now().toString(36);
 const ADMIN_EMAIL = "lorenzoloseto@hotmail.it"; // parametro legacy richiesto dalle RPC admin_*, l'autorizzazione vera è lato server su auth.email()
@@ -49,7 +64,7 @@ const APP_MODE = (() => {
     // Chi ha già fatto l'accesso vede sempre l'app completa, anche se arriva da un vecchio
     // link con ?lead (Lorenzo, 16 nov 2026: da loggato vedeva la versione raccolta contatti).
     const loggato = (() => { try { return !!JSON.parse(localStorage.getItem(`sb-${SB_URL.split("//")[1].split(".")[0]}-auth-token`) || "null")?.user; } catch { return false; } })();
-    if (loggato) return true;
+    if (loggato || COLLABORAZIONE) return true;
     if (q.has("lead")) { localStorage.setItem("ll_app_mode", "0"); return false; }
     const daPercorso = /\/(admin|accedi)\/?$/.test(window.location.pathname);
     if (q.has("app") || daPercorso) {
@@ -131,7 +146,7 @@ const DB = {
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
-      options: { redirectTo: window.location.origin + window.location.pathname }
+      options: { redirectTo: ritornoOAuth() }
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
@@ -148,7 +163,7 @@ const DB = {
     }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "apple",
-      options: { redirectTo: window.location.origin + window.location.pathname }
+      options: { redirectTo: ritornoOAuth() }
     });
     if (error) return { ok: false, error: error.message };
     return { ok: true };
@@ -2393,7 +2408,7 @@ export default function App() {
   const [user, setUser] = useState(() => DB.getUser());
   const [projectsList, setProjectsList] = useState([]);
   const [sharesForModal, setSharesForModal] = useState([]);
-  const [authScreen, setAuthScreen] = useState(null); // null | "login" | "register" | "projects" | "forgot" | "reset-password"
+  const [authScreen, setAuthScreen] = useState(() => COLLABORAZIONE && !IN_SPACCA_APP && !DB.getUser() ? "login" : null);
   const authScreenRef = useRef(null);
   const setAuthScreenTracked = (v) => { authScreenRef.current = v; setAuthScreen(v); };
   const [authForm, setAuthForm] = useState(() => {
@@ -2427,7 +2442,7 @@ export default function App() {
         // Se è un recovery, NON mandare a projects — mostra il form nuova password
         if (authScreenRef.current === "reset-password") {
           setAuthScreen("reset-password");
-        } else if (!__sharedId) {
+        } else if (!__sharedId && !COLLABORAZIONE) {
           // Con un link condiviso (?s=) la vista resta sul progetto condiviso, non sui propri progetti
           setAuthScreen("projects");
           historyRef.current = ["projects"];
@@ -2468,7 +2483,7 @@ export default function App() {
         // (SIGNED_IN si ripete ad ogni handshake di Supabase: cambio tab, refresh token, ecc.)
         if (!DB._wasAuthenticated) {
           // sul sito (LEAD_MODE) chi entra lo fa per il livello Professional: resta sul calcolatore, niente lista progetti
-          if (authScreenRef.current !== "reset-password" && !__sharedId && !LEAD_MODE) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
+          if (authScreenRef.current !== "reset-password" && !__sharedId && !LEAD_MODE && !COLLABORAZIONE) { setAuthScreen("projects"); historyRef.current = ["projects"]; }
           if (event === "SIGNED_IN") DB.trackEvent("login", { method: "google" });
         }
         DB._wasAuthenticated = true;
@@ -2589,7 +2604,45 @@ export default function App() {
   // Membri "Spacca il Mattone Professional" (community): sezioni professionali sbloccate senza recensione (9 nov 2026)
   const [piano, setPiano] = useState("normale");
   useEffect(() => { let vivo = true; DB.getPiano(user?.id).then((p) => { if (vivo) setPiano(p); }).catch(() => {}); return () => { vivo = false; }; }, [user?.id]);
-  const isPro = piano === "professional";
+  const [contoCollab, setContoCollab] = useState(null);
+  const [erroreContoCollab, setErroreContoCollab] = useState("");
+  const [invioContoCollab, setInvioContoCollab] = useState(false);
+  const [tentativoContoCollab, setTentativoContoCollab] = useState(0);
+  const isPro = piano === "professional" || Boolean(contoCollab);
+  useEffect(() => {
+    if (!COLLABORAZIONE || !user?.id) return;
+    let attivo = true;
+    supabase.rpc("collab_conto", { chat_: COLLABORAZIONE }).then(({ data: conto, error }) => {
+      if (!attivo) return;
+      if (error || !conto) {
+        setErroreContoCollab("Non riesco ad aprire il conto di questa collaborazione.");
+        return;
+      }
+      const salvato = conto.dati;
+      const superficie = Number(conto.immobile?.metratura);
+      setData({
+        ...DEFAULT_DATA, citta: conto.immobile?.citta || conto.citta, prezzoAcquisto: 0,
+        metratura: Number.isFinite(superficie) && superficie > 0 ? superficie : 0, prezzoVenditaMq: 0,
+        ...salvato?.data,
+      });
+      setScenari({ ...DEFAULT_SCENARI, ...salvato?.scenari });
+      setComparabili(salvato?.comparabili || [{ indirizzo: "", mq: 0, prezzo: 0, prezzoMq: 0, note: "" }]);
+      setRistItems(mergeRistItems(salvato?.ristItems));
+      setProjectName(conto.titolo);
+      setViewOnly(Boolean(conto.approvata));
+      setShowLanding(false);
+      setAuthScreen(null);
+      setStep(1);
+      setShowDash(Boolean(salvato));
+      setContoCollab({ ...conto, utente: user.id });
+    });
+    return () => { attivo = false; };
+  }, [user?.id, tentativoContoCollab]);
+  useEffect(() => {
+    if (!COLLABORAZIONE || !IN_SPACCA_APP || user) return;
+    const avviso = setTimeout(() => window.ReactNativeWebView?.postMessage("serve-accesso"), 1500);
+    return () => clearTimeout(avviso);
+  }, [user]);
   const tpLocked = LEAD_MODE && !tpUnlocked && !isPro;
   const handleTpGoReview = () => {
     window.open(TRUSTPILOT_URL, "_blank");
@@ -2627,13 +2680,14 @@ export default function App() {
   const [showPrivacy, setShowPrivacy] = useState(false);
   const [showTos, setShowTos] = useState(false);
   const [regTos, setRegTos] = useState(false);
-  const [cookieBannerDismissed, setCookieBannerDismissed] = useState(() => localStorage.getItem("cookie_consent") === "1");
+  const [cookieBannerDismissed, setCookieBannerDismissed] = useState(() => IN_SPACCA_APP || localStorage.getItem("cookie_consent") === "1");
   const [showDeleteAccount, setShowDeleteAccount] = useState(false);
   const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
   const [projectVisitors, setProjectVisitors] = useState({});
   const [expandedVisitors, setExpandedVisitors] = useState({});
   // LANDING STATE
   const [showLanding, setShowLanding] = useState(() => {
+    if (COLLABORAZIONE) return false;
     if (LEAD_MODE && !__sharedId) {
       try { if (localStorage.getItem("ll_lead_captured") === "1" && localStorage.getItem("ll_calc_state")) return false; } catch {}
     }
@@ -2688,7 +2742,7 @@ export default function App() {
       setShowDash(true);
       window._stepEnteredAt = Date.now();
       // Auto-crea progetto al primo accesso alla dashboard se loggato
-      if (user && !editingProjectId) {
+      if (user && !editingProjectId && !COLLABORAZIONE) {
         setTimeout(async () => {
           const res = await handleSaveProject();
           if (res.ok) setEditingProjectId(res.project.id);
@@ -2768,7 +2822,7 @@ export default function App() {
   };
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(null); };
+  const handleLogout = async () => { DB.trackEvent("logout"); await DB.logout(); setUser(null); setAuthScreen(COLLABORAZIONE ? "login" : null); };
   const handleLandingCTA = (goToAuth = false) => { setShowLanding(false); if (goToAuth) setAuthScreen("login"); };
 
   // ── Barra "anteprima flusso" INTERNA al calcolatore (solo ?flow=1, solo Lorenzo) ──
@@ -3124,6 +3178,27 @@ export default function App() {
     return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prezzoVenditaMqEff, numUnitaEff, alloggiTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
+  const inviaContoCollaborazione = async () => {
+    if (!contoCollab || contoCollab.approvata || invioContoCollab) return;
+    if (!data.citta?.trim() || !(data.prezzoAcquisto > 0) || !(data.metratura > 0)
+      || !Number.isInteger(data.durataOp) || data.durataOp < 1
+      || !(calc.inv > 0) || !(calc.ricTot > 0) || !Number.isFinite(calc.roi)) {
+      setErroreContoCollab("Inserisci città, prezzo di acquisto, superficie, ricavo di vendita e durata dell'operazione.");
+      return;
+    }
+    setErroreContoCollab("");
+    setInvioContoCollab(true);
+    try {
+      const { error } = await supabase.rpc("collab_invia_conto", {
+        chat_: COLLABORAZIONE, dati_: { data, scenari, comparabili, ristItems }, roi_pct_: Number((calc.roi * 100).toFixed(1)),
+      });
+      if (error) throw error;
+      window.location.assign(URL_CHAT_COLLAB);
+    } catch {
+      setErroreContoCollab("Non riesco a inviare il conto. Riprova, oppure riapri la collaborazione per verificarne lo stato.");
+      setInvioContoCollab(false);
+    }
+  };
 
   // ============================================================
   // MESSA A REDDITO — seconda uscita: si affitta invece di rivendere.
@@ -3473,6 +3548,16 @@ export default function App() {
   const stat2 = useAnimatedCounter(LEAD_MODE ? 30 : 16, 1800, statsVisible);
   const stat3 = useAnimatedCounter(100, 2000, statsVisible);
 
+  if (COLLABORAZIONE && (user ? contoCollab?.utente !== user.id : IN_SPACCA_APP)) {
+    return (
+      <main style={{ minHeight: "100vh", background: C.bg, color: C.dark, padding: "32px 20px", fontFamily: CE_SANS }}>
+        <h1 style={{ fontSize: 25, marginBottom: 12 }}>Conto economico Professional</h1>
+        <p role="status" style={{ marginBottom: 12 }}>{erroreContoCollab || "Apro il conto della collaborazione…"}</p>
+        {erroreContoCollab && <button type="button" onClick={() => { setErroreContoCollab(""); setTentativoContoCollab(v => v + 1); }}>Riprova</button>}
+        <p style={{ marginTop: 12 }}><a href={URL_CHAT_COLLAB} style={{ color: C.accent }}>Torna alla collaborazione</a></p>
+      </main>
+    );
+  }
   if (showLanding && !__sharedId) {
     const sectionPad = { maxWidth: 1200, margin: "0 auto", padding: isMobile ? "48px 20px" : "80px 24px" };
     const overline = { color: C.accent, fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: "uppercase", marginBottom: 12, fontFamily: "-apple-system, sans-serif" };
@@ -4191,13 +4276,13 @@ export default function App() {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               {step > 0 && <span style={{ color: "#6B7B94", fontSize: 12, fontFamily: "-apple-system, sans-serif" }}>{step} / {STEPS.length - 1}</span>}
-              {user ? (
+              {user && !COLLABORAZIONE ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <button onClick={() => { setAuthScreen("projects"); pushScreen("projects"); }} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>I miei progetti</button>
                   {ADMIN_EMAILS.includes(user?.email) && <button onClick={() => setAuthScreen("admin")} style={{ background: `rgba(${NAVY_RGB},0.15)`, color: "#FFF", border: "none", borderRadius: 4, padding: "4px 8px", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", display: "flex", alignItems: "center" }} title="Admin Dashboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg></button>}
                   <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esci</button>
                 </div>
-              ) : !LEAD_MODE ? (
+              ) : !user && !LEAD_MODE ? (
                 <button onClick={() => setAuthScreen("login")} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "4px 10px", fontSize: 11, fontWeight: 600, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi</button>
               ) : null}
             </div>
@@ -4320,7 +4405,7 @@ export default function App() {
             {viewOnly && <span style={{ background: "rgba(255,255,255,0.15)", color: "#FFD580", fontSize: 10, fontWeight: 600, padding: "2px 8px", borderRadius: 10, fontFamily: "-apple-system, sans-serif" }}>Solo lettura</span>}
           </div>
           <div style={{ display: "flex", gap: 6, flexShrink: 0, flexWrap: "wrap" }}>
-            {user && (
+            {user && !COLLABORAZIONE && (
               <>
                 {saveStatus && (
                   <span style={{ color: saveStatus === "saving" ? "#6B7B94" : "#6FCF97", fontSize: 11, fontWeight: 600, fontFamily: "-apple-system, sans-serif", padding: "6px 4px", display: "flex", alignItems: "center", gap: 4 }}>
@@ -4334,17 +4419,27 @@ export default function App() {
               </>
             )}
             {!user && !LEAD_MODE && <button onClick={() => setAuthScreen("login")} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: "none", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Accedi per condividere</button>}
-            {user && !viewOnly && !__sharedId && <button onClick={() => setShareAsk({ current: true })} disabled={shareLinkLoading} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Condividi"}</button>}
+            {user && !viewOnly && !__sharedId && !COLLABORAZIONE && <button onClick={() => setShareAsk({ current: true })} disabled={shareLinkLoading} style={{ background: `rgba(${ACCENT_RGB},0.15)`, color: C.accent, border: `1px solid ${C.accent}`, borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>{shareLinkLoading ? "Preparo il link..." : "Condividi"}</button>}
             <button onClick={exportExcel} style={{ background: "rgba(26,127,55,0.15)", color: "#6FCF97", border: "1px solid rgba(26,127,55,0.3)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Esporta Excel</button>
-            <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>
+            {!contoCollab?.approvata && <button onClick={() => { setShowDash(false); setStep(0); }} style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 4, padding: "6px 10px", fontWeight: 600, fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif" }}>Modifica dati</button>}
             {user && isPro && <span title="Membro Spacca il Mattone Professional: sezioni professionali sbloccate" style={{ background: `rgba(${ACCENT_RGB},0.2)`, color: C.accent, borderRadius: 4, padding: "6px 8px", fontWeight: 700, fontSize: 10, letterSpacing: 1, fontFamily: "-apple-system, sans-serif" }}>PROFESSIONAL</span>}
-            {user && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
+            {user && !COLLABORAZIONE && <button onClick={handleLogout} style={{ background: "none", border: "none", color: "#6B7B94", fontSize: 11, cursor: "pointer", fontFamily: "-apple-system, sans-serif", padding: "6px 4px" }}>Esci</button>}
           </div>
         </div>
         <div style={{ height: 3, background: C.accent }} />
       </div>
 
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px" }}>
+        {contoCollab && <section style={{ background: C.card, border: '1px solid ' + C.border, borderRadius: 12, padding: 16, marginBottom: 16, display: "grid", gap: 9 }}>
+          <h2 style={{ color: C.dark, fontSize: 17 }}>{contoCollab.titolo}</h2>
+          <p style={{ color: C.textMid, fontSize: 14 }}>{contoCollab.approvata ? "Approvata e visibile in Operazioni." : "Invia il conto per poterlo approvare dalla collaborazione."}</p>
+          {!contoCollab.approvata && <button type="button" onClick={inviaContoCollaborazione} disabled={invioContoCollab} style={{ justifySelf: "start", background: C.accent, color: "#fff", border: 0, borderRadius: 8, padding: "12px 16px", fontWeight: 700, maxWidth: "100%" }}>
+            {invioContoCollab ? "Invio in corso…" : "Invia il conto economico"}
+          </button>}
+          {erroreContoCollab && <p role="alert" style={{ color: C.accent }}>{erroreContoCollab}</p>}
+          <a href={URL_CHAT_COLLAB} style={{ color: C.accent, fontSize: 14 }}>Torna alla collaborazione</a>
+        </section>}
+
         {/* LEAD MODE — conferma post-iscrizione (solo subito dopo il gate) */}
         {LEAD_MODE && justCaptured && (
           <div style={{ background: C.greenBg, border: "1px solid #B8DFC9", borderLeft: `4px solid ${C.green}`, borderRadius: 6, padding: "12px 16px", marginBottom: 14, display: "flex", alignItems: "center", gap: 10 }}>
