@@ -2238,7 +2238,7 @@ export function ContoEconomicoPage() {
               <span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span>
             </CeBrand>
           : <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>}
-        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: "nowrap" }}>A titolo di studio</div>
+        <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: SPACCA ? "normal" : "nowrap", textAlign: "right" }}>A titolo di studio</div>
       </div>
 
       <div style={{ maxWidth: 1040, margin: "0 auto", padding: isMobile ? "28px 16px 40px" : "44px 24px 64px" }}>
