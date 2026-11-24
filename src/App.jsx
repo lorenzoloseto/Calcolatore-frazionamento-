@@ -2621,10 +2621,13 @@ export default function App() {
       const salvato = conto.dati;
       const superficie = Number(conto.immobile?.metratura);
       const prezzo = Number(conto.immobile?.prezzoAcquisto);
+      const prezzoSuggerito = Number(conto.immobile?.suggerimento?.euroMq);
       setData({
         ...DEFAULT_DATA, citta: conto.immobile?.citta || conto.citta, via: conto.immobile?.via || "",
         prezzoAcquisto: Number.isFinite(prezzo) && prezzo > 0 ? prezzo : 0,
-        metratura: Number.isFinite(superficie) && superficie > 0 ? superficie : 0, prezzoVenditaMq: 0,
+        metratura: Number.isFinite(superficie) && superficie > 0 ? superficie : 0,
+        prezzoVenditaMq: Number.isFinite(prezzoSuggerito) && prezzoSuggerito > 0 ? prezzoSuggerito : 0,
+        bufferPct: 0, provvigioniInPct: 0.03, provvigioniPct: 0, costiProfessionisti: 0,
         ...salvato?.data,
       });
       setScenari({ ...DEFAULT_SCENARI, ...salvato?.scenari });
@@ -3180,6 +3183,24 @@ export default function App() {
     return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prezzoVenditaMqEff, numUnitaEff, alloggiTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
+  const righeContoCollab = contoCollab ? [
+    ["Città", data.citta?.trim()],
+    ["Superficie", fmtMq(data.metratura)],
+    ["Prezzo di acquisto", fmtEur(data.prezzoAcquisto)],
+    ["Agenzia all'acquisto", fmtPct(data.provvigioniInPct || 0)],
+    ["Agenzia alla vendita", fmtPct(data.provvigioniPct)],
+    ["Buffer imprevisti", fmtPct(data.bufferPct)],
+    ["Professionisti", fmtEur(data.costiProfessionisti)],
+    ["Ricavo di rivendita previsto", fmtEur(calc.ricTot)],
+    ["Investimento totale", fmtEur(calc.inv)],
+    ["Margine lordo previsionale", fmtEur(calc.margine)],
+    ["Tempi previsti", fmtMesi(data.durataOp)],
+    ["ROI previsionale", fmtPct(calc.roi)],
+  ] : [];
+  const suggerimentoCollab = contoCollab?.immobile?.suggerimento;
+  const notaPrezzoCollab = suggerimentoCollab?.euroMq
+    ? `Suggerito: ${fmtEur(suggerimentoCollab.euroMq)}/m², mediana di ${suggerimentoCollab.numero} ${suggerimentoCollab.numero === 1 ? "annuncio ristrutturato" : "annunci ristrutturati"} in vendita entro 300 m in linea d’aria. Puoi modificarlo.`
+    : "Nessun prezzo suggerito dai comparabili entro 300 m. Inserisci il tuo prezzo di rivendita.";
   const inviaContoCollaborazione = async () => {
     if (!contoCollab || contoCollab.approvata || invioContoCollab) return;
     if (!data.citta?.trim() || !(data.prezzoAcquisto > 0) || !(data.metratura > 0)
@@ -3191,13 +3212,15 @@ export default function App() {
     setErroreContoCollab("");
     setInvioContoCollab(true);
     try {
-      const { error } = await supabase.rpc("collab_invia_conto", {
+      const testo = ["Conto economico confermato", ...righeContoCollab.map(([voce, valore]) => `${voce}: ${valore}`)].join("\n");
+      const { error } = await supabase.rpc("collab_pubblica_conto", {
         chat_: COLLABORAZIONE, dati_: { data, scenari, comparabili, ristItems }, roi_pct_: Number((calc.roi * 100).toFixed(1)),
+        testo_: testo,
       });
       if (error) throw error;
       window.location.assign(URL_CHAT_COLLAB);
     } catch {
-      setErroreContoCollab("Non riesco a inviare il conto. Riprova, oppure riapri la collaborazione per verificarne lo stato.");
+      setErroreContoCollab("Non riesco a pubblicare il conto. Riprova o riapri la collaborazione per verificarne lo stato.");
       setInvioContoCollab(false);
     }
   };
@@ -4323,6 +4346,7 @@ export default function App() {
                   <label style={{ display: "block", color: C.textMid, fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", marginBottom: 8, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>{COLLABORAZIONE && f.field === "metratura" ? "Superficie dell'immobile" : f.label}</label>
                   <WizardNumberInput value={COLLABORAZIONE && !data[f.field] ? "" : data[f.field]} onChange={(v) => upd(f.field, v)} suffix={f.suffix} step={f.step} autoFocus={i === 0 && !COLLABORAZIONE} />
                   {f.field === "prezzoAcquisto" && contoCollab?.immobile?.tipoPrezzo && <p style={{ marginTop: 8, color: C.textMid, fontSize: 13 }}>Valore iniziale dalla scheda asta: {contoCollab.immobile.tipoPrezzo === "offerta_minima" ? "offerta minima" : "base d'asta"}.</p>}
+                  {f.field === "prezzoVenditaMq" && contoCollab && <p style={{ marginTop: 8, color: C.textMid, fontSize: 13 }}>{notaPrezzoCollab}</p>}
                   {f.field === "prezzoAcquisto" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Equivale a {fmtEur(Math.round(data.prezzoAcquisto / data.metratura))}/mq</div>}
                   {f.field === "prezzoVenditaMq" && data.metratura > 0 && <div style={{ marginTop: 8, color: C.textLight, fontSize: 13, textAlign: "center", fontFamily: "-apple-system, sans-serif" }}>Ricavo totale stimato: <strong style={{ color: C.dark }}>{fmtEur(data.prezzoVenditaMq * data.metratura)}</strong></div>}
                 </div>
@@ -4435,9 +4459,12 @@ export default function App() {
       <div style={{ maxWidth: 960, margin: "0 auto", padding: "20px 16px" }}>
         {contoCollab && <section style={{ background: C.card, border: '1px solid ' + C.border, borderRadius: 12, padding: 16, marginBottom: 16, display: "grid", gap: 9 }}>
           <h2 style={{ color: C.dark, fontSize: 17 }}>{contoCollab.titolo}</h2>
-          <p style={{ color: C.textMid, fontSize: 14 }}>{contoCollab.approvata ? "Approvata e visibile in Operazioni." : "Invia il conto per poterlo approvare dalla collaborazione."}</p>
+          <p style={{ color: C.textMid, fontSize: 14 }}>{contoCollab.approvata ? "Approvata e visibile in Operazioni." : "Controlla i dati che saranno pubblicati nella chat della collaborazione."}</p>
+          {!contoCollab.approvata && <dl style={{ display: "grid", gap: 5, color: C.dark, fontSize: 14 }}>
+            {righeContoCollab.map(([voce, valore]) => <div key={voce} style={{ display: "flex", gap: 12, justifyContent: "space-between" }}><dt>{voce}</dt><dd style={{ fontWeight: 700, textAlign: "right", overflowWrap: "anywhere" }}>{valore}</dd></div>)}
+          </dl>}
           {!contoCollab.approvata && <button type="button" onClick={inviaContoCollaborazione} disabled={invioContoCollab} style={{ justifySelf: "start", background: C.accent, color: "#fff", border: 0, borderRadius: 8, padding: "12px 16px", fontWeight: 700, maxWidth: "100%" }}>
-            {invioContoCollab ? "Invio in corso…" : "Invia il conto economico"}
+            {invioContoCollab ? "Pubblicazione in corso…" : "Conferma e pubblica nella collaborazione"}
           </button>}
           {erroreContoCollab && <p role="alert" style={{ color: C.accent }}>{erroreContoCollab}</p>}
           <a href={URL_CHAT_COLLAB} style={{ color: C.accent, fontSize: 14 }}>Torna alla collaborazione</a>
@@ -4667,7 +4694,7 @@ export default function App() {
                 </div>
                 <p style={{ color: C.textLight, fontSize: 10, margin: "0" }}>Costo: {fmtEur(Math.round(data.interessiSomma * data.interessiPct))}</p>
               </div>
-              <DashPctInput label="Buffer imprevisti" value={data.bufferPct} onChange={(v) => upd("bufferPct", v)} note="Consigliato: 15-20%" disabled={viewOnly} info="Riserva di sicurezza per gli imprevisti di cantiere, calcolata in % sul costo di ristrutturazione. Consigliato il 15-20%." />
+              <DashPctInput label="Buffer imprevisti" value={data.bufferPct} onChange={(v) => upd("bufferPct", v)} note={contoCollab ? undefined : "Consigliato: 15-20%"} disabled={viewOnly} info={"Riserva di sicurezza per gli imprevisti di cantiere, calcolata in % sul costo di ristrutturazione." + (contoCollab ? "" : " Consigliato il 15-20%.")} />
               <div style={{ marginTop: 12, borderTop: `1px solid ${C.border}`, paddingTop: 8 }}>
                 <DataRow label="Ristrutturazione + impianti" value={fmtEur(calc.costoRistTot)} />
                 <DataRow label="Oneri comunali" value={fmtEur(data.oneriComunali)} />
