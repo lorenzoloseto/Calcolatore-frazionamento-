@@ -546,9 +546,10 @@ const fmtMq = (n) => fmt(Math.round(n)) + " mq";
 const fmtMesi = (n) => Math.round(n) + (Math.round(n) === 1 ? " mese" : " mesi");
 // Tema "Spacca il Mattone" (Lorenzo, 10 nov 2026: "armonizza la pagina del calcolatore dentro la community con la grafica di Spacca il Mattone").
 // Si attiva quando il calcolatore si apre dalla community (utm_source=community) o con ?tema=spacca, resta memorizzato (localStorage ll_tema)
-// finché non si apre con ?tema=base. Cambia colori (vinaccia, oro, rosso della community), font (DM Sans + Manrope) e logo. Mai dentro l'app iOS.
+// finché non si apre con ?tema=base. La WebView di Spacca usa sempre il tema, senza salvarlo.
 const SPACCA = (() => {
   if (isNative || typeof window === "undefined") return false;
+  if (IN_SPACCA_APP) return true;
   try {
     const q = new URLSearchParams(window.location.search);
     if (q.get("tema") === "base") { localStorage.removeItem("ll_tema"); return false; }
@@ -2049,6 +2050,7 @@ const CE_TIPI = [
   { key: "societa", label: "Società", desc: "Acquisto tramite SRL o altra società" },
 ];
 
+const CeBrand = IN_SPACCA_APP ? "div" : "a";
 const CE_SANS = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 const CE_LBL = { display: "block", color: C.textMid, fontSize: 12, fontWeight: 700, letterSpacing: 0.6, textTransform: "uppercase", fontFamily: CE_SANS, marginBottom: 6 };
 const CE_INP = { width: "100%", boxSizing: "border-box", background: C.inputBg, border: `2px solid ${C.inputBorder}`, borderRadius: 8, color: C.dark, fontSize: 18, fontWeight: 700, padding: "12px 14px", outline: "none", fontFamily: "'Georgia', serif" };
@@ -2092,7 +2094,7 @@ export function ContoEconomicoPage() {
   const num = (v) => { const n = parseFloat(String(v).replace(/\./g, "").replace(",", ".")); return isFinite(n) && n > 0 ? n : 0; };
 
   useEffect(() => {
-    document.title = "Conto Economico Immobiliare — Lorenzo Loseto";
+    document.title = `Conto Economico Immobiliare — ${SPACCA ? "Spacca il Mattone" : "Lorenzo Loseto"}`;
     DB.trackEvent("page_view", { path: window.location.pathname, page: "conto-economico", ...LEAD_UTM });
     const h = () => setIsMobile(window.innerWidth < 640);
     window.addEventListener("resize", h);
@@ -2223,7 +2225,7 @@ export function ContoEconomicoPage() {
     }
   };
 
-  const invInp = { width: "100%", boxSizing: "border-box", background: "#F7F9FB", border: "2px solid #D8E0E8", borderRadius: 8, color: C.dark, fontSize: 15, fontWeight: 600, padding: "11px 13px", outline: "none", fontFamily: CE_SANS };
+  const invInp = { width: "100%", boxSizing: "border-box", background: SPACCA ? C.inputBg : "#F7F9FB", border: `2px solid ${SPACCA ? C.inputBorder : "#D8E0E8"}`, borderRadius: 8, color: C.dark, fontSize: 15, fontWeight: 600, padding: "11px 13px", outline: "none", fontFamily: CE_SANS };
   const resetAll = () => { setF(CE_INIT); setInv({ nome: "", email: "", telefono: "", note: "", privacy: false }); setInvState({ sending: false, sent: false, error: "" }); trackedRef.current = false; };
 
   return (
@@ -2231,7 +2233,10 @@ export function ContoEconomicoPage() {
       {/* NAVBAR */}
       <div style={{ background: C.navy, padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
         {SPACCA
-          ? <a href={SPACCA_COMMUNITY} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}><img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: 44, width: "auto", display: "block" }} /><span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span></a>
+          ? <CeBrand href={IN_SPACCA_APP ? undefined : SPACCA_COMMUNITY} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+              <img src={SPACCA_LOGO} alt="Spacca il Mattone" style={{ height: 44, width: "auto", display: "block" }} />
+              <span style={{ color: C.goldBar, fontSize: 11, fontWeight: 800, letterSpacing: 2, textTransform: "uppercase" }}>Community</span>
+            </CeBrand>
           : <a href="https://lorenzoloseto.com/" style={{ color: "#FFF", fontFamily: "'Georgia', serif", fontSize: 15, fontWeight: 700, letterSpacing: 2.5, textDecoration: "none" }}>LORENZO LOSETO</a>}
         <div style={{ color: "rgba(255,255,255,0.6)", fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", whiteSpace: "nowrap" }}>A titolo di studio</div>
       </div>
@@ -2351,7 +2356,7 @@ export function ContoEconomicoPage() {
                         <input type="tel" value={inv.telefono} onChange={(e) => updInv("telefono", e.target.value)} placeholder="Telefono (facoltativo)" inputMode="tel" autoComplete="tel" style={invInp} />
                         <textarea value={inv.note} onChange={(e) => updInv("note", e.target.value)} placeholder="Due righe sull'operazione: dove si trova, cosa vorresti farci (facoltativo)" rows={3} style={{ ...invInp, resize: "vertical", fontWeight: 500, lineHeight: 1.4 }} />
                         <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer" }}>
-                          <input type="checkbox" checked={inv.privacy} onChange={(e) => updInv("privacy", e.target.checked)} style={{ marginTop: 3, flexShrink: 0 }} />
+                          <input type="checkbox" checked={inv.privacy} onChange={(e) => updInv("privacy", e.target.checked)} style={{ marginTop: 3, flexShrink: 0, accentColor: SPACCA ? C.accent : undefined }} />
                           <span style={{ color: C.textMid, fontSize: 12, lineHeight: 1.4 }}>Accetto l'<span onClick={(e) => { e.preventDefault(); setShowPrivacy(true); }} style={{ textDecoration: "underline", cursor: "pointer" }}>informativa privacy</span>: i dati servono solo a leggere il conto economico e ricontattarti in merito.</span>
                         </label>
                         {invState.error && <div style={{ background: "#FDECEC", border: "1px solid #F5C6C6", borderRadius: 6, color: "#B3261E", fontSize: 13, padding: "10px 12px" }}>{invState.error}</div>}
