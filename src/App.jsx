@@ -3183,8 +3183,10 @@ export default function App() {
     return { costoRistTot, buffer, tasseAcquisto, provvigioniIn, speseBancarie, interessi, altriCosti, costiFraz, inv, mqU, pMqAcq, ricU, ricTot, prezzoVenditaMqEff, numUnitaEff, alloggiTot, prov, ricNet, margine, roi, roiAnn, incMq, pess: sc(scenari.varPrezzoDown, scenari.varCostiUp, scenari.mesiExtra), real: sc(0, 0, 0), ott: sc(scenari.varPrezzoUp, scenari.varCostiDown, -scenari.mesiMeno) };
   }, [data, scenari]);
   const verdict = calc.pess.margine > 0;
+  const tipologiaOperazione = String(data.tipologiaOperazione || "").trim();
   const righeContoCollab = contoCollab ? [
     ["Città", data.citta?.trim()],
+    ...(tipologiaOperazione ? [["Tipologia", tipologiaOperazione]] : []),
     ["Superficie", fmtMq(data.metratura)],
     ["Prezzo di acquisto", fmtEur(data.prezzoAcquisto)],
     ["Agenzia all'acquisto", fmtPct(data.provvigioniInPct || 0)],
@@ -3214,7 +3216,12 @@ export default function App() {
     try {
       const testo = ["Conto economico confermato", ...righeContoCollab.map(([voce, valore]) => `${voce}: ${valore}`)].join("\n");
       const { error } = await supabase.rpc("collab_pubblica_conto", {
-        chat_: COLLABORAZIONE, dati_: { data, scenari, comparabili, ristItems }, roi_pct_: Number((calc.roi * 100).toFixed(1)),
+        chat_: COLLABORAZIONE,
+        dati_: {
+          data: { ...data, tipologiaOperazione }, scenari, comparabili, ristItems,
+          riepilogo: { investimentoTotale: Math.round(calc.inv) },
+        },
+        roi_pct_: Number((calc.roi * 100).toFixed(1)),
         testo_: testo,
       });
       if (error) throw error;
@@ -4460,6 +4467,13 @@ export default function App() {
         {contoCollab && <section style={{ background: C.card, border: '1px solid ' + C.border, borderRadius: 12, padding: 16, marginBottom: 16, display: "grid", gap: 9 }}>
           <h2 style={{ color: C.dark, fontSize: 17 }}>{contoCollab.titolo}</h2>
           <p style={{ color: C.textMid, fontSize: 14 }}>{contoCollab.approvata ? "Approvata e visibile in Operazioni." : "Controlla i dati che saranno pubblicati nella chat della collaborazione."}</p>
+          {contoCollab.approvata && tipologiaOperazione && <p style={{ color: C.textMid, fontSize: 14 }}>{tipologiaOperazione}</p>}
+          {!contoCollab.approvata && <label style={{ display: "grid", gap: 4, color: C.dark, fontSize: 14 }}>
+            Tipologia intervento
+            <input type="text" maxLength={60} value={data.tipologiaOperazione || ""}
+              onChange={(e) => upd("tipologiaOperazione", e.target.value)} placeholder="Es. Frazionamento"
+              style={{ width: "100%", padding: "9px 11px", border: "1px solid " + C.inputBorder, borderRadius: 8, background: C.inputBg, color: C.dark, fontSize: 16 }} />
+          </label>}
           {!contoCollab.approvata && <dl style={{ display: "grid", gap: 5, color: C.dark, fontSize: 14 }}>
             {righeContoCollab.map(([voce, valore]) => <div key={voce} style={{ display: "flex", gap: 12, justifyContent: "space-between" }}><dt>{voce}</dt><dd style={{ fontWeight: 700, textAlign: "right", overflowWrap: "anywhere" }}>{valore}</dd></div>)}
           </dl>}
